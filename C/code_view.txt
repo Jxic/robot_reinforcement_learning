@@ -1,0 +1,41 @@
+Model:
+    Fields:
+        Network
+        Loss
+        Optimizer
+    Implements:
+        fit()
+        predict()
+
+Network:
+    Fields:
+        Layer[]
+    Implements:
+        add()
+
+(Abstract) Layer:
+    Fields:
+        Matrix_t
+    Implements:
+        forward()
+        backward()
+        update()
+
+Struct Matrix_t
+    int[] dimension
+    double[][] data
+
+Matrix_op:
+    Implements:
+        intialize(Matrix_t*, initializer)
+        elem_wise_add(Matrix_t* ret, Matrix_t* a, Matrix_t* b) -> 
+                                                            treat the one with higher dimension as 
+                                                            stack of lower dimension matrices and do adding one by one
+        elem_wise_minus(...)
+        elem_wise_mult(...)
+        elem_wise_div(...)
+        matmul(...)
+        transpose(Matrix_t* ret, Matrix_t* target)
+
+Extra:
+    Quantization
