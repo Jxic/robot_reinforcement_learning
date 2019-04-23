@@ -3,8 +3,8 @@
 
 typedef struct _matrix_t {
     double* data;
-    int* dimensions; //with the first being the number of dimensions
-    int size;
+    int rows;
+    int cols;
 } matrix_t;
 
 

@@ -6,10 +6,10 @@
 void dummy();
 void initialize(matrix_t* mat, char* initializer);
 
-matrix_t* elem_wise_add(matrix_t* a, matrix_t* b);
-matrix_t* elem_wise_minus(matrix_t* a, matrix_t* b);
-matrix_t* elem_wise_mult(matrix_t* a, matrix_t* b);
-matrix_t* elem_wise_div(matrix_t* a, matrix_t* b);
+int elem_wise_add(matrix_t* a, matrix_t* b);
+int elem_wise_minus(matrix_t* a, matrix_t* b);
+int elem_wise_mult(matrix_t* a, matrix_t* b);
+
 matrix_t* matmul(matrix_t* a, matrix_t* b);
 matrix_t* transpose(matrix_t* a);
 
