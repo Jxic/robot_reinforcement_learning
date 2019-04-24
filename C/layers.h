@@ -19,14 +19,28 @@ typedef struct _sigmoid_layer {
   matrix_t* cache;
 } sigmoid_layer;
 
+typedef struct _softmax_layer {
+  matrix_t* cache;
+} softmax_layer;
+
+typedef struct _placeholder_layer {
+  
+} placeholder_layer;
+
+typedef struct _loss_layer {
+
+} loss_layer;
+
 typedef union _layer_data {
   relu_layer r;
   linear_layer l;
   sigmoid_layer s;
+  placeholder_layer p;
+  loss_layer lo;
 } layer_data;
 
 typedef enum _layer_type {
-  relu, linear, sigmoid
+  relu, linear, sigmoid, placeholder, loss
 } layer_type;
 
 typedef struct _layer {

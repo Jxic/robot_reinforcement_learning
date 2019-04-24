@@ -5,13 +5,20 @@
 #include <string.h>
 #include <math.h>
 
+// hidden layer neurons forward
+static int linear_forward(layer* l, matrix_t* x);
+// activation layer forward
 static int relu_forward(layer* l, matrix_t* x);
 static int sigmoid_forward(layer* l, matrix_t* x);
-static int linear_forward(layer* l, matrix_t* x);
+static int softmax_forward(layer* l, matrix_t* x);
 
+// hidden layer neurons forward
+static int linear_backward(layer* l, matrix_t* grad);
+// activation layer forward
 static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
-static int linear_backward(layer* l, matrix_t* grad);
+static int softmax_backward(layer* l, matrix_t* grad);
+
 
 int forward(layer* l, matrix_t* x) {
   switch (l->type)
@@ -58,7 +65,7 @@ static int relu_forward(layer* l, matrix_t* x) {
   return 1;
 }
 
-static int sigmoid_forwar(layer* l, matrix_t* x) {
+static int sigmoid_forward(layer* l, matrix_t* x) {
   sigmoid_layer layer_data = l->data.s;
   int data_size = x->rows * x->cols;
   for (int i = 0; i < data_size; ++i) x->data[i] = 1 / (1 + exp(-x->data[i]));
@@ -82,3 +89,50 @@ static int linear_forward(layer* l, matrix_t* x) {
   return 1;
 }
 
+static int softmax_forward(layer* l, matrix_t* x) {
+  return 1;
+}
+
+static int linear_backward(layer* l, matrix_t* grad) {
+  // caveat: memory needs to be realloced to hold new data
+  linear_layer layer_data = l->data.l;
+
+  matrix_t* cache_T = transpose(layer_data.cache);
+  l->data.l.grad_W = matmul(cache_T, grad);
+  matrix_t ones;
+  ones.cols = grad->rows;
+  ones.rows = 1;
+  double ones_data[grad->rows];
+  ones.data = ones_data;
+  l->data.l.grad_b = matmul(&ones, grad);
+  
+  matrix_t* w_T = transpose(layer_data.W);
+  matrix_t* new_grad = matmul(grad, w_T);
+  memcpy(grad->data, new_grad->data, new_grad->cols*new_grad->rows*sizeof(double));
+  grad->rows = new_grad->rows;
+  grad->cols = new_grad->cols;
+
+  return 1;
+}
+
+static int relu_backward(layer* l, matrix_t* grad) {
+  elem_wise_mult(grad, l->data.r.cache);
+  return 1;
+}
+
+static int sigmoid_backward(layer* l, matrix_t* grad) {
+  matrix_t temp;
+  sigmoid_layer layer_data = l->data.s;
+  int size = layer_data.cache->cols * layer_data.cache->rows * sizeof(double)
+              + 2 * sizeof(int);
+  memcpy(&temp, layer_data.cache, size);
+  neg(&temp);
+  add_scalar(&temp, 1);
+  elem_wise_mult(&temp, layer_data.cache);
+  elem_wise_mult(grad, &temp);
+  return 1;
+}
+
+static int softmax_backward(layer* l, matrix_t* grad) {
+  return 1;
+}

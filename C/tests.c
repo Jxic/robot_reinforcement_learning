@@ -16,6 +16,8 @@ matrix_t* mat_4_3();
 matrix_t* mat_3_4();
 matrix_t* mat_1_3();
 matrix_t* mat_3_3_wiz_bias();
+matrix_t* mat_3_3_wiz_scalar();
+matrix_t* mat_3_3_neg();
 
 char* matrix_test_elem_wise_add();
 char* matrix_test_elem_wise_minus();
@@ -23,7 +25,9 @@ char* matrix_test_elem_wise_mult();
 char* matrix_test_matmul();
 char* matrix_test_transpose();
 char* matrix_test_add_bias();
+char* matrix_test_add_scalar();
 char* matrix_test_equal();
+char* matrix_test_neg();
 
 char* test_all(){
   mu_run_test(matrix_test_equal);
@@ -32,7 +36,9 @@ char* test_all(){
   mu_run_test(matrix_test_elem_wise_mult);
   mu_run_test(matrix_test_matmul);
   mu_run_test(matrix_test_transpose);
+  mu_run_test(matrix_test_add_scalar);
   mu_run_test(matrix_test_add_bias);
+  mu_run_test(matrix_test_neg);
   return 0;
 }
 
@@ -47,6 +53,22 @@ void test_results(){
   if(result != 0) {
     exit(0);
   }
+}
+
+char* matrix_test_neg() {
+  matrix_t* test_mat = mat_3_3();
+  neg(test_mat);
+  mu_assert("[MATRIX_TEST_NEG] wrong result finding negative result",
+            equal(mat_3_3_neg(), test_mat));
+  return 0;
+}
+
+char* matrix_test_add_scalar() {
+  matrix_t* test_mat = mat_3_3();
+  add_scalar(test_mat, 3);
+  mu_assert("[MATRIX_TEST_ADD_SCALAR] wrong result adding scalar",
+            equal(mat_3_3_wiz_scalar(), test_mat));
+  return 0;
 }
 
 char* matrix_test_add_bias() {
@@ -187,6 +209,28 @@ matrix_t* mat_3_3_wiz_bias(){
   matrix_t* new_mat = malloc(sizeof(matrix_t));
   double* data = calloc(9, sizeof(double));
   double answer[] = {2,4,6,5,7,9,8,10,12};
+  memcpy(data, answer, 9*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 3;
+  new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_3_3_wiz_scalar() {
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(9, sizeof(double));
+  double answer[] = {4,5,6,7,8,9,10,11,12};
+  memcpy(data, answer, 9*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 3;
+  new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_3_3_neg() {
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(9, sizeof(double));
+  double answer[] = {-1,-2,-3,-4,-5,-6,-7,-8,-9};
   memcpy(data, answer, 9*sizeof(double));
   new_mat->data = data;
   new_mat->rows = 3;

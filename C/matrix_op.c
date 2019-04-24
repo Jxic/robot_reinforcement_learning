@@ -72,6 +72,21 @@ int add_bias(matrix_t* a, matrix_t* b) {
   return 1;
 }
 
+int add_scalar(matrix_t* a, double b) {
+  assert(a->rows > 0 && a->cols >0);
+  for (int i = 0; i < a->rows*a->cols; ++i) {
+    a->data[i] += b;
+  }
+
+  return 1;
+}
+
+int neg(matrix_t* a) {
+  assert(a->rows > 0 && a->cols > 0);
+  for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = -a->data[i];
+  return 1;
+}
+
 matrix_t* matmul(matrix_t* a, matrix_t* b) {
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
@@ -117,3 +132,10 @@ matrix_t* transpose(matrix_t* a) {
   }
   return new_mat;
 }
+
+int free_matrix(matrix_t* t) {
+  free(t->data);
+  free(t);
+  return 1;
+}
+
