@@ -27,20 +27,22 @@ typedef struct _placeholder_layer {
   
 } placeholder_layer;
 
-typedef struct _loss_layer {
-
-} loss_layer;
+typedef struct _mse_loss_layer {
+  matrix_t* cache_pred;
+  matrix_t* cache_target;
+} mse_loss_layer;
 
 typedef union _layer_data {
   relu_layer r;
   linear_layer l;
   sigmoid_layer s;
   placeholder_layer p;
-  loss_layer lo;
+  softmax_layer so;
+  mse_loss_layer m;
 } layer_data;
 
 typedef enum _layer_type {
-  relu, linear, sigmoid, placeholder, loss
+  relu, linear, sigmoid, placeholder, mse_loss
 } layer_type;
 
 typedef struct _layer {
@@ -51,6 +53,9 @@ typedef struct _layer {
 
 int forward(layer* l, matrix_t* x);
 int backward(layer* l, matrix_t* grad);
-int update(layer* l);
+int update(layer* l, double learning_rate);
+
+double loss_forward(layer* l, matrix_t* x, matrix_t* target);
+matrix_t* loss_backward(layer* l);
 
 #endif

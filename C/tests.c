@@ -18,6 +18,7 @@ matrix_t* mat_1_3();
 matrix_t* mat_3_3_wiz_bias();
 matrix_t* mat_3_3_wiz_scalar();
 matrix_t* mat_3_3_neg();
+matrix_t* mat_3_3_wiz_factor();
 
 char* matrix_test_elem_wise_add();
 char* matrix_test_elem_wise_minus();
@@ -28,6 +29,8 @@ char* matrix_test_add_bias();
 char* matrix_test_add_scalar();
 char* matrix_test_equal();
 char* matrix_test_neg();
+char* matrix_test_mult_scalar();
+char* matrix_test_mean();
 
 char* test_all(){
   mu_run_test(matrix_test_equal);
@@ -39,6 +42,8 @@ char* test_all(){
   mu_run_test(matrix_test_add_scalar);
   mu_run_test(matrix_test_add_bias);
   mu_run_test(matrix_test_neg);
+  mu_run_test(matrix_test_mult_scalar);
+  mu_run_test(matrix_test_mean);
   return 0;
 }
 
@@ -53,6 +58,22 @@ void test_results(){
   if(result != 0) {
     exit(0);
   }
+}
+
+char* matrix_test_mean() {
+  matrix_t* test_mat = mat_3_3();
+  double answer = 5;
+  mu_assert("[MATRIX_TEST_MEAN] wrong result averaging",
+            mean(test_mat) == answer);
+  return 0;
+}
+
+char* matrix_test_mult_scalar() {
+  matrix_t* test_mat = mat_3_3();
+  mult_scalar(test_mat, 3);
+  mu_assert("[MATRIX_TEST_MULT_SCALAR] wrong result multiplying scalar",
+            equal((mat_3_3_wiz_factor()), test_mat));
+  return 0;
 }
 
 char* matrix_test_neg() {
@@ -94,7 +115,7 @@ char* matrix_test_matmul(){
 
 char* matrix_test_elem_wise_mult(){
   matrix_t* a = mat_3_3();
-  elem_wise_mult(a, mat_3_3());
+  elem_wise_mult(a, a);
   mu_assert("[MATRIX_TEST_ELEM_WISE_MULT] wrong result on same dimension multiplication", 
             equal(mat_3_3_self_mult(), a));
   return 0;
@@ -231,6 +252,17 @@ matrix_t* mat_3_3_neg() {
   matrix_t* new_mat = malloc(sizeof(matrix_t));
   double* data = calloc(9, sizeof(double));
   double answer[] = {-1,-2,-3,-4,-5,-6,-7,-8,-9};
+  memcpy(data, answer, 9*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 3;
+  new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_3_3_wiz_factor() {
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(9, sizeof(double));
+  double answer[] = {3,6,9,12,15,18,21,24,27};
   memcpy(data, answer, 9*sizeof(double));
   new_mat->data = data;
   new_mat->rows = 3;

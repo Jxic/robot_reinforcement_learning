@@ -4,6 +4,7 @@
 #include "matrix_op.h"
 #include <string.h>
 #include <math.h>
+#include <assert.h>
 
 // hidden layer neurons forward
 static int linear_forward(layer* l, matrix_t* x);
@@ -19,10 +20,15 @@ static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
 static int softmax_backward(layer* l, matrix_t* grad);
 
+// hidden layer weights update
+static int linear_update(layer* l, double learning_rate);
+
+// loss layer forward and backward
+static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
+static matrix_t* mse_loss_backward(layer* l);
 
 int forward(layer* l, matrix_t* x) {
-  switch (l->type)
-  {
+  switch (l->type) {
     case relu:
       return relu_forward(l, x);
     case linear:
@@ -30,14 +36,13 @@ int forward(layer* l, matrix_t* x) {
     case sigmoid:
       return sigmoid_forward(l, x);
     default:
-      printf("[FORWARD] Encountered unrecognized layer");
+      printf("[HIDDEN FORWARD] Encountered unrecognized layer, %d", l->type);
       exit(1);
   }
 }
 
 int backward(layer* l, matrix_t* grad) {
-  switch (l->type)
-  {
+  switch (l->type) {
     case relu:
       return relu_backward(l, grad);
     case linear:
@@ -45,15 +50,57 @@ int backward(layer* l, matrix_t* grad) {
     case sigmoid:
       return sigmoid_backward(l, grad);
     default:
-      printf("[BACKWARD] Encountered unrecognize layer");
+      printf("[HIDDEN BACKWARD] Encountered unrecognize layer, %d", l->type);
       exit(1);
   }
+}
+
+int update(layer* l, double learning_rate) {
+  switch (l->type) {
+    case linear:
+      return linear_update(l, learning_rate);
+    default:
+      break;
+  }
+  return 1;
+}
+
+double loss_forward(layer* l, matrix_t* x, matrix_t* target) {
+  switch (l->type) {
+    case mse_loss:
+      return mse_loss_forward(l, x, target);
+    default:
+      printf("[LOSS FORWARD] Encountered unrecognized layer, %d", l->type);
+      exit(1);
+  }
+  return 1;
+}
+
+matrix_t* loss_backward(layer* l) {
+  switch (l->type) {
+    case mse_loss:
+      return mse_loss_backward(l);
+    default:
+      printf("[LOSS BACKWARD] Encountered unrecognized layer, %d", l->type);
+      exit(1);
+  }
+  return 1;
+}
+
+int linear_update(layer* l, double learning_rate) {
+  assert(l->type == linear);
+  linear_layer layer_data = l->data.l;
+  mult_scalar(layer_data.grad_b, learning_rate);
+  mult_scalar(layer_data.grad_W, learning_rate);
+  elem_wise_add(layer_data.W, layer_data.grad_W);
+  elem_wise_add(layer_data.b, layer_data.grad_b);
+  return 1;
 }
 
 static int relu_forward(layer* l, matrix_t* x) {
   relu_layer layer_data = l->data.r;
   int data_size = x->rows * x->cols;
-  memcpy(layer_data.cache->data, x->data, data_size * sizeof(double));
+  copy_matrix(layer_data.cache, x);
   for (int i = 0; i < data_size; ++i) {
     if (x->data[i] < 0) {
       x->data[i] = layer_data.cache->data[i] = 0;
@@ -69,7 +116,7 @@ static int sigmoid_forward(layer* l, matrix_t* x) {
   sigmoid_layer layer_data = l->data.s;
   int data_size = x->rows * x->cols;
   for (int i = 0; i < data_size; ++i) x->data[i] = 1 / (1 + exp(-x->data[i]));
-  memcpy(layer_data.cache->data, x->data, data_size * sizeof(double));
+  copy_matrix(layer_data.cache, x);
   return 1;
 }
 
@@ -77,25 +124,30 @@ static int linear_forward(layer* l, matrix_t* x) {
   //caveat: address pointed by x should have enough space to hold new data
   linear_layer layer_data = l->data.l;
   int data_size = x->rows * x->cols;
-  memcpy(layer_data.cache->data, x->data, data_size * sizeof(double));
+  copy_matrix(layer_data.cache, x);
   matrix_t* wx = matmul(x, layer_data.W);
   add_bias(wx, layer_data.b);
   
   //update the data flowing through the network
-  memcpy(x->data, wx->data, wx->cols * wx->rows * sizeof(double));
+  copy_matrix(x, wx);
   x->rows = wx->rows;
   x->cols = wx->cols;
 
+  free_matrix(wx);
   return 1;
 }
 
 static int softmax_forward(layer* l, matrix_t* x) {
+  softmax_layer layer_data = l->data.so;
+
   return 1;
 }
 
 static int linear_backward(layer* l, matrix_t* grad) {
   // caveat: memory needs to be realloced to hold new data
   linear_layer layer_data = l->data.l;
+  free_matrix(l->data.l.grad_W);
+  free_matrix(l->data.l.grad_b);
 
   matrix_t* cache_T = transpose(layer_data.cache);
   l->data.l.grad_W = matmul(cache_T, grad);
@@ -108,9 +160,11 @@ static int linear_backward(layer* l, matrix_t* grad) {
   
   matrix_t* w_T = transpose(layer_data.W);
   matrix_t* new_grad = matmul(grad, w_T);
-  memcpy(grad->data, new_grad->data, new_grad->cols*new_grad->rows*sizeof(double));
-  grad->rows = new_grad->rows;
-  grad->cols = new_grad->cols;
+  copy_matrix(grad, new_grad);
+
+  free_matrix(cache_T);
+  free_matrix(w_T);
+  free_matrix(new_grad);
 
   return 1;
 }
@@ -125,7 +179,7 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
   sigmoid_layer layer_data = l->data.s;
   int size = layer_data.cache->cols * layer_data.cache->rows * sizeof(double)
               + 2 * sizeof(int);
-  memcpy(&temp, layer_data.cache, size);
+  copy_matrix(&temp, layer_data.cache);
   neg(&temp);
   add_scalar(&temp, 1);
   elem_wise_mult(&temp, layer_data.cache);
@@ -135,4 +189,28 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
 
 static int softmax_backward(layer* l, matrix_t* grad) {
   return 1;
+}
+
+static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
+  mse_loss_layer layer_data = l->data.m;
+  copy_matrix(layer_data.cache_pred, x);
+  copy_matrix(layer_data.cache_target, target);
+  elem_wise_minus(x, target);
+  elem_wise_mult(x, x);
+  double loss = mean(x);
+  free_matrix(x);
+  free_matrix(target);
+  return loss;
+}
+
+static matrix_t* mse_loss_backward(layer* l) {
+  mse_loss_layer layer_data = l->data.m;
+  int cols = layer_data.cache_target->cols;
+  int rows = layer_data.cache_target->rows;
+  matrix_t* grad = new_matrix(rows, cols);
+  copy_matrix(grad, layer_data.cache_pred);
+  elem_wise_minus(grad, layer_data.cache_target);
+  mult_scalar(grad, 2);
+  mult_scalar(grad, rows);
+  return grad;
 }
