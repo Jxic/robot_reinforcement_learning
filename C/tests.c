@@ -14,12 +14,15 @@ matrix_t* mat_3_3_self_mult();
 matrix_t* mat_3_3_self_matmul();
 matrix_t* mat_4_3();
 matrix_t* mat_3_4();
+matrix_t* mat_1_3();
+matrix_t* mat_3_3_wiz_bias();
 
 char* matrix_test_elem_wise_add();
 char* matrix_test_elem_wise_minus();
 char* matrix_test_elem_wise_mult();
 char* matrix_test_matmul();
 char* matrix_test_transpose();
+char* matrix_test_add_bias();
 char* matrix_test_equal();
 
 char* test_all(){
@@ -29,6 +32,7 @@ char* test_all(){
   mu_run_test(matrix_test_elem_wise_mult);
   mu_run_test(matrix_test_matmul);
   mu_run_test(matrix_test_transpose);
+  mu_run_test(matrix_test_add_bias);
   return 0;
 }
 
@@ -43,6 +47,14 @@ void test_results(){
   if(result != 0) {
     exit(0);
   }
+}
+
+char* matrix_test_add_bias() {
+  matrix_t* test_mat = mat_3_3();
+  add_bias(test_mat, mat_1_3());
+  mu_assert("[MATRIX_TEST_ADD_BIAS] wrong result adding bias",
+              equal(mat_3_3_wiz_bias(), test_mat));
+  return 0;
 }
 
 char* matrix_test_transpose(){
@@ -142,7 +154,7 @@ matrix_t* mat_3_3_self_matmul(){
 matrix_t* mat_3_4(){
   matrix_t* new_mat = malloc(sizeof(matrix_t));
   double* data = calloc(12, sizeof(double));
-  for(int i = 0; i < 9; ++i) data[i] = i + 1;
+  for(int i = 0; i < 12; ++i) data[i] = i + 1;
   new_mat->data = data;
   new_mat->rows = 3;
   new_mat->cols = 4;
@@ -156,6 +168,28 @@ matrix_t* mat_4_3(){
   memcpy(data, answer, 12*sizeof(double));
   new_mat->data = data;
   new_mat->rows = 4;
+  new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_1_3(){
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(3, sizeof(double));
+  double answer[] = {1,2,3};
+  memcpy(data, answer, 3*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 1;
+  new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_3_3_wiz_bias(){
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(9, sizeof(double));
+  double answer[] = {2,4,6,5,7,9,8,10,12};
+  memcpy(data, answer, 9*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 3;
   new_mat->cols = 3;
   return new_mat;
 }

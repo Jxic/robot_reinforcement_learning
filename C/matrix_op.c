@@ -8,7 +8,7 @@ void dummy(){
   printf("DUMMY FUNCTION");
 }
 
-int equal(matrix_t* a, matrix_t* b){
+int equal(matrix_t* a, matrix_t* b) {
   if (a->rows != b->rows || a->cols != b->cols) {
     #ifndef RUN_TEST
     printf("[MATRICES NOT EQUAL] size is different");
@@ -24,7 +24,7 @@ int equal(matrix_t* a, matrix_t* b){
   return 1;
 }
 
-int elem_wise_add(matrix_t* a, matrix_t* b){
+int elem_wise_add(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
 
@@ -33,10 +33,10 @@ int elem_wise_add(matrix_t* a, matrix_t* b){
     a->data[i] += b->data[i];
   }
   
-  return 0;
+  return 1;
 }
 
-int elem_wise_minus(matrix_t* a, matrix_t* b){
+int elem_wise_minus(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
 
@@ -45,10 +45,10 @@ int elem_wise_minus(matrix_t* a, matrix_t* b){
     a->data[i] -= b->data[i];
   }
   
-  return 0;
+  return 1;
 }
 
-int elem_wise_mult(matrix_t* a, matrix_t* b){
+int elem_wise_mult(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
 
@@ -57,10 +57,22 @@ int elem_wise_mult(matrix_t* a, matrix_t* b){
     a->data[i] *= b->data[i];
   }
   
-  return 0;
+  return 1;
 }
 
-matrix_t* matmul(matrix_t* a, matrix_t* b){
+int add_bias(matrix_t* a, matrix_t* b) {
+  assert(a->cols == b->cols);
+
+  for (int i = 0; i < a->rows; ++i) {
+    for (int j = 0; j < b->cols; ++j) {
+      a->data[i*b->cols + j] += b->data[j];
+    }
+  }
+
+  return 1;
+}
+
+matrix_t* matmul(matrix_t* a, matrix_t* b) {
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
   matrix_t* new_mat = (matrix_t*)malloc(sizeof(matrix_t));
@@ -100,9 +112,8 @@ matrix_t* transpose(matrix_t* a) {
   }
   for (int i = 0; i < new_mat->rows; ++i) {
     for (int j = 0; j < new_mat->cols; ++j) {
-      new_mat[i*new_mat->cols+j] = a[j*a->cols+i];
+      new_mat->data[i*new_mat->cols+j] = a->data[j*a->cols+i];
     }
   }
   return new_mat;
 }
-
