@@ -3,8 +3,12 @@
 
 #include "data_structures.h"
 
+typedef enum _initializer {
+  xavier
+} initializer;
+
 void dummy();
-void initialize(matrix_t* mat, char* initializer);
+int initialize(matrix_t* mat, initializer i);
 
 int elem_wise_add(matrix_t* a, matrix_t* b);
 int elem_wise_minus(matrix_t* a, matrix_t* b);
@@ -20,6 +24,8 @@ matrix_t* transpose(matrix_t* a);
 double mean(matrix_t* a);
 
 int equal(matrix_t* a, matrix_t* b);
+
+int xavier_init(matrix_t* a, double gain);
 
 int free_matrix(matrix_t* t);
 int copy_matrix(matrix_t* dst, matrix_t* src);

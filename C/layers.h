@@ -24,7 +24,7 @@ typedef struct _softmax_layer {
 } softmax_layer;
 
 typedef struct _placeholder_layer {
-  
+  matrix_t* dummy;
 } placeholder_layer;
 
 typedef struct _mse_loss_layer {
@@ -54,6 +54,8 @@ typedef struct _layer {
 int forward(layer* l, matrix_t* x);
 int backward(layer* l, matrix_t* grad);
 int update(layer* l, double learning_rate);
+
+int init_linear(layer* l, int in, int out);
 
 double loss_forward(layer* l, matrix_t* x, matrix_t* target);
 matrix_t* loss_backward(layer* l);

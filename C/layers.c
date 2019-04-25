@@ -11,14 +11,14 @@ static int linear_forward(layer* l, matrix_t* x);
 // activation layer forward
 static int relu_forward(layer* l, matrix_t* x);
 static int sigmoid_forward(layer* l, matrix_t* x);
-static int softmax_forward(layer* l, matrix_t* x);
+// static int softmax_forward(layer* l, matrix_t* x);
 
 // hidden layer neurons forward
 static int linear_backward(layer* l, matrix_t* grad);
 // activation layer forward
 static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
-static int softmax_backward(layer* l, matrix_t* grad);
+// static int softmax_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
 static int linear_update(layer* l, double learning_rate);
@@ -84,7 +84,6 @@ matrix_t* loss_backward(layer* l) {
       printf("[LOSS BACKWARD] Encountered unrecognized layer, %d", l->type);
       exit(1);
   }
-  return 1;
 }
 
 int linear_update(layer* l, double learning_rate) {
@@ -123,7 +122,7 @@ static int sigmoid_forward(layer* l, matrix_t* x) {
 static int linear_forward(layer* l, matrix_t* x) {
   //caveat: address pointed by x should have enough space to hold new data
   linear_layer layer_data = l->data.l;
-  int data_size = x->rows * x->cols;
+  //int data_size = x->rows * x->cols;
   copy_matrix(layer_data.cache, x);
   matrix_t* wx = matmul(x, layer_data.W);
   add_bias(wx, layer_data.b);
@@ -137,11 +136,11 @@ static int linear_forward(layer* l, matrix_t* x) {
   return 1;
 }
 
-static int softmax_forward(layer* l, matrix_t* x) {
-  softmax_layer layer_data = l->data.so;
+// static int softmax_forward(layer* l, matrix_t* x) {
+//   //softmax_layer layer_data = l->data.so;
 
-  return 1;
-}
+//   return 1;
+// }
 
 static int linear_backward(layer* l, matrix_t* grad) {
   // caveat: memory needs to be realloced to hold new data
@@ -177,8 +176,8 @@ static int relu_backward(layer* l, matrix_t* grad) {
 static int sigmoid_backward(layer* l, matrix_t* grad) {
   matrix_t temp;
   sigmoid_layer layer_data = l->data.s;
-  int size = layer_data.cache->cols * layer_data.cache->rows * sizeof(double)
-              + 2 * sizeof(int);
+  // int size = layer_data.cache->cols * layer_data.cache->rows * sizeof(double)
+  //             + 2 * sizeof(int);
   copy_matrix(&temp, layer_data.cache);
   neg(&temp);
   add_scalar(&temp, 1);
@@ -187,9 +186,9 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
   return 1;
 }
 
-static int softmax_backward(layer* l, matrix_t* grad) {
-  return 1;
-}
+// static int softmax_backward(layer* l, matrix_t* grad) {
+//   return 1;
+// }
 
 static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   mse_loss_layer layer_data = l->data.m;
@@ -213,4 +212,21 @@ static matrix_t* mse_loss_backward(layer* l) {
   mult_scalar(grad, 2);
   mult_scalar(grad, rows);
   return grad;
+}
+
+int init_linear(layer* l, int in, int out) {
+  // new linear layer
+  linear_layer new_linear_layer;
+  // initialize member ptrs. Cache needs to be realloc at fit time
+  new_linear_layer.W = new_matrix(in, out);
+  new_linear_layer.b = new_matrix(1, out);
+  initialize(new_linear_layer.W, xavier);
+  initialize(new_linear_layer.b, xavier);
+  new_linear_layer.grad_W = new_matrix(in, out);
+  new_linear_layer.grad_b = new_matrix(1, out);
+  // wrap up with struct layer
+  l->type = linear;
+  l->data.l = new_linear_layer;
+  
+  return 1;
 }

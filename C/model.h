@@ -5,13 +5,16 @@
 typedef struct _model {
   int input_dim;
   int output_dim;
+  int num_of_layers;
   layer loss_layer;
   layer* hidden_linears;
   layer* hidden_activations;
 } model;
 
-model* init_model(int input_dim, int number_of_layers);
-void add_linear_layer()
+model* init_model(int input_dim);
+int add_linear_layer(model* m, int number_of_neurons, layer_type activation);
+int compile_model(model* m, layer_type loss);
+int print_network(model* m);
 
 // initialize all the memories for cache according to batch size
 // run through all the sample and update model

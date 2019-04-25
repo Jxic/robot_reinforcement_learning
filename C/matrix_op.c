@@ -5,8 +5,21 @@
 #include <assert.h>
 #include "macros.h"
 #include <string.h>
+#include <math.h>
+#include "utils.h"
+
 void dummy(){
   printf("DUMMY FUNCTION");
+}
+
+int initialize(matrix_t* mat, initializer i) {
+  switch (i) {
+    case xavier:
+      return xavier_init(mat, 1);
+    default:
+      printf("[INITIALIZE] unrecognized initializer type");
+      exit(1);
+  }
 }
 
 int equal(matrix_t* a, matrix_t* b) {
@@ -145,3 +158,11 @@ matrix_t* new_matrix(int rows, int cols) {
   new_m->max_size = rows * cols;
   return new_m;
 }
+
+int xavier_init(matrix_t* a, double gain) {
+  double low = -gain * sqrt((double)6 / (double)(a->rows + a->cols));
+  double high = gain * sqrt((double)6 / (double)(a->rows + a-> cols));
+  for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = rand_uniform(low, high);
+  return 1;
+}
+
