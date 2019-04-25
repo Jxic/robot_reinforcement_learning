@@ -12,8 +12,10 @@ int main() {
   srand(SEED);
   // test mode
   #ifdef RUN_TEST
+  printf("TEST MODE\n\n");
   printf("Testing matrix operations...\n");
   test_results();
+  printf("\n");
   printf("Testing model constructions...\n");
   init_rl_model(0);
   return 0;

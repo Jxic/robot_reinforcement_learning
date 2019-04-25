@@ -5,10 +5,14 @@
 #include <stdio.h>
 #include "layers.h"
 
+static double model_forward(model* m, matrix_t* x, matrix_t* y);
+static matrix_t* model_backard(model* m);
+static int model_update(model* m, double learning_rate);
+static int init_caches(model* m, int batch_size);
 
 model* init_model(int input_dim) {
   model* new_m = malloc(sizeof(model));
-  new_m->input_dim = new_m->output_dim = input_dim;
+  new_m->input_dim = new_m->output_dim = new_m->max_out = input_dim;
   new_m->num_of_layers = 0;
   new_m->hidden_linears = (layer*)malloc(sizeof(layer));
   new_m->hidden_activations = (layer*)malloc(sizeof(layer));
@@ -18,7 +22,7 @@ model* init_model(int input_dim) {
 int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
   assert(number_of_neurons > 0);
   m->num_of_layers++;
-
+  m->max_out = number_of_neurons > m->max_out ? number_of_neurons : m->max_out;
   // new linear layer
   layer linear_wrapper;
   init_linear(&linear_wrapper, m->output_dim, number_of_neurons);
@@ -55,7 +59,7 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
       break;
     }
     default:
-      printf("[ADD_LINEAR_LAYER] unrecognized activation");
+      printf("[ADD_LINEAR_LAYER] unrecognized activation\n");
       exit(1);
   }
   // realloc m->hidden_activations to hold new activation
@@ -78,7 +82,7 @@ int compile_model(model* m, layer_type loss) {
       break;
     }
     default:
-      printf("[COMPILE_MODEL] unrecognized loss");
+      printf("[COMPILE_MODEL] unrecognized loss\n");
       exit(1);
   }
   m->loss_layer = loss_wrapper;
@@ -88,17 +92,123 @@ int compile_model(model* m, layer_type loss) {
 int print_network(model* m) {
   char* names[] = {"relu", "linear", "sigmoid", "identity", "mse_loss"};
   printf("---------------------------------------\n");
-  printf("input dimension: %d\n", m->input_dim);
-  printf("output dimension: %d\n", m->output_dim);
-  printf("total number of layers: %d\n", m->num_of_layers);
+  printf(" input dimension: %d\n", m->input_dim);
+  printf(" output dimension: %d\n", m->output_dim);
+  printf(" total number of layers: %d\n", m->num_of_layers);
+  printf(" max out: %d\n", m->max_out);
   printf("---------------------------------------\n");
   for (int i = 0; i < m->num_of_layers; ++i) {
-    printf(" %s(%d) -> %s -> ", names[m->hidden_linears[i].type],
-                                m->hidden_linears[i].data.l.W->cols,
+    printf(" %s(%d -> %d) -> %s \n", names[m->hidden_linears[i].type],
+                                  m->hidden_linears[i].data.l.W->rows,
+                                  m->hidden_linears[i].data.l.W->cols,
                                   names[m->hidden_activations[i].type]);
   }
-  printf("%s\n", names[m->loss_layer.type]);
+  printf(" %s\n", names[m->loss_layer.type]);
   printf("---------------------------------------\n");
   return 1;
 }
 
+void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
+  assert(x->rows == y->cols);
+  if (!init_caches(m, batch_size)) {
+    printf("[INIT_CACHES] failed to initialize caches\n");
+    exit(1);
+  }
+  for (int epc = 0; epc < epoch; ++epc) {
+    printf("epoch %d: ", epc);
+    // todo: shuffle dataset and free the original one
+    // if (shuffle) {
+    //   x = shuffle_matrix_row_wise(x);
+    //   y = shuffle_matrix_row_wise(y);
+    // }
+    int data_size = x->rows;
+    int start = 0;
+    while (start < data_size - 1) {
+      int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
+      
+      // prepare next batch
+      matrix_t* next_batch = slice_row_wise(x, start, start+curr_batch);
+      matrix_t* next_target = slice_row_wise(x, start, start+curr_batch);
+      augment_space(next_batch, batch_size, m->max_out);
+
+      // one forward and backward pass
+      double loss = model_forward(m, next_batch, next_target);
+      printf("%f\n", loss);
+      model_backard(m);
+      model_update(m, learning_rate);
+
+      start = start + curr_batch;
+    }
+  }
+}
+
+static matrix_t* model_backard(model* m);
+
+static int init_caches(model* m, int batch_size) {
+  int last_layer_out = m->input_dim;
+  for (int i = 0; i < m->num_of_layers; ++i) {
+    m->hidden_linears[i].data.l.cache = new_matrix(batch_size, last_layer_out);
+    last_layer_out = m->hidden_linears[i].data.l.W->cols;
+    switch (m->hidden_activations[i].type)
+    {
+      case sigmoid:
+        m->hidden_activations[i].data.s.cache = new_matrix(batch_size, last_layer_out);
+        break;
+      case relu:
+        m->hidden_activations[i].data.r.cache = new_matrix(batch_size, last_layer_out);
+        break;   
+      default:
+        break;
+    } 
+  }
+  return 1;
+}
+
+
+int predict(model* m, matrix_t* x) {
+  assert(x->rows > 0 && x->cols > 0);
+  for (int i = 0; i < m->num_of_layers; ++i) {
+    if (!forward(m->hidden_linears+i, x)) {
+      printf("[MODEL_FORWARD] failed at %dth linear layer\n", i);
+      return 0;
+    }
+    if (!forward(m->hidden_activations+i, x)) {
+      printf("[MODEL_FORWARD] failed at %dth activation layer\n", i);
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static double model_forward(model* m, matrix_t* x, matrix_t* y) {
+  if (!predict(m, x)) {
+    exit(1);
+  }
+  double loss = loss_forward(&m->loss_layer, x, y);
+  return loss;
+}
+
+static matrix_t* model_backard(model* m) {
+  matrix_t* grad = loss_backward(&m->loss_layer);
+  augment_space(grad, grad->rows, m->max_out);
+  for (int i = m->num_of_layers-1; i >= 0; --i) {
+    if (!backward(m->hidden_activations+i, grad)) {
+      printf("[MODEL_BACKWARD] failed at %dth activation layer\n", i);
+      exit(1);
+    }
+    if (!backward(m->hidden_linears+i, grad)) {
+      printf("[MODEL_BACKWARD] failed at %dth linear layer\n", i);
+      exit(1);
+    }
+  }
+  return grad;
+}
+
+static int model_update(model* m, double learning_rate) {
+  for(int i = 0; i < m->num_of_layers; i++) {
+    if (!update(m->hidden_linears+i, learning_rate)) {
+      printf("[MODEL_UPDATE] failed at %dth linear layer\n", i);
+    }
+  }
+  return 1;
+}

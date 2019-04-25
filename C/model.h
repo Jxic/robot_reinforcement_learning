@@ -2,10 +2,12 @@
 #define MODEL_H
 #include "layers.h"
 
+
 typedef struct _model {
   int input_dim;
   int output_dim;
   int num_of_layers;
+  int max_out;
   layer loss_layer;
   layer* hidden_linears;
   layer* hidden_activations;
@@ -18,7 +20,10 @@ int print_network(model* m);
 
 // initialize all the memories for cache according to batch size
 // run through all the sample and update model
-void fit(model* m, int batch_size, int epoch, double learning_rate);
+void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle);
+int predict(model* m, matrix_t* x);
+
+
 
 #endif
 

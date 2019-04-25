@@ -11,6 +11,7 @@ static int linear_forward(layer* l, matrix_t* x);
 // activation layer forward
 static int relu_forward(layer* l, matrix_t* x);
 static int sigmoid_forward(layer* l, matrix_t* x);
+static int placeholder_forward(layer* l, matrix_t* x) {return 1;}
 // static int softmax_forward(layer* l, matrix_t* x);
 
 // hidden layer neurons forward
@@ -18,6 +19,7 @@ static int linear_backward(layer* l, matrix_t* grad);
 // activation layer forward
 static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
+static int placeholder_backward(layer* l, matrix_t* x) {return 1;}
 // static int softmax_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
@@ -35,6 +37,8 @@ int forward(layer* l, matrix_t* x) {
       return linear_forward(l, x);
     case sigmoid:
       return sigmoid_forward(l, x);
+    case placeholder:
+      return placeholder_forward(l, x);
     default:
       printf("[HIDDEN FORWARD] Encountered unrecognized layer, %d", l->type);
       exit(1);
@@ -49,6 +53,8 @@ int backward(layer* l, matrix_t* grad) {
       return linear_backward(l, grad);
     case sigmoid:
       return sigmoid_backward(l, grad);
+    case placeholder:
+      return placeholder_backward(l, grad);
     default:
       printf("[HIDDEN BACKWARD] Encountered unrecognize layer, %d", l->type);
       exit(1);
@@ -129,8 +135,6 @@ static int linear_forward(layer* l, matrix_t* x) {
   
   //update the data flowing through the network
   copy_matrix(x, wx);
-  x->rows = wx->rows;
-  x->cols = wx->cols;
 
   free_matrix(wx);
   return 1;

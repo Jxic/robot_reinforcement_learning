@@ -3,6 +3,14 @@
 
 #include "data_structures.h"
 
+typedef struct _matrix_t {
+  double* data;
+  int rows;
+  int cols;
+  int max_size;
+} matrix_t;
+
+
 typedef enum _initializer {
   xavier
 } initializer;
@@ -29,6 +37,9 @@ int xavier_init(matrix_t* a, double gain);
 
 int free_matrix(matrix_t* t);
 int copy_matrix(matrix_t* dst, matrix_t* src);
+int augment_space(matrix_t* t, int rows, int cols);
 matrix_t* new_matrix(int rows, int cols);
+// matrix_t* shuffle_matrix_row_wise(matrix_t* t);
+matrix_t* slice_row_wise(matrix_t* t, int start, int end);
 
 #endif

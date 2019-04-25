@@ -24,14 +24,14 @@ int initialize(matrix_t* mat, initializer i) {
 
 int equal(matrix_t* a, matrix_t* b) {
   if (a->rows != b->rows || a->cols != b->cols) {
-    #ifndef RUN_TEST
-    printf("[MATRICES NOT EQUAL] size is different");
+    #ifdef RUN_TEST
+    printf("[MATRICES NOT EQUAL] size is different\n");
     #endif
     return 0;
   }
   if (memcmp(a->data, b->data, (a->rows*a->cols)*sizeof(double))) {
-    #ifndef RUN_TEST
-    printf("[MATRICES NOT EQUAL] data is different");
+    #ifdef RUN_TEST
+    printf("[MATRICES NOT EQUAL] data is different\n");
     #endif
     return 0;
   }
@@ -141,9 +141,17 @@ int free_matrix(matrix_t* t) {
   return 1;
 }
 
+int augment_space(matrix_t* t, int rows, int cols) {
+  assert(rows >= t->rows);
+  assert(cols >= t->cols);
+  t->max_size = rows * cols;
+  t->data = realloc(t->data, rows*cols*sizeof(double));
+  return 1;
+}
+
 int copy_matrix(matrix_t* dst, matrix_t* src) {
   assert(dst->max_size >= src->max_size);
-  memcpy(dst->data, src->data, src->cols*src->rows);
+  memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
   dst->rows = src->rows;
   dst->cols = dst->cols;
   return 1;
@@ -157,6 +165,23 @@ matrix_t* new_matrix(int rows, int cols) {
   new_m->cols = cols;
   new_m->max_size = rows * cols;
   return new_m;
+}
+
+// matrix_t* shuffle_matrix_row_wise(matrix_t* t) {
+//   int rows = t->rows;
+//   int cols = t->cols;
+  
+// }
+
+matrix_t* slice_row_wise(matrix_t* t, int start, int end) {
+  assert(start < end);
+  assert(start >= 0);
+  assert(end <= t->rows);
+  matrix_t* ret = new_matrix(end-start, t->cols);
+  int t_start = start * t->cols;
+  int t_size = (end - start) * t->cols;
+  memcpy(ret->data, t->data+t_start, t_size*sizeof(double));
+  return ret;
 }
 
 int xavier_init(matrix_t* a, double gain) {

@@ -2,6 +2,7 @@
 #define LAYERS_H
 
 #include "data_structures.h"
+#include "matrix_op.h"
 
 typedef struct _relu_layer {
   matrix_t* cache;

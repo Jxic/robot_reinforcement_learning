@@ -19,6 +19,7 @@ matrix_t* mat_3_3_wiz_bias();
 matrix_t* mat_3_3_wiz_scalar();
 matrix_t* mat_3_3_neg();
 matrix_t* mat_3_3_wiz_factor();
+matrix_t* mat_2_3();
 
 char* matrix_test_elem_wise_add();
 char* matrix_test_elem_wise_minus();
@@ -31,6 +32,9 @@ char* matrix_test_equal();
 char* matrix_test_neg();
 char* matrix_test_mult_scalar();
 char* matrix_test_mean();
+char* matrix_test_copy_matrix();
+char* matrix_test_slice_row_wise();
+char* matrix_test_augment_space();
 
 char* test_all(){
   mu_run_test(matrix_test_equal);
@@ -44,6 +48,9 @@ char* test_all(){
   mu_run_test(matrix_test_neg);
   mu_run_test(matrix_test_mult_scalar);
   mu_run_test(matrix_test_mean);
+  mu_run_test(matrix_test_copy_matrix);
+  mu_run_test(matrix_test_slice_row_wise);
+  mu_run_test(matrix_test_augment_space);
   return 0;
 }
 
@@ -58,6 +65,32 @@ void test_results(){
   if(result != 0) {
     exit(0);
   }
+}
+
+char* matrix_test_slice_row_wise() {
+  matrix_t* test_mat = mat_3_3();
+  matrix_t* sliced = slice_row_wise(test_mat, 0, 2);
+  mu_assert("[MATRIX_TEST_SLICE_ROW_WISE] wrong result slicing row-wise",
+              equal(sliced, mat_2_3()));
+  return 0;
+}
+
+char* matrix_test_augment_space() {
+  matrix_t* test_mat1 = mat_3_3();
+  matrix_t* test_mat2 = mat_3_3();
+  augment_space(test_mat2, 10, 10);
+  mu_assert("[MATRIX_TEST_AUGMENT_SPACE] wrong result augmenting space",
+            equal(test_mat1, test_mat2) && test_mat2->max_size > test_mat1->max_size);
+  return 0;
+}
+
+char* matrix_test_copy_matrix() {
+  matrix_t* test_mat = mat_4_3();
+  matrix_t* copied = new_matrix(4, 3);
+  copy_matrix(copied, test_mat);
+  mu_assert("[MATRIX_TEST_COPY_MATRIX] wrong result copying",
+            equal(test_mat, copied));
+  return 0;
 }
 
 char* matrix_test_mean() {
@@ -266,6 +299,17 @@ matrix_t* mat_3_3_wiz_factor() {
   memcpy(data, answer, 9*sizeof(double));
   new_mat->data = data;
   new_mat->rows = 3;
+  new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_2_3() {
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(6, sizeof(double));
+  double answer[] = {1,2,3,4,5,6};
+  memcpy(data, answer, 6*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 2;
   new_mat->cols = 3;
   return new_mat;
 }
