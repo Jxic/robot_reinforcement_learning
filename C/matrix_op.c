@@ -105,6 +105,7 @@ int mult_scalar(matrix_t* a, double b) {
 }
 
 matrix_t* matmul(matrix_t* a, matrix_t* b) {
+  //printf("%d %d %d %d\n", a->rows, a->cols, b->rows, b->cols);
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
   matrix_t* new_mat = new_matrix(a->rows, b->cols);
@@ -132,13 +133,20 @@ double mean(matrix_t* a) {
   assert(a->rows > 0 && a->cols >0);
   double sum = 0;
   for (int i = 0; i < a->rows*a->cols; ++i) sum += a->data[i];
-  return sum / (a->rows * a->cols);
+  return sum / (double)(a->rows * a->cols);
 }
 
 int free_matrix(matrix_t* t) {
   free(t->data);
   free(t);
   return 1;
+}
+
+int contains_nan(matrix_t* t) {
+  for (int i = 0; i < t->rows*t->cols; ++i) {
+    if (t->data[i] != t->data[i]) return 1;
+  }
+  return 0;
 }
 
 int augment_space(matrix_t* t, int rows, int cols) {
@@ -153,11 +161,21 @@ int augment_space(matrix_t* t, int rows, int cols) {
   return 1;
 }
 
+int any_larger(matrix_t* t, double thres) {
+  for (int i = 0; i < t->rows*t->cols; ++i) {
+    if (t->data[i] > thres) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 int copy_matrix(matrix_t* dst, matrix_t* src) {
-  assert(dst->max_size >= src->max_size);
+  //printf("%d, %d, %d, %d, %d\n", dst->rows, dst->cols, dst->max_size, src->rows, src->cols);
+  assert(dst->max_size >= src->rows*src->cols);
   memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
   dst->rows = src->rows;
-  dst->cols = dst->cols;
+  dst->cols = src->cols;
   return 1;
 }
 
@@ -230,3 +248,22 @@ int xavier_init(matrix_t* a, double gain) {
   return 1;
 }
 
+int normalize(matrix_t* t) {
+  for (int i = 0; i < t->cols; ++i) {
+    double max = t->data[i];
+    double min = t->data[i];
+    for (int j = 0; j < t->rows; ++j) {
+      double curr_num = t->data[j*t->cols+i];
+      if (curr_num > max) {
+        max = curr_num;
+      }
+      if (curr_num < min) {
+        min = curr_num;
+      }
+    }
+    for (int j = 0; j < t->rows; ++j) {
+      t->data[j*t->cols+i] = (t->data[j*t->cols+i] - min) / (max - min);
+    } 
+  }
+  return 1;
+}

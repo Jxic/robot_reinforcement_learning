@@ -109,11 +109,13 @@ int print_network(model* m) {
 }
 
 void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
-  assert(x->rows == y->cols);
+  assert(x->rows == y->rows);
   if (!init_caches(m, batch_size)) {
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
+  normalize(x);
+  normalize(y);
   for (int epc = 0; epc < epoch; ++epc) {
     printf("epoch %d: ", epc);
     // todo: shuffle dataset and free the original one
@@ -123,26 +125,36 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
     // }
     int data_size = x->rows;
     int start = 0;
+    double loss;
     while (start < data_size - 1) {
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
       
       // prepare next batch
       matrix_t* next_batch = slice_row_wise(x, start, start+curr_batch);
-      matrix_t* next_target = slice_row_wise(x, start, start+curr_batch);
+      matrix_t* next_target = slice_row_wise(y, start, start+curr_batch);
+      if (contains_nan(next_batch) || contains_nan(next_target)) {
+        printf("batch contains nan, %d", start);
+      }
       augment_space(next_batch, batch_size, m->max_out);
-
+      // print_matrix(next_batch, 1);
+      // print_matrix(next_target, 1);
       // one forward and backward pass
-      double loss = model_forward(m, next_batch, next_target);
-      printf("%f\n", loss);
+      loss = model_forward(m, next_batch, next_target);
+      //printf("%f\n", loss);
+      if (loss != loss) {
+        printf("epoch %d, start %d, x %d, y %d\n", epc, start, contains_nan(next_batch), contains_nan(next_target));
+        exit(1);
+      }
       model_backard(m);
       model_update(m, learning_rate);
 
       start = start + curr_batch;
+      //break;
     }
+    //break;
+    printf("%f\n", loss);
   }
 }
-
-static matrix_t* model_backard(model* m);
 
 static int init_caches(model* m, int batch_size) {
   int last_layer_out = m->input_dim;
@@ -161,6 +173,14 @@ static int init_caches(model* m, int batch_size) {
         break;
     } 
   }
+  switch (m->loss_layer.type) {
+    case mse_loss:
+      m->loss_layer.data.m.cache_pred = new_matrix(batch_size, last_layer_out);
+      m->loss_layer.data.m.cache_target = new_matrix(batch_size, last_layer_out);
+      break; 
+    default:
+      break;
+  }
   return 1;
 }
 
@@ -172,6 +192,7 @@ int predict(model* m, matrix_t* x) {
       printf("[MODEL_FORWARD] failed at %dth linear layer\n", i);
       return 0;
     }
+    
     if (!forward(m->hidden_activations+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth activation layer\n", i);
       return 0;
@@ -184,22 +205,26 @@ static double model_forward(model* m, matrix_t* x, matrix_t* y) {
   if (!predict(m, x)) {
     exit(1);
   }
+
   double loss = loss_forward(&m->loss_layer, x, y);
   return loss;
 }
 
 static matrix_t* model_backard(model* m) {
   matrix_t* grad = loss_backward(&m->loss_layer);
+  //printf("done grad\n");
   augment_space(grad, grad->rows, m->max_out);
   for (int i = m->num_of_layers-1; i >= 0; --i) {
     if (!backward(m->hidden_activations+i, grad)) {
       printf("[MODEL_BACKWARD] failed at %dth activation layer\n", i);
       exit(1);
     }
+    //printf("done activation\n");
     if (!backward(m->hidden_linears+i, grad)) {
       printf("[MODEL_BACKWARD] failed at %dth linear layer\n", i);
       exit(1);
     }
+    //printf("done linear\n");
   }
   return grad;
 }
@@ -211,4 +236,19 @@ static int model_update(model* m, double learning_rate) {
     }
   }
   return 1;
+}
+
+double eval(model* m, matrix_t* x, matrix_t* y) {
+  printf("evaluating trained model\n");
+  double sum = 0;
+  for (int i = 0; i < x->rows; ++i) {
+    matrix_t* nxt_x = slice_row_wise(x, i, i+1);
+    augment_space(nxt_x, 1, m->max_out);
+    matrix_t* nxt_y = slice_row_wise(y, i, i+1);
+    double loss = model_forward(m, nxt_x, nxt_y);
+    //printf("%f \n", loss);
+    sum += loss;
+  }
+  sum /= (double) x->rows;
+  return sum;
 }

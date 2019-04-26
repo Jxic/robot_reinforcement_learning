@@ -22,7 +22,7 @@ int print_network(model* m);
 // run through all the sample and update model
 void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle);
 int predict(model* m, matrix_t* x);
-
+double eval(model* m, matrix_t* x, matrix_t* y);
 
 
 #endif
