@@ -20,6 +20,7 @@ matrix_t* mat_3_3_wiz_scalar();
 matrix_t* mat_3_3_neg();
 matrix_t* mat_3_3_wiz_factor();
 matrix_t* mat_2_3();
+matrix_t* mat_3_2();
 
 char* matrix_test_elem_wise_add();
 char* matrix_test_elem_wise_minus();
@@ -35,6 +36,7 @@ char* matrix_test_mean();
 char* matrix_test_copy_matrix();
 char* matrix_test_slice_row_wise();
 char* matrix_test_augment_space();
+char* matrix_test_slice_col_wise();
 
 char* test_all(){
   mu_run_test(matrix_test_equal);
@@ -51,6 +53,7 @@ char* test_all(){
   mu_run_test(matrix_test_copy_matrix);
   mu_run_test(matrix_test_slice_row_wise);
   mu_run_test(matrix_test_augment_space);
+  mu_run_test(matrix_test_slice_col_wise);
   return 0;
 }
 
@@ -72,6 +75,14 @@ char* matrix_test_slice_row_wise() {
   matrix_t* sliced = slice_row_wise(test_mat, 0, 2);
   mu_assert("[MATRIX_TEST_SLICE_ROW_WISE] wrong result slicing row-wise",
               equal(sliced, mat_2_3()));
+  return 0;
+}
+
+char* matrix_test_slice_col_wise() {
+  matrix_t* test_mat = mat_3_3();
+  matrix_t* sliced = slice_col_wise(test_mat, 0, 2);
+  mu_assert("[MATRIX_TEST_SLICE_COL_WISE] wrong result slicing col-wise",
+              equal(sliced, mat_3_2()));
   return 0;
 }
 
@@ -311,5 +322,16 @@ matrix_t* mat_2_3() {
   new_mat->data = data;
   new_mat->rows = 2;
   new_mat->cols = 3;
+  return new_mat;
+}
+
+matrix_t* mat_3_2() {
+  matrix_t* new_mat = malloc(sizeof(matrix_t));
+  double* data = calloc(6, sizeof(double));
+  double answer[] = {1,2,4,5,7,8};
+  memcpy(data, answer, 6*sizeof(double));
+  new_mat->data = data;
+  new_mat->rows = 3;
+  new_mat->cols = 2;
   return new_mat;
 }

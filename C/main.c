@@ -18,6 +18,10 @@ int main() {
   printf("\n");
   printf("Testing model constructions...\n");
   init_rl_model(0);
+  printf("\n");
+  printf("Testing data loading...\n");
+  matrix_t* loaded_data = load_data("FM_dataset.dat");
+  print_matrix(loaded_data, 0);
   return 0;
   // training mode
   #else

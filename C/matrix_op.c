@@ -146,6 +146,10 @@ int augment_space(matrix_t* t, int rows, int cols) {
   assert(cols >= t->cols);
   t->max_size = rows * cols;
   t->data = realloc(t->data, rows*cols*sizeof(double));
+  if (!t->data) {
+    printf("[AUGMENT_SPACE] error reallocating memory");
+    exit(1);
+  }
   return 1;
 }
 
@@ -154,6 +158,29 @@ int copy_matrix(matrix_t* dst, matrix_t* src) {
   memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
   dst->rows = src->rows;
   dst->cols = dst->cols;
+  return 1;
+}
+
+int print_matrix(matrix_t* t, int all) {
+  printf("--------------------------------------\n");
+  if (all) {
+    for (int i = 0; i < t->rows; ++i) {
+      for (int j = 0; j< t->cols; ++j) {
+        printf(" %lf ",t->data[i*t->cols+j]);
+      }
+      printf("\n");
+    }
+  } else {
+    for (int i = 0; i < t->rows; i += t->rows/3) {
+      for (int j = 0; j< t->cols; ++j) {
+        printf(" %lf ",t->data[i*t->cols+j]);
+      }
+      printf("\n .......\n");
+    } 
+  }
+  printf("--------------------------------------\n");
+  printf(" rows: %d\n cols: %d\n max_size: %d\n", t->rows, t->cols, t->max_size);
+  printf("--------------------------------------\n");
   return 1;
 }
 
@@ -181,6 +208,18 @@ matrix_t* slice_row_wise(matrix_t* t, int start, int end) {
   int t_start = start * t->cols;
   int t_size = (end - start) * t->cols;
   memcpy(ret->data, t->data+t_start, t_size*sizeof(double));
+  return ret;
+}
+
+matrix_t* slice_col_wise(matrix_t* t, int start, int end) {
+  assert(start < end);
+  assert(start >= 0);
+  assert(end <= t->cols);
+  matrix_t* ret = new_matrix(t->rows, end-start);
+  int row_size = end - start;
+  for (int i = 0; i < t->rows; ++i) {
+    memcpy(ret->data+(i*ret->cols), t->data+(i*t->cols+start), row_size*sizeof(double));
+  }
   return ret;
 }
 

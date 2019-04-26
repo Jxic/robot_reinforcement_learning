@@ -36,10 +36,12 @@ int equal(matrix_t* a, matrix_t* b);
 int xavier_init(matrix_t* a, double gain);
 
 int free_matrix(matrix_t* t);
+int print_matrix(matrix_t* t, int all);
 int copy_matrix(matrix_t* dst, matrix_t* src);
 int augment_space(matrix_t* t, int rows, int cols);
 matrix_t* new_matrix(int rows, int cols);
 // matrix_t* shuffle_matrix_row_wise(matrix_t* t);
 matrix_t* slice_row_wise(matrix_t* t, int start, int end);
+matrix_t* slice_col_wise(matrix_t* t, int start, int end);
 
 #endif
