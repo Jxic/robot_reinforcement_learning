@@ -45,7 +45,7 @@ int print_matrix(matrix_t* t, int all);
 int copy_matrix(matrix_t* dst, matrix_t* src);
 int any_larger(matrix_t* t, double thres);
 int augment_space(matrix_t* t, int rows, int cols);
-int shuffle_row_wise(matrix_t* t);
+int* shuffle_row_wise(matrix_t* t, int* idx);
 matrix_t* new_matrix(int rows, int cols);
 // matrix_t* shuffle_matrix_row_wise(matrix_t* t);
 matrix_t* slice_row_wise(matrix_t* t, int start, int end);

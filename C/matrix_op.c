@@ -193,28 +193,33 @@ int copy_matrix(matrix_t* dst, matrix_t* src) {
   return 1;
 }
 
-int shuffle_row_wise(matrix_t* t) {
+int* shuffle_row_wise(matrix_t* t, int* pre_idx) {
   assert(t->rows > 0);
   assert(t->cols > 0);
 
   if (t->rows == 1) {
-    return 1;
+    return 0;
   }
 
   int size = t->rows;
-  int idx[size];
-  for (int i = 0; i < size; ++i) idx[i] = i;
-  for (int i = size - 1; i > 0; --i) {
-    int j = rand() % (i + 1);
-    int temp = idx[j];
-    idx[j] = idx[i];
-    idx[i] = temp;
+  int* idx;
+  if (!pre_idx) {
+    idx = calloc(size, sizeof(int));
+    for (int i = 0; i < size; ++i) idx[i] = i;
+    for (int i = size - 1; i > 0; --i) {
+      int j = rand() % (i + 1);
+      int temp = idx[j];
+      idx[j] = idx[i];
+      idx[i] = temp;
+    }
+  } else {
+    idx = pre_idx;
   }
   double* new_data = calloc(t->rows*t->cols, sizeof(double));
   for (int i = 0; i < t->rows; ++i) memcpy(new_data+i*t->cols, t->data+idx[i]*t->cols, t->cols*sizeof(double));
   free(t->data);
   t->data = new_data;
-  return 1;
+  return idx;
 }
 
 int print_matrix(matrix_t* t, int all) {

@@ -95,45 +95,13 @@ matrix_t* loss_backward(layer* l) {
 int linear_update(layer* l, double learning_rate) {
   assert(l->type == linear);
   linear_layer layer_data = l->data.l;
-  if (contains_nan(layer_data.grad_b)) {
-    printf("linear grad b contains nan");
-    exit(1);
-  }
-  if (contains_nan(layer_data.grad_W)) {
-    printf("linear grad W contains nan");
-    exit(1);
-  }
-  if (contains_nan(layer_data.W)) {
-    printf("linear W contains nan");
-    exit(1);
-  }
-  if (contains_nan(layer_data.b)) {
-    printf("linear b contains nan");
-    exit(1);
-  }
+
   mult_scalar(layer_data.grad_b, learning_rate);
   mult_scalar(layer_data.grad_W, learning_rate);
-  // print_matrix(layer_data.grad_b, 1);
-  // print_matrix(layer_data.grad_W, 1);
+
   elem_wise_minus(layer_data.W, layer_data.grad_W);
   elem_wise_minus(layer_data.b, layer_data.grad_b);
-  if (contains_nan(layer_data.grad_b)) {
-    printf("linear grad b contains nan");
-    exit(1);
-  }
-  if (contains_nan(layer_data.grad_W)) {
-    printf("linear grad W contains nan");
-    exit(1);
-  }
-  if (contains_nan(layer_data.W)) {
-    printf("linear W contains nan");
-    exit(1);
-  }
-  if (contains_nan(layer_data.b)) {
-    printf("linear b contains nan");
-    exit(1);
-  }
-  // print_matrix(layer_data.grad_W, 1);
+
   return 1;
 }
 
@@ -149,7 +117,6 @@ static int relu_forward(layer* l, matrix_t* x) {
       layer_data.cache->data[i] = 1;
     }
   }
-  //print_matrix(layer_data.cache, 1);
   return 1;
 }
 
@@ -164,7 +131,7 @@ static int sigmoid_forward(layer* l, matrix_t* x) {
 static int linear_forward(layer* l, matrix_t* x) {
   //caveat: address pointed by x should have enough space to hold new data
   linear_layer layer_data = l->data.l;
-  //int data_size = x->rows * x->cols;
+
   copy_matrix(layer_data.cache, x);
   matrix_t* wx = matmul(x, layer_data.W);
   add_bias(wx, layer_data.b);
@@ -189,9 +156,9 @@ static int linear_backward(layer* l, matrix_t* grad) {
   free_matrix(l->data.l.grad_b);
 
   matrix_t* cache_T = transpose(layer_data.cache);
-  //printf("done transpose\n");
+
   l->data.l.grad_W = matmul(cache_T, grad);
-  //printf("done matmul\n");
+
   matrix_t ones;
   ones.cols = grad->rows;
   ones.rows = 1;
@@ -199,19 +166,11 @@ static int linear_backward(layer* l, matrix_t* grad) {
   for (int i = 0; i < grad->rows; ++i) ones_data[i] = 1;
   ones.data = ones_data;
   l->data.l.grad_b = matmul(&ones, grad);
-  //printf("done matmul\n");
+
   
   matrix_t* w_T = transpose(layer_data.W);
   matrix_t* new_grad = matmul(grad, w_T);
-  //printf("done new_grad\n");
 
-  // if (any_larger(l->data.l.grad_W, 1000) || any_larger(l->data.l.grad_b, 1000)) {
-  //   printf("gradient too large\n");
-  //   print_matrix(cache_T, 1);
-  //   print_matrix(grad, 1);
-  //   print_matrix(layer_data.grad_W, 1);
-  //   exit(1);
-  // }
   copy_matrix(grad, new_grad);
   free_matrix(cache_T);
   free_matrix(w_T);
@@ -221,42 +180,22 @@ static int linear_backward(layer* l, matrix_t* grad) {
 }
 
 static int relu_backward(layer* l, matrix_t* grad) {
-  if (contains_nan(l->data.r.cache)) {
-    printf("after relu cache contains nan");
-    exit(1);
-  }
-  if (contains_nan(grad)) {
-    printf("relu grad contains nan");
-    exit(1);
-  }
   elem_wise_mult(grad, l->data.r.cache);
-  if (contains_nan(grad)) {
-    //print_matrix(l->data.r.cache, 1);
-    printf("after relu contains nan");
-    exit(1);
-  }
   return 1;
 }
 
 static int sigmoid_backward(layer* l, matrix_t* grad) {
   sigmoid_layer layer_data = l->data.s;
   matrix_t* temp = new_matrix(layer_data.cache->rows, layer_data.cache->cols);
-  // int size = layer_data.cache->cols * layer_data.cache->rows * sizeof(double)
-  //             + 2 * sizeof(int);
+
   copy_matrix(temp, layer_data.cache);
   neg(temp);
   add_scalar(temp, 1);
   elem_wise_mult(temp, layer_data.cache);
-  if (contains_nan(grad)) {
-    printf("after sigmoid temp contains nan\n");
-    exit(1);
-  }
+
   elem_wise_mult(grad, temp);
   free(temp);
-  if (contains_nan(grad)) {
-    printf("after sigmoid contains nan\n");
-    exit(1);
-  }
+
   return 1;
 }
 
@@ -277,7 +216,6 @@ static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
 }
 
 static matrix_t* mse_loss_backward(layer* l) {
-  //print_matrix(l->data.m.cache_pred, 1);
   mse_loss_layer layer_data = l->data.m;
   int cols = layer_data.cache_target->cols;
   int rows = layer_data.cache_target->rows;
@@ -286,11 +224,6 @@ static matrix_t* mse_loss_backward(layer* l) {
   elem_wise_minus(grad, layer_data.cache_target);
   mult_scalar(grad, (double)2);
   mult_scalar(grad, 1/((double)rows));
-  if (contains_nan(grad)) {
-    printf("start of back prop contains nan");
-    exit(1);
-  }
-  //print_matrix(grad, 1);
   return grad;
 }
 

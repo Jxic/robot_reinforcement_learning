@@ -31,6 +31,15 @@ int main() {
   int msec = diff * 1000 / CLOCKS_PER_SEC;
   printf("Test training takes %d msecs\n", msec);
   printf("\n");
+  // matrix_t* test_mat = new_matrix(30,6);
+  // for (int i = 0; i < 180; ++i) test_mat->data[i] = i + 1;
+  // print_matrix(test_mat, 1);
+  // shuffle_row_wise(test_mat);
+  // matrix_t* f_3 = slice_col_wise(test_mat, 0, 3);
+  // matrix_t* b_3 = slice_col_wise(test_mat, 3, 6);
+  
+  // print_matrix(f_3, 1);
+  // print_matrix(b_3, 1);
   return 0;
   // training mode
   #else
