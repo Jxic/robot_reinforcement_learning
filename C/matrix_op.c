@@ -8,6 +8,8 @@
 #include <math.h>
 #include "utils.h"
 
+
+
 void dummy(){
   printf("DUMMY FUNCTION");
 }
@@ -80,6 +82,18 @@ int add_bias(matrix_t* a, matrix_t* b) {
   for (int i = 0; i < a->rows; ++i) {
     for (int j = 0; j < b->cols; ++j) {
       a->data[i*b->cols + j] += b->data[j];
+    }
+  }
+
+  return 1;
+}
+
+int mult_bias(matrix_t* a, matrix_t* b) {
+  assert(a->cols == b->cols);
+
+  for (int i = 0; i < a->rows; ++i) {
+    for (int j = 0; j < b->cols; ++j) {
+      a->data[i*b->cols + j] *= b->data[j];
     }
   }
 
@@ -179,6 +193,30 @@ int copy_matrix(matrix_t* dst, matrix_t* src) {
   return 1;
 }
 
+int shuffle_row_wise(matrix_t* t) {
+  assert(t->rows > 0);
+  assert(t->cols > 0);
+
+  if (t->rows == 1) {
+    return 1;
+  }
+
+  int size = t->rows;
+  int idx[size];
+  for (int i = 0; i < size; ++i) idx[i] = i;
+  for (int i = size - 1; i > 0; --i) {
+    int j = rand() % (i + 1);
+    int temp = idx[j];
+    idx[j] = idx[i];
+    idx[i] = temp;
+  }
+  double* new_data = calloc(t->rows*t->cols, sizeof(double));
+  for (int i = 0; i < t->rows; ++i) memcpy(new_data+i*t->cols, t->data+idx[i]*t->cols, t->cols*sizeof(double));
+  free(t->data);
+  t->data = new_data;
+  return 1;
+}
+
 int print_matrix(matrix_t* t, int all) {
   printf("--------------------------------------\n");
   if (all) {
@@ -248,7 +286,8 @@ int xavier_init(matrix_t* a, double gain) {
   return 1;
 }
 
-int normalize(matrix_t* t) {
+matrix_t* normalize(matrix_t* t) {
+  matrix_t* ret = new_matrix(2, t->cols);
   for (int i = 0; i < t->cols; ++i) {
     double max = t->data[i];
     double min = t->data[i];
@@ -263,7 +302,26 @@ int normalize(matrix_t* t) {
     }
     for (int j = 0; j < t->rows; ++j) {
       t->data[j*t->cols+i] = (t->data[j*t->cols+i] - min) / (max - min);
-    } 
+    }
+    ret->data[i] = max;
+    ret->data[t->cols+i] = min;
   }
+  return ret;
+}
+
+int scale(matrix_t* x, matrix_t* min_max) {
+  assert(x->cols == min_max->cols);
+  matrix_t* max = slice_row_wise(min_max, 0, 1);
+  matrix_t* min = slice_row_wise(min_max, 1, 2);
+  matrix_t* diff = new_matrix(1, x->cols);
+  copy_matrix(diff, max);
+  elem_wise_minus(diff, min);
+
+  mult_bias(x, diff);
+  add_bias(x, min);
+  free_matrix(max);
+  free_matrix(min);
+  free_matrix(diff);
+  
   return 1;
 }

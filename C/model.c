@@ -4,6 +4,7 @@
 #include "matrix_op.h"
 #include <stdio.h>
 #include "layers.h"
+#include "macros.h"
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
 static matrix_t* model_backard(model* m);
@@ -114,15 +115,19 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
-  normalize(x);
-  normalize(y);
+
+  printf("\n");
   for (int epc = 0; epc < epoch; ++epc) {
+    #ifdef RUN_TEST
+    printf("\repoch %d: ", epc);
+    #else
     printf("epoch %d: ", epc);
-    // todo: shuffle dataset and free the original one
-    // if (shuffle) {
-    //   x = shuffle_matrix_row_wise(x);
-    //   y = shuffle_matrix_row_wise(y);
-    // }
+    #endif
+    // shuffle
+    if (shuffle) {
+      shuffle_row_wise(x);
+      shuffle_row_wise(y);
+    }
     int data_size = x->rows;
     int start = 0;
     double loss;
@@ -152,8 +157,14 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
       //break;
     }
     //break;
+    #ifdef RUN_TEST
+    printf("%f", loss);
+    fflush(stdout);
+    #else
     printf("%f\n", loss);
+    #endif
   }
+  printf("\n");
 }
 
 static int init_caches(model* m, int batch_size) {
@@ -238,17 +249,30 @@ static int model_update(model* m, double learning_rate) {
   return 1;
 }
 
-double eval(model* m, matrix_t* x, matrix_t* y) {
+double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max) {
   printf("evaluating trained model\n");
   double sum = 0;
-  for (int i = 0; i < x->rows; ++i) {
-    matrix_t* nxt_x = slice_row_wise(x, i, i+1);
-    augment_space(nxt_x, 1, m->max_out);
-    matrix_t* nxt_y = slice_row_wise(y, i, i+1);
-    double loss = model_forward(m, nxt_x, nxt_y);
-    //printf("%f \n", loss);
-    sum += loss;
-  }
-  sum /= (double) x->rows;
+  //matrix_t* min_max_x = slice_col_wise(min_max, 0, x->cols);
+  matrix_t* min_max_y = slice_col_wise(min_max, x->cols, min_max->cols);
+  // for (int i = 0; i < x->rows; ++i) {
+  //   matrix_t* nxt_x = slice_row_wise(x, i, i+1);
+  //   augment_space(nxt_x, 1, m->max_out);
+  //   matrix_t* nxt_y = slice_row_wise(y, i, i+1);
+  //   //double loss = model_forward(m, x, y);
+  //   predict(m, nxt_x);
+  //   scale(nxt_x, min_max_y);
+  //   scale(nxt_y, min_max_y);
+  //   double loss = loss_forward(&m->loss_layer, nxt_x, nxt_y);
+    
+  //   //printf("%f \n", loss);
+  //   sum += loss;
+  // }
+  // sum /= (double) x->rows;
+  init_caches(m, x->rows);
+  augment_space(x, x->rows, m->max_out);
+  predict(m, x);
+  scale(x, min_max_y);
+  scale(y, min_max_y);
+  sum = loss_forward(&m->loss_layer, x, y);
   return sum;
 }

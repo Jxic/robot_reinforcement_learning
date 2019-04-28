@@ -5,6 +5,7 @@
 #include "macros.h"
 #include "utils.h"
 #include "rl.h"
+#include <time.h>
 // cmd + shift + p -> edit configuration
 
 int main() {
@@ -23,8 +24,13 @@ int main() {
   matrix_t* loaded_data = load_data("FM_dataset.dat");
   print_matrix(loaded_data, 0);
   printf("\n");
-  printf("Testing with sample data...");
+  printf("Testing with sample data, timing...\n");
+  clock_t start = clock(), diff;
   test_run();
+  diff = clock() - start;
+  int msec = diff * 1000 / CLOCKS_PER_SEC;
+  printf("Test training takes %d msecs\n", msec);
+  printf("\n");
   return 0;
   // training mode
   #else
