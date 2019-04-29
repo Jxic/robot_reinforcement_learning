@@ -50,7 +50,7 @@ void test_run() {
   #ifndef C_AS_LIB
   t = load_data("FM_dataset.dat");
   #else
-  t = load_data("./src/C/FM_dataset.dat");
+  t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
   #endif
 
   matrix_t* min_max = normalize(t);
