@@ -27,7 +27,7 @@ matrix_t* load_data(char* filename) {
   char buff[BUFFER_SIZE];
   fp = fopen(filename, "r");
   if (!fp) {
-    printf("[LOAD_DATA] file not existed\n");
+    printf("[LOAD_DATA] file not existed, %s\n", filename);
     char cwd[100];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
       printf("Current working dir: %s\n", cwd);

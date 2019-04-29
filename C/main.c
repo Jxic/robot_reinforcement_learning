@@ -21,8 +21,13 @@ int _main() {
   init_rl_model(0);
   printf("\n");
   printf("Testing data loading...\n");
-  matrix_t* loaded_data = load_data("FM_dataset.dat");
-  print_matrix(loaded_data, 0);
+  matrix_t* t;
+  #ifndef C_AS_LIB
+  t = load_data("FM_dataset.dat");
+  #else
+  t = load_data("./src/C/FM_dataset.dat");
+  #endif
+  print_matrix(t, 0);
   printf("\n");
   printf("Testing with sample data, timing...\n");
   clock_t start = clock(), diff;
