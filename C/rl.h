@@ -4,6 +4,6 @@
 #include "model.h"
 
 model* init_rl_model(int version);
-void test_run();
+void run_model(model* m);
 
 #endif

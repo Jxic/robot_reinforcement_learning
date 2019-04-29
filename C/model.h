@@ -11,6 +11,7 @@ typedef struct _model {
   layer loss_layer;
   layer* hidden_linears;
   layer* hidden_activations;
+  int version;
 } model;
 
 model* init_model(int input_dim);

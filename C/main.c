@@ -8,7 +8,7 @@
 #include <time.h>
 // cmd + shift + p -> edit configuration
 
-int main() {
+int _main() {
   // preparation phase
   srand(SEED);
   // test mode
@@ -26,10 +26,11 @@ int main() {
   printf("\n");
   printf("Testing with sample data, timing...\n");
   clock_t start = clock(), diff;
-  test_run();
+  model* m = init_rl_model(0);
+  run_model(m);
   diff = clock() - start;
   int msec = diff * 1000 / CLOCKS_PER_SEC;
-  printf("Test training takes %ds %dms\n", msec/1000, msec%1000);
+  printf("Test training took %ds %dms\n", msec/1000, msec%1000);
   printf("\n");
   return 0;
   // training mode
@@ -37,3 +38,10 @@ int main() {
   return 0;
   #endif
 }
+
+#ifndef C_AS_LIB
+int main(){
+  return _main();
+}
+#endif
+

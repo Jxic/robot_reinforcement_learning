@@ -7,6 +7,10 @@
 #include <string.h>
 #include "matrix_op.h"
 
+#include <unistd.h>
+#include <stdio.h>
+#include <limits.h>
+
 static int append(matrix_t* m, char* c, int create);
 static double convert_double(char* c);
 static int remove_char(char* s, char c);
@@ -23,7 +27,13 @@ matrix_t* load_data(char* filename) {
   char buff[BUFFER_SIZE];
   fp = fopen(filename, "r");
   if (!fp) {
-    printf("[LOAD_DATA] file not existed");
+    printf("[LOAD_DATA] file not existed\n");
+    char cwd[100];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+      printf("Current working dir: %s\n", cwd);
+    } else {
+      perror("getcwd() error");
+    }
     exit(1);
   }
   //construct a matrix

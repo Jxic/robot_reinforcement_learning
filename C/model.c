@@ -239,7 +239,6 @@ static int model_update(model* m, double learning_rate) {
 }
 
 double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max) {
-  printf("evaluating trained model\n");
   double sum = 0;
   matrix_t* min_max_y = slice_col_wise(min_max, x->cols, min_max->cols);
   augment_space(x, x->rows, m->max_out);
