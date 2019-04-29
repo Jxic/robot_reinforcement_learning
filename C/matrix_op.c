@@ -119,7 +119,6 @@ int mult_scalar(matrix_t* a, double b) {
 }
 
 matrix_t* matmul(matrix_t* a, matrix_t* b) {
-  //printf("%d %d %d %d\n", a->rows, a->cols, b->rows, b->cols);
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
   matrix_t* new_mat = new_matrix(a->rows, b->cols);
@@ -185,7 +184,6 @@ int any_larger(matrix_t* t, double thres) {
 }
 
 int copy_matrix(matrix_t* dst, matrix_t* src) {
-  //printf("%d, %d, %d, %d, %d\n", dst->rows, dst->cols, dst->max_size, src->rows, src->cols);
   assert(dst->max_size >= src->rows*src->cols);
   memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
   dst->rows = src->rows;

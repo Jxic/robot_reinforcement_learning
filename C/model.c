@@ -119,9 +119,9 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
   printf("\n");
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
-    printf("\repoch %d: ", epc);
+    printf("\repoch %d: ", epc+1);
     #else
-    printf("epoch %d: ", epc);
+    printf("epoch %d: ", epc+1);
     #endif
     // shuffle
     if (shuffle) {
@@ -138,9 +138,7 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
       // prepare next batch
       matrix_t* next_batch = slice_row_wise(x, start, start+curr_batch);
       matrix_t* next_target = slice_row_wise(y, start, start+curr_batch);
-      if (contains_nan(next_batch) || contains_nan(next_target)) {
-        printf("batch contains nan, %d", start);
-      }
+
       augment_space(next_batch, batch_size, m->max_out);
 
       // one forward and backward pass

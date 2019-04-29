@@ -194,7 +194,7 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
   elem_wise_mult(temp, layer_data.cache);
 
   elem_wise_mult(grad, temp);
-  free(temp);
+  free_matrix(temp);
 
   return 1;
 }

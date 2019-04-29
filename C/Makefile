@@ -15,7 +15,7 @@ EXE = main
 main : $(OBJ)
 	@mkdir -p $(BDIR)
 	@$(CC) $(CFLAGS) $^ -o $@
-	#@mv *.o $(BDIR)
+	@mv *.o $(BDIR)
 
 clean :
 	rm -rf *.o main $(BDIR)
