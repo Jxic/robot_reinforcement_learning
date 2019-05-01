@@ -1,5 +1,8 @@
 #ifndef MATRIX_OP_H
 #define MATRIX_OP_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "data_structures.h"
 
@@ -51,4 +54,7 @@ matrix_t* new_matrix(int rows, int cols);
 matrix_t* slice_row_wise(matrix_t* t, int start, int end);
 matrix_t* slice_col_wise(matrix_t* t, int start, int end);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
