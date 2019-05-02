@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "data_structures.h"
 #include "matrix_op.h"
 
 int tests_run = 0;

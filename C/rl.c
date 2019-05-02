@@ -5,26 +5,32 @@
 #include "utils.h"
 #include "macros.h"
 
-static model* init_rl_model_0();
+#include "rl_ddpg_disc.h"
+
+
 static void test_run();
 
-model* init_rl_model(int version) {
-  printf("Using network version %d\n", version);
-  switch (version) {
-    case 0: {
-      return init_rl_model_0();
-    }
-  
+void run_rl(rl_type t) {
+  switch (t)
+  {
+    case test:
+      test_run();
+      break;
+    
+    // deep deterministic policy gradient
+    case ddpg:
+      run_ddpg();
+      break;
+    
     default:
-      printf("[INIT_MODEL] unrecognized model version");
-      exit(1);
+      printf("[RUN_MODEL] unrecognized model %d", t);
   }
 }
 
-static model* init_rl_model_0() {
+static model* init_model_0() {
   model* new_model = init_model(3);
   new_model->version = 0;
-  add_linear_layer(new_model, 100, relu);
+  add_linear_layer(new_model, 100, tanh_);
   add_linear_layer(new_model, 100, relu);
   add_linear_layer(new_model, 3, placeholder);
   compile_model(new_model, mse_loss);
@@ -32,20 +38,9 @@ static model* init_rl_model_0() {
   return new_model;
 }
 
-void run_model(model* m) {
-  switch (m->version)
-  {
-    case 0:
-      test_run();
-      break;
-  
-    default:
-      printf("[RUN_MODEL] unrecognized model %d", m->version);
-  }
-}
 
 void test_run() {
-  model* m = init_rl_model(0);
+  model* m = init_model_0();
   matrix_t* t;
   #ifndef C_AS_LIB
   t = load_data("FM_dataset.dat");

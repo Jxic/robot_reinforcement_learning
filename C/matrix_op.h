@@ -4,8 +4,6 @@
 extern "C" {
 #endif
 
-#include "data_structures.h"
-
 typedef struct _matrix_t {
   double* data;
   int rows;
@@ -29,6 +27,7 @@ int mult_bias(matrix_t* a, matrix_t* b);
 int add_scalar(matrix_t* a, double b);
 int mult_scalar(matrix_t* a, double b);
 int neg(matrix_t* a);
+int inverse(matrix_t* a);
 
 matrix_t* matmul(matrix_t* a, matrix_t* b);
 matrix_t* transpose(matrix_t* a);
@@ -53,6 +52,9 @@ matrix_t* new_matrix(int rows, int cols);
 // matrix_t* shuffle_matrix_row_wise(matrix_t* t);
 matrix_t* slice_row_wise(matrix_t* t, int start, int end);
 matrix_t* slice_col_wise(matrix_t* t, int start, int end);
+matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis);
+matrix_t* clone(matrix_t* a);
+
 
 #ifdef __cplusplus
 }

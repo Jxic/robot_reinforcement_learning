@@ -101,8 +101,17 @@ int mult_bias(matrix_t* a, matrix_t* b) {
 }
 
 int add_scalar(matrix_t* a, double b) {
-  assert(a->rows > 0 && a->cols >0);
+  assert(a->rows > 0 && a->cols > 0);
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] += b;
+  return 1;
+}
+
+int inverse(matrix_t* a) {
+  assert(a->rows > 0 && a->cols > 0);
+  for (int i = 0; i < a->rows*a->cols; ++i) {
+    assert(a->data[i]);
+    a->data[i] = 1/a->data[i];
+  } 
   return 1;
 }
 
@@ -327,4 +336,37 @@ int scale(matrix_t* x, matrix_t* min_max) {
   free_matrix(diff);
   
   return 1;
+}
+
+matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis) {
+  // 1 horizontal, 0 vertical
+  assert(axis == 0 || axis == 1);
+  matrix_t* ret;
+  if (axis) {
+    assert(a->rows == b->rows);
+    int rows = a->rows;
+    int cols = a->cols + b->cols;
+    ret = new_matrix(rows, cols);
+    for (int i = 0; i < rows; ++i) {
+      memcpy(ret->data+(i*cols), a->data+(i*a->cols), a->cols*sizeof(double));
+      memcpy(ret->data+(i*cols)+a->cols, b->data+(i*b->cols), b->cols*sizeof(double));
+    }
+  } else {
+    assert(a->cols == b->cols);
+    int rows = a->rows + b->rows;
+    int cols = a->cols;
+    ret = new_matrix(rows, cols);
+    //memcpy(ret->data, a->data, a->cols*a->rows*sizeof(double));
+    //memcpy(ret->data+(a->rows*a->cols), b->data, b->cols*b->rows*sizeof(double));
+    for (int i = 0; i < rows; ++i) memcpy(ret->data+(i*cols), a->data+(i*cols), cols*sizeof(double));
+    for (int i = 0; i < rows; ++i) memcpy(ret->data+((i+a->cols)*cols), b->data+(i*cols), cols*sizeof(double));
+  }
+  return ret;
+}
+
+matrix_t* clone(matrix_t* a) {
+  assert(a);
+  matrix_t* ret = new_matrix(a->rows, a->cols);
+  copy_matrix(ret, a);
+  return a;
 }

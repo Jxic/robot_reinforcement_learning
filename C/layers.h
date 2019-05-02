@@ -1,7 +1,6 @@
 #ifndef LAYERS_H
 #define LAYERS_H
 
-#include "data_structures.h"
 #include "matrix_op.h"
 
 typedef struct _relu_layer {
@@ -19,6 +18,10 @@ typedef struct _linear_layer {
 typedef struct _sigmoid_layer {
   matrix_t* cache;
 } sigmoid_layer;
+
+typedef struct _tanh_layer {
+  matrix_t* cache;
+} tanh_layer;
 
 typedef struct _softmax_layer {
   matrix_t* cache;
@@ -40,10 +43,11 @@ typedef union _layer_data {
   placeholder_layer p;
   softmax_layer so;
   mse_loss_layer m;
+  tanh_layer t;
 } layer_data;
 
 typedef enum _layer_type {
-  relu, linear, sigmoid, placeholder, mse_loss
+  tanh_, relu, linear, sigmoid, placeholder, mse_loss
 } layer_type;
 
 typedef struct _layer {

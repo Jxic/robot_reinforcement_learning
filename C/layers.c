@@ -12,14 +12,16 @@ static int linear_forward(layer* l, matrix_t* x);
 static int relu_forward(layer* l, matrix_t* x);
 static int sigmoid_forward(layer* l, matrix_t* x);
 static int placeholder_forward(layer* l, matrix_t* x) {return 1;}
+static int tanh_forward(layer* l, matrix_t* x);
 // static int softmax_forward(layer* l, matrix_t* x);
 
-// hidden layer neurons forward
+// hidden layer neurons backward
 static int linear_backward(layer* l, matrix_t* grad);
-// activation layer forward
+// activation layer backward
 static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
 static int placeholder_backward(layer* l, matrix_t* x) {return 1;}
+static int tanh_backward(layer* l, matrix_t* grad);
 // static int softmax_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
@@ -37,6 +39,8 @@ int forward(layer* l, matrix_t* x) {
       return linear_forward(l, x);
     case sigmoid:
       return sigmoid_forward(l, x);
+    case tanh_:
+      return tanh_forward(l, x);
     case placeholder:
       return placeholder_forward(l, x);
     default:
@@ -53,6 +57,8 @@ int backward(layer* l, matrix_t* grad) {
       return linear_backward(l, grad);
     case sigmoid:
       return sigmoid_backward(l, grad);
+    case tanh_:
+      return tanh_backward(l, grad);
     case placeholder:
       return placeholder_backward(l, grad);
     default:
@@ -196,6 +202,28 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
   elem_wise_mult(grad, temp);
   free_matrix(temp);
 
+  return 1;
+}
+
+static int tanh_forward(layer* l, matrix_t* x) {
+  // apply activation
+  mult_scalar(x, 2);
+  neg(x);
+  for (int i = 0; i < x->rows*x->cols; ++i) x->data[i] = exp(x->data[i]);
+  add_scalar(x, 1);
+  inverse(x);
+  mult_scalar(x, 2);
+  add_scalar(x, -1);
+  // keep gradient
+  copy_matrix(l->data.t.cache, x);
+  elem_wise_mult(l->data.t.cache, l->data.t.cache);
+  neg(l->data.t.cache);
+  add_scalar(l->data.t.cache, 1);
+  return 1;
+}
+
+static int tanh_backward(layer* l, matrix_t* grad) {
+  elem_wise_mult(grad, l->data.t.cache);
   return 1;
 }
 

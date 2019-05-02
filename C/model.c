@@ -7,8 +7,6 @@
 #include "macros.h"
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
-static matrix_t* model_backard(model* m);
-static int model_update(model* m, double learning_rate);
 static int init_caches(model* m, int batch_size);
 
 model* init_model(int input_dim) {
@@ -43,6 +41,13 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
       new_sigmoid.cache = malloc(sizeof(matrix_t));
       activation_wrapper.type = sigmoid;
       activation_wrapper.data.s = new_sigmoid;
+      break;
+    }
+    case tanh_: {
+      tanh_layer new_tanh;
+      new_tanh.cache = malloc(sizeof(matrix_t));
+      activation_wrapper.type = tanh_;
+      activation_wrapper.data.t = new_tanh;
       break;
     }
     case relu: {
@@ -91,7 +96,7 @@ int compile_model(model* m, layer_type loss) {
 }
 
 int print_network(model* m) {
-  char* names[] = {"relu", "linear", "sigmoid", "identity", "mse_loss"};
+  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss"};
   printf("---------------------------------------\n");
   printf(" input dimension: %d\n", m->input_dim);
   printf(" output dimension: %d\n", m->output_dim);
@@ -143,8 +148,9 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
 
       // one forward and backward pass
       loss = model_forward(m, next_batch, next_target);
-
-      model_backard(m);
+      matrix_t* grad = loss_backward(&m->loss_layer);
+      model_backward(m, grad);
+      free_matrix(grad);
       model_update(m, learning_rate);
 
       start = start + curr_batch;
@@ -171,7 +177,9 @@ static int init_caches(model* m, int batch_size) {
         break;
       case relu:
         m->hidden_activations[i].data.r.cache = new_matrix(batch_size, last_layer_out);
-        break;   
+        break;
+      case tanh_:
+        m->hidden_activations[i].data.t.cache = new_matrix(batch_size, last_layer_out);   
       default:
         break;
     } 
@@ -213,8 +221,7 @@ static double model_forward(model* m, matrix_t* x, matrix_t* y) {
   return loss;
 }
 
-static matrix_t* model_backard(model* m) {
-  matrix_t* grad = loss_backward(&m->loss_layer);
+int model_backard(model* m, matrix_t* grad) {
   augment_space(grad, grad->rows, m->max_out);
   for (int i = m->num_of_layers-1; i >= 0; --i) {
     if (!backward(m->hidden_activations+i, grad)) {
@@ -226,10 +233,10 @@ static matrix_t* model_backard(model* m) {
       exit(1);
     }
   }
-  return grad;
+  return 1;
 }
 
-static int model_update(model* m, double learning_rate) {
+int model_update(model* m, double learning_rate) {
   for(int i = 0; i < m->num_of_layers; i++) {
     if (!update(m->hidden_linears+i, learning_rate)) {
       printf("[MODEL_UPDATE] failed at %dth linear layer\n", i);

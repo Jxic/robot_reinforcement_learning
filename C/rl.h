@@ -3,7 +3,10 @@
 
 #include "model.h"
 
-model* init_rl_model(int version);
-void run_model(model* m);
+typedef enum _rl_type {
+  test, ddpg
+} rl_type;
+
+void run_rl(rl_type t);
 
 #endif
