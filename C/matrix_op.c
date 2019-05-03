@@ -368,7 +368,7 @@ matrix_t* clone(matrix_t* a) {
   assert(a);
   matrix_t* ret = new_matrix(a->rows, a->cols);
   copy_matrix(ret, a);
-  return a;
+  return ret;
 }
 
 int clip(matrix_t* a, double low, double high) {

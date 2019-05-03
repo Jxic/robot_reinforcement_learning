@@ -47,7 +47,7 @@ typedef union _layer_data {
 } layer_data;
 
 typedef enum _layer_type {
-  tanh_, relu, linear, sigmoid, placeholder, mse_loss
+  tanh_, relu, linear, sigmoid, placeholder, mse_loss, no_loss
 } layer_type;
 
 typedef struct _layer {

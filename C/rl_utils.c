@@ -3,23 +3,27 @@
 #include <assert.h>
 #include "utils.h"
 #include <string.h>
+#include <stdio.h>
 
 experience_buffer* init_experience_buffer(int size) {
   assert(size > 0);
   experience_buffer* new_buffer = (experience_buffer*)malloc(sizeof(experience_buffer));
-  new_buffer->experiences = calloc(1, sizeof(matrix_t*));
+  new_buffer->experiences = calloc(size, sizeof(matrix_t*));
   new_buffer->max_size = size;
   new_buffer->curr_size = 0;
+  new_buffer->end_pos = 0;
   return new_buffer;
 }
 
 int store_experience(experience_buffer* exp_buf, matrix_t* new_exp) {
-  exp_buf->experiences = realloc(exp_buf->experiences, (exp_buf->curr_size+1)*sizeof(matrix_t*));
-  exp_buf->experiences[exp_buf->curr_size] = new_exp;
   if (exp_buf->curr_size >= exp_buf->max_size) {
-    free_matrix(exp_buf->experiences[0]);
-    exp_buf->experiences++;
+    free_matrix(exp_buf->experiences[exp_buf->end_pos]);
+  } else {
+    exp_buf->curr_size++;
   }
+  exp_buf->experiences[exp_buf->end_pos] = new_exp;
+  exp_buf->end_pos = (exp_buf->end_pos + 1) % exp_buf->max_size;
+  
   return 1;
 }
 

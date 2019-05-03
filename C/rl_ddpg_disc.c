@@ -62,7 +62,7 @@ void run_ddpg() {
     double reward = run_epoch();
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
-    printf("Episode: %d | Rewards: %1.f | Time elapsed: %1.f mins \n", epc, reward, msec/(double)60000);
+    printf("Episode: %d | Rewards: %.1f | Time elapsed: %.1f mins \n", epc, reward, msec/(double)60000);
     train();
   }
 }
@@ -80,12 +80,14 @@ static int init_actor_w_target() {
     copy_matrix(W_target, W);
     copy_matrix(b_target, b);
   }
+  init_caches(actor, BATCH_SIZE);
+  init_caches(actor_target, BATCH_SIZE);
   return 1;
 }
 
 static int init_critic_w_target() {
-  critic = init_model(STATE_DIM);
-  critic_target = init_model(STATE_DIM);
+  critic = init_model(STATE_DIM + ACTION_DIM);
+  critic_target = init_model(STATE_DIM + ACTION_DIM);
   for (int i = 0; i < NUM_OF_LAYERS; ++i){
     add_linear_layer(critic, critic_layers_config[i], critic_layers_acts[i]);
     add_linear_layer(critic_target, critic_layers_config[i], critic_layers_acts[i]);
@@ -96,6 +98,10 @@ static int init_critic_w_target() {
     copy_matrix(W_target, W);
     copy_matrix(b_target, b);
   }
+  compile_model(critic, mse_loss);
+  compile_model(critic_target, mse_loss);
+  init_caches(critic, BATCH_SIZE);
+  init_caches(critic_target, BATCH_SIZE);
   return 1;
 }
 
@@ -158,7 +164,8 @@ static double run_epoch() {
 }
 
 static matrix_t* get_action(matrix_t* state, double act_noise) {
-  matrix_t* action = clone(state);
+  matrix_t* action = slice_col_wise(state, 0, STATE_DIM);
+  augment_space(action, action->rows, actor->max_out);
   predict(actor, action);
   matrix_t* noise = rand_normal(ACTION_DIM);
   mult_scalar(noise, act_noise);
@@ -205,13 +212,13 @@ static void train() {
   matrix_t* nxt_actions = clone(nxt_states);
   predict(actor_target, nxt_actions);
   matrix_t* nxt_qs = concatenate(nxt_states, nxt_actions, 1);
+  
   predict(critic_target, nxt_qs);
   neg(dones);
   add_scalar(dones, 1);
   elem_wise_mult(nxt_qs, dones);
   mult_scalar(nxt_qs, GAMMA);
   elem_wise_add(rewards, nxt_qs);
-
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
   fit(critic, qs, rewards, BATCH_SIZE, 1, LR, 0);
@@ -228,7 +235,6 @@ static void train() {
   mult_scalar(c_grad, 1/(double)c_grad->rows);
   model_backward(critic, c_grad);
   matrix_t* a_grad = slice_col_wise(c_grad, STATE_DIM, STATE_DIM+ACTION_DIM);
-
   // back propagation and update
   model_backward(actor, a_grad);
   model_update(actor, LR);

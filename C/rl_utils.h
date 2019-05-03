@@ -7,6 +7,7 @@ typedef struct _experience_buffer {
   matrix_t** experiences;
   int max_size;
   int curr_size;
+  int end_pos;
 } experience_buffer;
 
 experience_buffer* init_experience_buffer(int size);

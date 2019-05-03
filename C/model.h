@@ -27,6 +27,8 @@ double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max);
 
 int model_backward(model* m, matrix_t* grad);
 int model_update(model* m, double learning_rate);
+int init_caches(model* m, int batch_size);
+
 
 #endif
 

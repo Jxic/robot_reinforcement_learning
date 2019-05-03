@@ -7,7 +7,6 @@
 #include "macros.h"
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
-static int init_caches(model* m, int batch_size);
 
 model* init_model(int input_dim) {
   model* new_m = malloc(sizeof(model));
@@ -15,6 +14,7 @@ model* init_model(int input_dim) {
   new_m->num_of_layers = 0;
   new_m->hidden_linears = (layer*)malloc(sizeof(layer));
   new_m->hidden_activations = (layer*)malloc(sizeof(layer));
+  new_m->loss_layer.type = no_loss;
   return new_m;
 }
 
@@ -96,7 +96,7 @@ int compile_model(model* m, layer_type loss) {
 }
 
 int print_network(model* m) {
-  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss"};
+  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss", "no_loss"};
   printf("---------------------------------------\n");
   printf(" input dimension: %d\n", m->input_dim);
   printf(" output dimension: %d\n", m->output_dim);
@@ -121,12 +121,12 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
     exit(1);
   }
 
-  printf("\n");
+  //printf("\n");
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
     printf("\repoch %d: ", epc+1);
     #else
-    printf("epoch %d: ", epc+1);
+    // printf("epoch %d: ", epc+1);
     #endif
     // shuffle
     if (shuffle) {
@@ -159,13 +159,13 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
     printf("%f", loss);
     fflush(stdout);
     #else
-    printf("%f\n", loss);
+    //printf("%f\n", loss);
     #endif
   }
-  printf("\n");
+  //printf("\n");
 }
 
-static int init_caches(model* m, int batch_size) {
+int init_caches(model* m, int batch_size) {
   int last_layer_out = m->input_dim;
   for (int i = 0; i < m->num_of_layers; ++i) {
     m->hidden_linears[i].data.l.cache = new_matrix(batch_size, last_layer_out);
@@ -198,12 +198,12 @@ static int init_caches(model* m, int batch_size) {
 
 int predict(model* m, matrix_t* x) {
   assert(x->rows > 0 && x->cols > 0);
+  augment_space(x, x->rows, m->max_out);
   for (int i = 0; i < m->num_of_layers; ++i) {
     if (!forward(m->hidden_linears+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth linear layer\n", i);
       return 0;
     }
-    
     if (!forward(m->hidden_activations+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth activation layer\n", i);
       return 0;
