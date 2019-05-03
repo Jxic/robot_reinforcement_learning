@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "macros.h"
 
-#include "rl_ddpg_disc.h"
+#include "rl_ddpg.h"
 
 
 static void test_run();

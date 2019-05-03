@@ -1,4 +1,4 @@
-#include "rl_ddpg_disc.h"
+#include "rl_ddpg.h"
 #include <stdio.h>
 #include <time.h>
 #include "rl_utils.h"
@@ -7,6 +7,7 @@
 #include "utils.h"
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
 #define STATE_DIM 9
 #define ACTION_DIM 3
@@ -39,7 +40,7 @@ static int pre_training();
 //static void test_agent();
 static double reward(matrix_t* last, matrix_t* curr);
 static matrix_t* get_action(matrix_t* state, double act_noise);
-static double run_epoch();
+static double* run_epoch();
 static void train();
 
 void run_ddpg() {
@@ -59,10 +60,10 @@ void run_ddpg() {
   clock_t start = clock(), diff;
   while (epc < EPOCH) {
     epc++;
-    double reward = run_epoch();
+    double* info = run_epoch();
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
-    printf("Episode: %d | Rewards: %.1f | Time elapsed: %.1f mins \n", epc, reward, msec/(double)60000);
+    printf("Episode: %d | Rewards: %.1f | Dones: %.1f | Time elapsed: %.1f mins \n", epc, info[0], info[1], msec/(double)60000);
     train();
   }
 }
@@ -134,13 +135,16 @@ static int pre_training() {
   return 1;
 }
 
-static double run_epoch() {
+static double* run_epoch() {
   double sum = 0;
+  double dones = 0;
   matrix_t* state = resetState(RANDOM_INIT_ANGLE, RANDOM_INIT_DEST);
   for (int i = 0; i < MAX_EPOCH_LEN; ++i) {
     matrix_t* new_action = get_action(state, 0);
     matrix_t* nxt_state = step(new_action);
+    dones += nxt_state->data[nxt_state->cols-1];
     double new_reward = reward(state, nxt_state);
+    sum += new_reward;
     matrix_t* s = slice_col_wise(state, 0, STATE_DIM);
     matrix_t* s_a = concatenate(s, new_action, 1);
     matrix_t* s_a_ns = concatenate(s_a, nxt_state, 1);
@@ -160,7 +164,10 @@ static double run_epoch() {
       state = nxt_state;
     }
   }
-  return sum;
+  double* ret = calloc(2, sizeof(double));
+  ret[0] = sum;
+  ret[1] = dones;
+  return ret;
 }
 
 static matrix_t* get_action(matrix_t* state, double act_noise) {
@@ -191,11 +198,14 @@ static double reward(matrix_t* last, matrix_t* curr) {
   matrix_t* c_dst = slice_col_wise(curr, 6, 9);
   double l_dist = euclidean_distance(l_end, l_dst);
   double c_dist = euclidean_distance(c_end, c_dst);
-  if (l_dist < c_dist) {
-    return -1;
+  double reward;
+  if (l_dist > c_dist) {
+    reward = 1;
   } else {
-    return 1;
+    reward = -1;
   }
+  reward += curr->data[curr->cols-1] * 100;
+  return reward;
 }
 
 
