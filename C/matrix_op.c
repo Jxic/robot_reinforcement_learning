@@ -370,3 +370,16 @@ matrix_t* clone(matrix_t* a) {
   copy_matrix(ret, a);
   return a;
 }
+
+int clip(matrix_t* a, double low, double high) {
+  assert(high > low);
+  for (int i = 0; i < a->rows*a->cols; ++i) {
+    if (a->data[i] < low) {
+      a->data[i] = low;
+    }
+    if (a->data[i] > high) {
+      a->data[i] = high;
+    }
+  }
+  return 1;
+}

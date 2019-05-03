@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "matrix_op.h"
-
+#include <math.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <limits.h>
@@ -96,4 +96,28 @@ static int remove_char(char* s, char c) {
   }
   *w = '\0';
   return 1;
+}
+
+matrix_t* rand_normal(int n) {
+  int i;
+  int m = n + n % 2;
+  double* values = (double*)calloc(m,sizeof(double));
+  //double average, deviation;
+  if ( values ) {
+    for ( i = 0; i < m; i += 2 ) {
+      double x,y,rsq,f;
+      do {
+        x = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        y = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        rsq = x * x + y * y;
+      }while( rsq >= 1. || rsq == 0. );
+      f = sqrt( -2.0 * log(rsq) / rsq );
+      values[i]   = x * f;
+      values[i+1] = y * f;
+    }
+  }
+  matrix_t* ret = new_matrix(1, n);
+  memcpy(ret->data, values, n*sizeof(double));
+  free(values);
+  return ret;
 }

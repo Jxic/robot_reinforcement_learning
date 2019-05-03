@@ -169,7 +169,8 @@ static int linear_backward(layer* l, matrix_t* grad) {
   ones.cols = grad->rows;
   ones.rows = 1;
   double ones_data[grad->rows];
-  for (int i = 0; i < grad->rows; ++i) ones_data[i] = 1;
+  // for (int i = 0; i < grad->rows; ++i) ones_data[i] = 1;
+  memset(ones_data, 1, grad->rows*sizeof(double));
   ones.data = ones_data;
   l->data.l.grad_b = matmul(&ones, grad);
 

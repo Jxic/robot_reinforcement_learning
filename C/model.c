@@ -221,7 +221,7 @@ static double model_forward(model* m, matrix_t* x, matrix_t* y) {
   return loss;
 }
 
-int model_backard(model* m, matrix_t* grad) {
+int model_backward(model* m, matrix_t* grad) {
   augment_space(grad, grad->rows, m->max_out);
   for (int i = m->num_of_layers-1; i >= 0; --i) {
     if (!backward(m->hidden_activations+i, grad)) {

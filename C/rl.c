@@ -30,7 +30,7 @@ void run_rl(rl_type t) {
 static model* init_model_0() {
   model* new_model = init_model(3);
   new_model->version = 0;
-  add_linear_layer(new_model, 100, tanh_);
+  add_linear_layer(new_model, 100, relu);
   add_linear_layer(new_model, 100, relu);
   add_linear_layer(new_model, 3, placeholder);
   compile_model(new_model, mse_loss);
@@ -54,8 +54,8 @@ void test_run() {
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
 
-  int batch_size = 32;
-  int epoch = 200;
+  int batch_size = 16;
+  int epoch = 500;
   double learning_rate = 0.01;
   int shuffle = 1;
   fit(m, x, y, batch_size, epoch, learning_rate, shuffle);

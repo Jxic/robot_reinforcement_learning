@@ -6,11 +6,18 @@
 #include "utils.h"
 #include "rl.h"
 #include <time.h>
+#include <string.h>
 // cmd + shift + p -> edit configuration
 
 int _main() {
   // preparation phase
   srand(SEED);
+  // char a[30];
+  // memset(a, 0, 30);
+  // for (int i = 0; i< 30; ++i) printf("%f ", rand_uniform(-3.14, 3.14));
+  matrix_t* ra = rand_normal(10);
+  print_matrix(ra, 1);
+  return 1;
   // test mode
   #ifdef RUN_TEST
   printf("TEST MODE\n\n");

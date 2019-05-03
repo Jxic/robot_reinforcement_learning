@@ -35,11 +35,21 @@ int free_experience_buffer(experience_buffer* exp_buf) {
 matrix_t* sample_experience(experience_buffer* exp_buf, int num) {
   assert(num <= exp_buf->max_size);
   matrix_t* ret = new_matrix(num, exp_buf->experiences[0]->cols);
+  
   int idx;
+  int chosen[exp_buf->curr_size];
+  memset(chosen, 0, exp_buf->curr_size*sizeof(int));
   for (int i = 0; i < num; ++i) {
     idx = (int) rand_uniform(-1, exp_buf->curr_size);
     if (idx == -1) idx++;
     if (idx == exp_buf->curr_size) idx--;
+    for (int j = idx; j < exp_buf->curr_size; ++j) {
+      if (!chosen[j]) {
+        idx = j;
+        chosen[j] = 1;
+        break;
+      }
+    }
     assert(exp_buf->experiences[idx]->cols == ret->cols);
     memcpy(ret->data+(i*ret->cols), exp_buf->experiences[idx]->data, ret->cols*sizeof(double));
   }

@@ -5,6 +5,8 @@
 #include "sim_api.h"
 #include "model.h"
 #include "utils.h"
+#include <assert.h>
+#include <math.h>
 
 #define STATE_DIM 9
 #define ACTION_DIM 3
@@ -34,9 +36,9 @@ static experience_buffer* exp_buf;
 static int init_actor_w_target();
 static int init_critic_w_target();
 static int pre_training();
-static void test_agent();
+//static void test_agent();
 static double reward(matrix_t* last, matrix_t* curr);
-static matrix_t* get_action(matrix_t* out);
+static matrix_t* get_action(matrix_t* state, double act_noise);
 static double run_epoch();
 static void train();
 
@@ -125,6 +127,70 @@ static int pre_training() {
   }
   return 1;
 }
+
+static double run_epoch() {
+  double sum = 0;
+  matrix_t* state = resetState(RANDOM_INIT_ANGLE, RANDOM_INIT_DEST);
+  for (int i = 0; i < MAX_EPOCH_LEN; ++i) {
+    matrix_t* new_action = get_action(state, 0);
+    matrix_t* nxt_state = step(new_action);
+    double new_reward = reward(state, nxt_state);
+    matrix_t* s = slice_col_wise(state, 0, STATE_DIM);
+    matrix_t* s_a = concatenate(s, new_action, 1);
+    matrix_t* s_a_ns = concatenate(s_a, nxt_state, 1);
+    augment_space(s_a_ns, 1, s_a_ns->cols+1);
+    s_a_ns->data[s_a_ns->cols] = new_reward;
+    s_a_ns->cols++;
+    store_experience(exp_buf, s_a_ns);
+    free_matrix(s_a);
+    free_matrix(s);
+    free_matrix(new_action);
+    if (nxt_state->data[nxt_state->cols-1]) {
+      free_matrix(nxt_state);
+      free_matrix(state);
+      state = resetState(RANDOM_INIT_ANGLE, RANDOM_INIT_DEST);
+    } else {
+      free_matrix(state);
+      state = nxt_state;
+    }
+  }
+  return sum;
+}
+
+static matrix_t* get_action(matrix_t* state, double act_noise) {
+  matrix_t* action = clone(state);
+  predict(actor, action);
+  matrix_t* noise = rand_normal(ACTION_DIM);
+  mult_scalar(noise, act_noise);
+  elem_wise_add(action, noise);
+  clip(action, -ACTION_BOUND, ACTION_BOUND);
+  return action;
+}
+
+static double euclidean_distance(matrix_t* a, matrix_t* b) {
+  assert(a->rows == 1 && b->rows == 1);
+  assert(a->cols == b->cols);
+  double sum = 0;
+  for (int i = 0; i < a->cols; ++i) {
+    sum += pow(a->data[i]-b->data[i], 2);
+  }
+  return sqrt(sum);
+}
+
+static double reward(matrix_t* last, matrix_t* curr) {
+  matrix_t* l_end = slice_col_wise(last, 3, 6);
+  matrix_t* l_dst = slice_col_wise(last, 6, 9);
+  matrix_t* c_end = slice_col_wise(curr, 3, 6);
+  matrix_t* c_dst = slice_col_wise(curr, 6, 9);
+  double l_dist = euclidean_distance(l_end, l_dst);
+  double c_dist = euclidean_distance(c_end, c_dst);
+  if (l_dist < c_dist) {
+    return -1;
+  } else {
+    return 1;
+  }
+}
+
 
 static void train() {
   // training on past experiences
