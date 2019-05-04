@@ -64,5 +64,6 @@ int init_linear(layer* l, int in, int out);
 
 double loss_forward(layer* l, matrix_t* x, matrix_t* target);
 matrix_t* loss_backward(layer* l);
+int free_layer(layer l);
 
 #endif

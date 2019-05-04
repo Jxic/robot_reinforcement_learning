@@ -15,6 +15,7 @@ model* init_model(int input_dim) {
   new_m->hidden_linears = (layer*)malloc(sizeof(layer));
   new_m->hidden_activations = (layer*)malloc(sizeof(layer));
   new_m->loss_layer.type = no_loss;
+  new_m->cache_initialzed = 0;
   return new_m;
 }
 
@@ -38,21 +39,24 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
   {
     case sigmoid: {
       sigmoid_layer new_sigmoid;
-      new_sigmoid.cache = malloc(sizeof(matrix_t));
+      //new_sigmoid.cache = malloc(sizeof(matrix_t));
+      new_sigmoid.cache = NULL;
       activation_wrapper.type = sigmoid;
       activation_wrapper.data.s = new_sigmoid;
       break;
     }
     case tanh_: {
       tanh_layer new_tanh;
-      new_tanh.cache = malloc(sizeof(matrix_t));
+      //new_tanh.cache = malloc(sizeof(matrix_t));
+      new_tanh.cache = NULL;
       activation_wrapper.type = tanh_;
       activation_wrapper.data.t = new_tanh;
       break;
     }
     case relu: {
       relu_layer new_relu;
-      new_relu.cache = malloc(sizeof(matrix_t));
+      //new_relu.cache = malloc(sizeof(matrix_t));
+      new_relu.cache = NULL;
       activation_wrapper.type = relu;
       activation_wrapper.data.r = new_relu;
       break;
@@ -81,8 +85,10 @@ int compile_model(model* m, layer_type loss) {
   switch (loss) {
     case mse_loss: {
       mse_loss_layer new_mse_loss;
-      new_mse_loss.cache_pred = malloc(sizeof(matrix_t));
-      new_mse_loss.cache_target = malloc(sizeof(matrix_t));
+      // new_mse_loss.cache_pred = malloc(sizeof(matrix_t));
+      // new_mse_loss.cache_target = malloc(sizeof(matrix_t));
+      new_mse_loss.cache_pred = NULL;
+      new_mse_loss.cache_target = NULL;
       loss_wrapper.type = mse_loss;
       loss_wrapper.data.m = new_mse_loss;
       break;
@@ -116,7 +122,7 @@ int print_network(model* m) {
 
 void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
   assert(x->rows == y->rows);
-  if (!init_caches(m, x->rows)) {
+  if (!m->cache_initialzed && !init_caches(m, x->rows)) {
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
@@ -166,6 +172,7 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
 }
 
 int init_caches(model* m, int batch_size) {
+  m->cache_initialzed = 1;
   int last_layer_out = m->input_dim;
   for (int i = 0; i < m->num_of_layers; ++i) {
     m->hidden_linears[i].data.l.cache = new_matrix(batch_size, last_layer_out);
@@ -254,4 +261,16 @@ double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max) {
   scale(y, min_max_y);
   sum = loss_forward(&m->loss_layer, x, y);
   return sum;
+}
+
+int free_model(model* m) {
+  for (int i = 0; i < m->num_of_layers; ++i) {
+    free_layer(m->hidden_activations[i]);
+    free_layer(m->hidden_linears[i]);
+  }
+  free_layer(m->loss_layer);
+  free(m->hidden_linears);
+  free(m->hidden_activations);
+  free(m);
+  return 1;
 }

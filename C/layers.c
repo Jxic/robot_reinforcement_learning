@@ -272,3 +272,37 @@ int init_linear(layer* l, int in, int out) {
   
   return 1;
 }
+
+int free_layer(layer l) {
+  layer_data data = l.data;
+  switch (l.type) {
+    case relu: {
+      free_matrix(data.r.cache);
+      break;
+    }
+    case linear: {
+      free_matrix(data.l.W);
+      free_matrix(data.l.b);
+      free_matrix(data.l.grad_b);
+      free_matrix(data.l.grad_W);
+      free_matrix(data.l.cache);
+      break;
+    }
+    case sigmoid: {
+      free_matrix(data.s.cache);
+      break;
+    }
+    case tanh_: {
+      free_matrix(data.t.cache);
+      break;
+    }
+    case mse_loss: {
+      free_matrix(data.m.cache_pred);
+      free_matrix(data.m.cache_target);
+      break;
+    }
+    default:
+      break;
+  }
+  return 1;
+}

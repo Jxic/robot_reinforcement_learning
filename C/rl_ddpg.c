@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
+#include "matrix_op.h"
 
 #define STATE_DIM 9
 #define ACTION_DIM 3
@@ -64,8 +65,14 @@ void run_ddpg() {
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
     printf("Episode: %d | Rewards: %.1f | Dones: %.1f | Time elapsed: %.1f mins \n", epc, info[0], info[1], msec/(double)60000);
+    free(info);
     train();
   }
+  free_model(actor);
+  free_model(actor_target);
+  free_model(critic);
+  free_model(critic_target);
+  free_experience_buffer(exp_buf);
 }
 
 static int init_actor_w_target() {
@@ -132,6 +139,7 @@ static int pre_training() {
       state = nxt_state;
     }
   }
+  free_matrix(state);
   return 1;
 }
 
@@ -164,6 +172,7 @@ static double* run_epoch() {
       state = nxt_state;
     }
   }
+  free_matrix(state);
   double* ret = calloc(2, sizeof(double));
   ret[0] = sum;
   ret[1] = dones;
@@ -177,6 +186,7 @@ static matrix_t* get_action(matrix_t* state, double act_noise) {
   matrix_t* noise = rand_normal(ACTION_DIM);
   mult_scalar(noise, act_noise);
   elem_wise_add(action, noise);
+  free_matrix(noise);
   clip(action, -ACTION_BOUND, ACTION_BOUND);
   return action;
 }
@@ -198,6 +208,11 @@ static double reward(matrix_t* last, matrix_t* curr) {
   matrix_t* c_dst = slice_col_wise(curr, 6, 9);
   double l_dist = euclidean_distance(l_end, l_dst);
   double c_dist = euclidean_distance(c_end, c_dst);
+  free_matrix(l_end);
+  free_matrix(l_dst);
+  free_matrix(c_end);
+  free_matrix(c_dst);
+
   double reward;
   if (l_dist > c_dist) {
     reward = 1;
@@ -277,4 +292,6 @@ static void train() {
   free_matrix(actions);
   free_matrix(states);
   free_matrix(batch);
+  free_matrix(qs);
+  free_matrix(rewards);
 }

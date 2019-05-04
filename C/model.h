@@ -12,6 +12,7 @@ typedef struct _model {
   layer* hidden_linears;
   layer* hidden_activations;
   int version;
+  int cache_initialzed;
 } model;
 
 model* init_model(int input_dim);
@@ -28,7 +29,7 @@ double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max);
 int model_backward(model* m, matrix_t* grad);
 int model_update(model* m, double learning_rate);
 int init_caches(model* m, int batch_size);
-
+int free_model(model* m);
 
 #endif
 
