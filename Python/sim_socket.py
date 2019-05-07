@@ -65,6 +65,7 @@ class sim_socket:
         reply = struct.pack('d'*(self.state_dim+self.info_dim), *observation)
       if data[0] and data[1]:
         still_open = False
+        reply = struct.pack('d'*(self.state_dim+self.info_dim), *([0]*(self.state_dim+self.info_dim)))
       conn.sendall(reply)
     print("closing")
 

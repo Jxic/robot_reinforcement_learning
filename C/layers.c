@@ -277,6 +277,7 @@ int init_linear(layer* l, int in, int out) {
   initialize(new_linear_layer.b, xavier);
   new_linear_layer.grad_W = new_matrix(in, out);
   new_linear_layer.grad_b = new_matrix(1, out);
+
   // wrap up with struct layer
   l->type = linear;
   l->data.l = new_linear_layer;

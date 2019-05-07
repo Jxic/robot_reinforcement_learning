@@ -11,12 +11,12 @@
 #define GAMMA 0.99
 #define C_LR 0.001
 #define A_LR 0.0001
-#define EPOCH 99999999
+#define EPOCH 1000
 #define POLYAK 0.999
 #define MAX_EPOCH_LEN 1000
 #define BATCH_SIZE 64 // same as 64 timesteps
 #define PRE_TRAIN_STEPS 10000
-#define MEMORY_SIZE 1000000
+#define MEMORY_SIZE 100000
 #define NOISE_SCALE 0.1
 #define RANDOM_INIT_ANGLE 1
 #define RANDOM_INIT_DEST 1

@@ -29,14 +29,14 @@ static double train();
 
 void run_ddpg() {
   // preparation phase
-  if (!init_actor_w_target() ||
-      !init_critic_w_target() ||
-      !(exp_buf = init_experience_buffer(MEMORY_SIZE)) ||
-      !initEnv()) {
-    printf("[RUN_DDPG] failed to initialze the algorithm");
-  }
+  init_actor_w_target();
+  init_critic_w_target();
+  exp_buf = init_experience_buffer(MEMORY_SIZE);
+
+  initEnv();
   // randomly explore for certain number of steps
   printf("Initialized models\n");
+  
   if (!pre_training()) {
     printf("[RUN_DDPG] failed to fill the experience buffer");
   }
@@ -44,6 +44,7 @@ void run_ddpg() {
   //print_experiences(exp_buf);
   //goto finish;
   // training
+  
   int epc = 0;
   clock_t start = clock(), diff;
   while (epc < EPOCH) {
@@ -54,13 +55,15 @@ void run_ddpg() {
     printf("Dones: %.1f | Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Time elapsed: %.1f mins \n", info[1], epc, info[0], info[2], msec/(double)60000);
     free(info);
   }
-  //finish:
+  
+  closeEnv();
+
+  free_experience_buffer(exp_buf);
+  
   free_model(actor);
   free_model(actor_target);
   free_model(critic);
   free_model(critic_target);
-  free_experience_buffer(exp_buf);
-  closeEnv();
 }
 
 static int init_actor_w_target() {
@@ -121,6 +124,7 @@ static int pre_training() {
   matrix_t* state = resetState(RANDOM_INIT_ANGLE, RANDOM_INIT_DEST);
   for (int i = 0; i < PRE_TRAIN_STEPS; ++i) {
     matrix_t* new_action = new_matrix(1, ACTION_DIM);
+    
     for (int i = 0; i < ACTION_DIM; ++i) new_action->data[i] = random_action();//rand_uniform(-ACTION_BOUND, ACTION_BOUND);
     matrix_t* nxt_state = step(new_action);
     //double new_reward = reward(state, nxt_state);

@@ -35,8 +35,6 @@ matrix_t* resetState(int randAngle, int destPos) {
   flag[0] = 1;
   flag[1] = 0;
   matrix_t* reset_mat = new_matrix(1, ACTION_DIM);
-  reset_mat->data[0] = (double) randAngle;
-  reset_mat->data[1] = (double) destPos;
   matrix_t* ret = sim_send(reset_mat, flag);
   free_matrix(reset_mat);
   return ret;
@@ -56,7 +54,9 @@ void closeEnv() {
   int* flag = (int*)calloc(2, sizeof(int));
   flag[0] = 1;
   flag[1] = 1;
-  sim_send(end_mat, flag);
+  matrix_t* r = sim_send(end_mat, flag);
+  free_matrix(r);
+  free_matrix(end_mat);
   close_connection();
 }
 

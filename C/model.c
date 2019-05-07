@@ -47,6 +47,8 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
     layer adam2;
     init_linear(&adam1, m->output_dim, number_of_neurons);
     init_linear(&adam2, m->output_dim, number_of_neurons);
+    adam1.data.l.cache = new_matrix(1,1);
+    adam2.data.l.cache = new_matrix(1,1);
     m->optimizer.first_moment = realloc(m->optimizer.first_moment, sizeof(layer)*m->num_of_layers);
     m->optimizer.second_moment = realloc(m->optimizer.second_moment, sizeof(layer)*m->num_of_layers);
     m->optimizer.first_moment[m->num_of_layers-1] = adam1;
@@ -55,6 +57,7 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
     initialize(adam1.data.l.b, zeros);
     initialize(adam2.data.l.W, zeros);
     initialize(adam2.data.l.b, zeros);
+    
   }
 
   m->output_dim = number_of_neurons;
@@ -425,11 +428,15 @@ double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max) {
 int free_model(model* m) {
   for (int i = 0; i < m->num_of_layers; ++i) {
     free_layer(m->hidden_activations[i]);
+    free_layer(m->optimizer.first_moment[i]);
+    free_layer(m->optimizer.second_moment[i]);
     free_layer(m->hidden_linears[i]);
   }
   free_layer(m->loss_layer);
   free(m->hidden_linears);
   free(m->hidden_activations);
+  free(m->optimizer.first_moment);
+  free(m->optimizer.second_moment);
   free(m);
   return 1;
 }

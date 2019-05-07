@@ -20,6 +20,7 @@ int init_connection() {
     printf("[INIT_CONNECTION] Failed to initialize socket ...\n");
     exit(1);
   }
+  
   server.sin_addr.s_addr = inet_addr(HOST);
   server.sin_family = AF_INET;
   server.sin_port = htons(PORT);
