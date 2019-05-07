@@ -12,6 +12,7 @@ extern "C" {
 double rand_uniform(double low, double high);
 matrix_t* load_data(char* filename);
 matrix_t* rand_normal(int size);
+matrix_t* trunc_normal(int size, double high, double low);
 
 #ifdef __cplusplus
 }

@@ -144,7 +144,12 @@ static int linear_forward(layer* l, matrix_t* x) {
   
   //update the data flowing through the network
   copy_matrix(x, wx);
-
+  if (contains_nan(x)) {
+    printf("[LINEAR FORWARD]");
+    // print_matrix(x,1);
+    // print_matrix(layer_data.W, 1);
+    exit(1);
+  }
   free_matrix(wx);
   return 1;
 }
@@ -165,15 +170,13 @@ static int linear_backward(layer* l, matrix_t* grad) {
 
   l->data.l.grad_W = matmul(cache_T, grad);
 
-  matrix_t ones;
-  ones.cols = grad->rows;
-  ones.rows = 1;
-  double ones_data[grad->rows];
-  // for (int i = 0; i < grad->rows; ++i) ones_data[i] = 1;
-  memset(ones_data, 1, grad->rows*sizeof(double));
-  ones.data = ones_data;
-  l->data.l.grad_b = matmul(&ones, grad);
-
+  matrix_t* ones = new_matrix(1, grad->rows);
+  for (int i = 0; i < grad->rows; ++i) {
+    ones->data[i] = 1;
+  }
+  l->data.l.grad_b = matmul(ones, grad);
+  
+  free_matrix(ones);
   
   matrix_t* w_T = transpose(layer_data.W);
   matrix_t* new_grad = matmul(grad, w_T);
@@ -182,7 +185,15 @@ static int linear_backward(layer* l, matrix_t* grad) {
   free_matrix(cache_T);
   free_matrix(w_T);
   free_matrix(new_grad);
-
+  // printf("[normal===========================]\n");
+  // print_matrix(l->data.l.grad_W, 1);
+  // printf("[normal============================]\n");
+  if (contains_nan(grad)) {
+    printf("[LINEAR BACKWARD]");
+    // print_matrix(grad,1);
+    // print_matrix(layer_data.W, 1);
+    exit(1);
+  }
   return 1;
 }
 

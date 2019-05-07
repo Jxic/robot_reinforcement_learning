@@ -14,5 +14,6 @@ experience_buffer* init_experience_buffer(int size);
 int store_experience(experience_buffer* exp_buf, matrix_t* new_exp);
 int free_experience_buffer(experience_buffer* exp_buf);
 matrix_t* sample_experience(experience_buffer* exp_buf, int num);
+void print_experiences(experience_buffer* exp_buf);
 
 #endif

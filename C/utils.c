@@ -121,3 +121,31 @@ matrix_t* rand_normal(int n) {
   free(values);
   return ret;
 }
+
+matrix_t* trunc_normal(int n, double high, double low) {
+  int i = 0;
+  int m = n + n % 2;
+  double* values = (double*)calloc(m,sizeof(double));
+  //double average, deviation;
+  if ( values ) {
+    while (i < m) {
+      double x,y,rsq,f;
+      do {
+        x = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        y = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        rsq = x * x + y * y;
+      }while( rsq >= 1. || rsq == 0. );
+      f = sqrt( -2.0 * log(rsq) / rsq );
+      if (x*f>high || x*f<low || y*f>high || y*f<low) {
+        continue;
+      }
+      values[i]   = x * f;
+      values[i+1] = y * f;
+      i += 2;
+    }
+  }
+  matrix_t* ret = new_matrix(1, n);
+  memcpy(ret->data, values, n*sizeof(double));
+  free(values);
+  return ret;
+}

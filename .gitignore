@@ -4,3 +4,8 @@ lib/
 tf.c
 back
 *.txt
+build
+build_py_model.py
+c_rl_py.c
+log
+

@@ -11,7 +11,7 @@
 
 int _main() {
   // preparation phase
-  srand(SEED);
+  //srand(SEED);
   // char a[30];
   // memset(a, 0, 30);
   // for (int i = 0; i< 30; ++i) printf("%f ", rand_uniform(-3.14, 3.14));
@@ -20,6 +20,25 @@ int _main() {
   // return 1;
   // test mode
   #ifdef RUN_TEST
+  // matrix_t* a = new_matrix(3, 5);
+  // initialize(a, xavier);
+  // print_matrix(a,1 );
+  // mult_scalar(a, 3);
+  // print_matrix(a, 1);
+  // augment_space(a, 3, 100);
+  // matrix_t* b = new_matrix(10, 10);
+  // copy_matrix(b, a);
+  // print_matrix(b, 1);
+  // matrix_t* c = new_matrix(5, 3);
+  // initialize(c, xavier);
+  // if (!equal(matmul(a, c), matmul(b, c))) printf("something's wrong!\n");
+  // return 1;
+  // matrix_t* rand_mat = new_matrix(3, 100);
+  // initialize(rand_mat, truncated_normal);
+  // print_matrix(rand_mat, 1);
+  // // matrix_t* t_mat = trunc_normal(20, 2, -2);
+  // // print_matrix(t_mat,1);
+  // return 1;
   printf("TEST MODE\n\n");
   printf("Testing matrix operations...\n");
   test_results();

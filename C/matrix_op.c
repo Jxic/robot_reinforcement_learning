@@ -18,6 +18,10 @@ int initialize(matrix_t* mat, initializer i) {
   switch (i) {
     case xavier:
       return xavier_init(mat, 1);
+    case truncated_normal:
+      return truncated_normal_init(mat);
+    case zeros:
+      return zero_init(mat);
     default:
       printf("[INITIALIZE] unrecognized initializer type");
       exit(1);
@@ -111,6 +115,15 @@ int inverse(matrix_t* a) {
   for (int i = 0; i < a->rows*a->cols; ++i) {
     assert(a->data[i]);
     a->data[i] = 1/a->data[i];
+  } 
+  return 1;
+}
+
+int square_root(matrix_t* a) {
+  assert(a->rows > 0 && a->cols > 0);
+  for (int i = 0; i < a->rows*a->cols; ++i) {
+    assert(a->data[i]>=0);
+    a->data[i] = sqrt(a->data[i]);
   } 
   return 1;
 }
@@ -234,14 +247,14 @@ int print_matrix(matrix_t* t, int all) {
   if (all) {
     for (int i = 0; i < t->rows; ++i) {
       for (int j = 0; j< t->cols; ++j) {
-        printf(" %lf ",t->data[i*t->cols+j]);
+        printf(" %e ",t->data[i*t->cols+j]);
       }
       printf("\n");
     }
   } else {
     for (int i = 0; i < t->rows; i += t->rows/3) {
       for (int j = 0; j< t->cols; ++j) {
-        printf(" %lf ",t->data[i*t->cols+j]);
+        printf(" %e ",t->data[i*t->cols+j]);
       }
       printf("\n .......\n");
     } 
@@ -292,9 +305,22 @@ matrix_t* slice_col_wise(matrix_t* t, int start, int end) {
 }
 
 int xavier_init(matrix_t* a, double gain) {
-  double low = -gain * sqrt((double)6 / (double)(a->rows + a->cols));
-  double high = gain * sqrt((double)6 / (double)(a->rows + a-> cols));
+  double low = -gain * sqrt((double)1 / (double)(a->rows));// + a->cols));
+  double high = gain * sqrt((double)1 / (double)(a->rows));// + a-> cols));
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = rand_uniform(low, high);
+  return 1;
+}
+
+int truncated_normal_init(matrix_t* t) {
+  int size = t->cols*t->rows;
+  matrix_t* samples = trunc_normal(size, 0.003, -0.003);
+  for (int i = 0; i < t->rows*t->cols; ++i) t->data[i] = samples->data[i];
+  free_matrix(samples);
+  return 1;
+}
+
+int zero_init(matrix_t* t) {
+  for (int i = 0; i < t->cols*t->rows; ++i) t->data[i] = 0;
   return 1;
 }
 

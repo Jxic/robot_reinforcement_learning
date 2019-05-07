@@ -5,10 +5,11 @@
 #include <stdio.h>
 #include "layers.h"
 #include "macros.h"
+#include <math.h>
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
 
-model* init_model(int input_dim) {
+model* init_model(int input_dim, optimizer opt_type) {
   model* new_m = malloc(sizeof(model));
   new_m->input_dim = new_m->output_dim = new_m->max_out = input_dim;
   new_m->num_of_layers = 0;
@@ -16,6 +17,15 @@ model* init_model(int input_dim) {
   new_m->hidden_activations = (layer*)malloc(sizeof(layer));
   new_m->loss_layer.type = no_loss;
   new_m->cache_initialzed = 0;
+  new_m->opt_type = opt_type;
+  if (opt_type == adam) {
+    new_m->optimizer.beta1 = 0.9;
+    new_m->optimizer.beta2 = 0.999;
+    new_m->optimizer.epsilon = 0.00000001;
+    new_m->optimizer.timestamp = 0;
+    new_m->optimizer.first_moment = (layer*)malloc(sizeof(layer));
+    new_m->optimizer.second_moment = (layer*)malloc(sizeof(layer));
+  }
   return new_m;
 }
 
@@ -26,11 +36,28 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
   // new linear layer
   layer linear_wrapper;
   init_linear(&linear_wrapper, m->output_dim, number_of_neurons);
-  m->output_dim = number_of_neurons;
-
+  
   // realloc m->hidden_linears to hold one more layer
   m->hidden_linears = realloc(m->hidden_linears, sizeof(layer)*m->num_of_layers);
   m->hidden_linears[m->num_of_layers-1] = linear_wrapper;
+
+  // add corresponding adam optimizer config
+  if (m->opt_type == adam) {
+    layer adam1;
+    layer adam2;
+    init_linear(&adam1, m->output_dim, number_of_neurons);
+    init_linear(&adam2, m->output_dim, number_of_neurons);
+    m->optimizer.first_moment = realloc(m->optimizer.first_moment, sizeof(layer)*m->num_of_layers);
+    m->optimizer.second_moment = realloc(m->optimizer.second_moment, sizeof(layer)*m->num_of_layers);
+    m->optimizer.first_moment[m->num_of_layers-1] = adam1;
+    m->optimizer.second_moment[m->num_of_layers-1] = adam2;
+    initialize(adam1.data.l.W, zeros);
+    initialize(adam1.data.l.b, zeros);
+    initialize(adam2.data.l.W, zeros);
+    initialize(adam2.data.l.b, zeros);
+  }
+
+  m->output_dim = number_of_neurons;
 
   // add activation layer
   // cache size is decided at fit time
@@ -120,13 +147,14 @@ int print_network(model* m) {
   return 1;
 }
 
-void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
+double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
+
   assert(x->rows == y->rows);
   if (!m->cache_initialzed && !init_caches(m, x->rows)) {
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
-
+  double final_loss;
   //printf("\n");
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
@@ -157,18 +185,34 @@ void fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double l
       matrix_t* grad = loss_backward(&m->loss_layer);
       model_backward(m, grad);
       free_matrix(grad);
-      model_update(m, learning_rate);
+      switch (m->opt_type) {
+        case sgd:
+          model_update_sgd(m, learning_rate);
+          break;
+        case adam:
+          model_update_adam(m, learning_rate);
+          break;
+        default:
+          break;
+      }
 
       start = start + curr_batch;
+    }
+    if (epc == epoch - 1) {
+      final_loss = loss;
     }
     #ifdef RUN_TEST
     printf("%f", loss);
     fflush(stdout);
+    if (loss > 1000) {
+      exit(1);
+    }
     #else
     //printf("%f\n", loss);
     #endif
   }
   //printf("\n");
+  return final_loss;
 }
 
 int init_caches(model* m, int batch_size) {
@@ -223,7 +267,10 @@ static double model_forward(model* m, matrix_t* x, matrix_t* y) {
   if (!predict(m, x)) {
     exit(1);
   }
-
+  // printf("[forward]===========\n");
+  // print_matrix(x, 1);
+  // print_matrix(y, 1);
+  // printf("[forward]===========\n");
   double loss = loss_forward(&m->loss_layer, x, y);
   return loss;
 }
@@ -243,11 +290,123 @@ int model_backward(model* m, matrix_t* grad) {
   return 1;
 }
 
-int model_update(model* m, double learning_rate) {
+int model_update_sgd(model* m, double learning_rate) {
   for(int i = 0; i < m->num_of_layers; i++) {
     if (!update(m->hidden_linears+i, learning_rate)) {
       printf("[MODEL_UPDATE] failed at %dth linear layer\n", i);
     }
+  }
+  return 1;
+}
+
+int model_update_adam(model* m, double learning_rate) {
+  m->optimizer.timestamp++;
+  adam_optimizer optimizer = m->optimizer;
+  //int last_timestamp = m->optimizer.timestamp - 1;
+  for (int i = 0; i < m->num_of_layers; ++i) {
+    layer* nxt_linear = m->hidden_linears + i;
+    layer* nxt_fst_moment = m->optimizer.first_moment + i;
+    layer* nxt_snd_moment = m->optimizer.second_moment + i;
+
+    matrix_t* grad_W = nxt_linear->data.l.grad_W;
+    matrix_t* grad_b = nxt_linear->data.l.grad_b;
+    // print_matrix(grad_W, 1);
+    // print_matrix(grad_b, 1);
+   
+    //printf("updateing first moment %d\n", i);
+    // update first moment
+    mult_scalar(nxt_fst_moment->data.l.W, optimizer.beta1);
+    mult_scalar(nxt_fst_moment->data.l.b, optimizer.beta1);
+    
+    matrix_t* fst_temp_W = clone(grad_W);
+    matrix_t* fst_temp_b = clone(grad_b);
+    mult_scalar(fst_temp_W, (1-optimizer.beta1));
+    mult_scalar(fst_temp_b, (1-optimizer.beta1));
+    elem_wise_add(nxt_fst_moment->data.l.W, fst_temp_W);
+    elem_wise_add(nxt_fst_moment->data.l.b, fst_temp_b);
+    // print_matrix(nxt_fst_moment->data.l.W, 1);
+    // print_matrix(nxt_fst_moment->data.l.W, 1);
+    //printf("updating second moment\n");
+    // update second moment
+    mult_scalar(nxt_snd_moment->data.l.W, optimizer.beta2);
+    mult_scalar(nxt_snd_moment->data.l.b, optimizer.beta2);
+
+    matrix_t* snd_temp_W = clone(grad_W);
+    matrix_t* snd_temp_b = clone(grad_b);
+    elem_wise_mult(snd_temp_W, snd_temp_W);
+    elem_wise_mult(snd_temp_b, snd_temp_b);
+    mult_scalar(snd_temp_W, (1-optimizer.beta2));
+    mult_scalar(snd_temp_b, (1-optimizer.beta2));
+    elem_wise_add(nxt_snd_moment->data.l.W, snd_temp_W);
+    elem_wise_add(nxt_snd_moment->data.l.b, snd_temp_b);
+    //printf("updating corrected moment\n");
+    // compute bias-corrected first moment
+    double beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
+    double beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
+    matrix_t* corrected_fst_W = clone(nxt_fst_moment->data.l.W);
+    matrix_t* corrected_fst_b = clone(nxt_fst_moment->data.l.b);
+    matrix_t* corrected_snd_W = clone(nxt_snd_moment->data.l.W);
+    matrix_t* corrected_snd_b = clone(nxt_snd_moment->data.l.b);
+    // print_matrix(corrected_snd_W, 1);
+    // print_matrix(corrected_snd_b, 1);
+    // printf("%f %f\n", beta1_exp, beta2_exp);
+    
+    // mult_scalar(corrected_fst_W, 1/(double)(1-beta1_exp));
+    // mult_scalar(corrected_fst_b, 1/(double)(1-beta1_exp));
+    // mult_scalar(corrected_snd_W, 1/(double)(1-beta2_exp));
+    // mult_scalar(corrected_snd_b, 1/(double)(1-beta2_exp));
+
+    learning_rate = learning_rate * (sqrt(1-beta2_exp) / (1-beta1_exp));
+    // printf("%f \n", 3.2e-318 * 1.2e-318 );
+    // exit(1);
+    //printf("updating params\n");
+    // update params
+    // print_matrix(corrected_snd_W, 1);
+    // print_matrix(corrected_snd_b, 1);
+    square_root(corrected_snd_W);
+    square_root(corrected_snd_b);
+    
+    add_scalar(corrected_snd_W, optimizer.epsilon);
+    add_scalar(corrected_snd_b, optimizer.epsilon);
+    inverse(corrected_snd_W);
+    inverse(corrected_snd_b);
+    elem_wise_mult(corrected_fst_W, corrected_snd_W);
+    elem_wise_mult(corrected_fst_b, corrected_snd_b);
+    mult_scalar(corrected_fst_W, learning_rate);
+    mult_scalar(corrected_fst_b, learning_rate);
+    
+    if (any_larger(corrected_fst_W, 10)){
+      printf("gradients\n");
+      print_matrix(grad_W, 1);
+      print_matrix(grad_b, 1);
+      printf("weights\n");
+      print_matrix(nxt_linear->data.l.W, 1);
+      print_matrix(nxt_linear->data.l.b, 1);
+      printf("change\n");
+      print_matrix(corrected_fst_W,1);
+      print_matrix(corrected_fst_b,1);
+      exit(1);
+    }
+    //exit(1);
+    // printf("weight\n");
+    // print_matrix(nxt_linear->data.l.W, 1);
+    // print_matrix(nxt_linear->data.l.b, 1);
+
+    elem_wise_minus(nxt_linear->data.l.W, corrected_fst_W);
+    elem_wise_minus(nxt_linear->data.l.b, corrected_fst_b);
+    // printf("weight + change\n");
+    // print_matrix(nxt_linear->data.l.W, 1);
+    // print_matrix(nxt_linear->data.l.b, 1);
+
+    // free resources
+    free_matrix(corrected_fst_W);
+    free_matrix(corrected_fst_b);
+    free_matrix(corrected_snd_W);
+    free_matrix(corrected_snd_b);
+    free_matrix(snd_temp_b);
+    free_matrix(snd_temp_W);
+    free_matrix(fst_temp_b);
+    free_matrix(fst_temp_W);
   }
   return 1;
 }

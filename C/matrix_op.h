@@ -13,7 +13,7 @@ typedef struct _matrix_t {
 
 
 typedef enum _initializer {
-  xavier
+  xavier, truncated_normal, zeros
 } initializer;
 
 void dummy();
@@ -28,6 +28,7 @@ int add_scalar(matrix_t* a, double b);
 int mult_scalar(matrix_t* a, double b);
 int neg(matrix_t* a);
 int inverse(matrix_t* a);
+int square_root(matrix_t* a);
 
 matrix_t* matmul(matrix_t* a, matrix_t* b);
 matrix_t* transpose(matrix_t* a);
@@ -37,15 +38,16 @@ double mean(matrix_t* a);
 int equal(matrix_t* a, matrix_t* b);
 
 int xavier_init(matrix_t* a, double gain);
-
+int truncated_normal_init(matrix_t* a);
+int zero_init(matrix_t* a);
 
 matrix_t* normalize(matrix_t* t);
 int scale(matrix_t* x, matrix_t* min_max);
 int free_matrix(matrix_t* t);
-//int contains_nan(matrix_t* t);
+int contains_nan(matrix_t* t);
 int print_matrix(matrix_t* t, int all);
 int copy_matrix(matrix_t* dst, matrix_t* src);
-//int any_larger(matrix_t* t, double thres);
+int any_larger(matrix_t* t, double thres);
 int augment_space(matrix_t* t, int rows, int cols);
 int* shuffle_row_wise(matrix_t* t, int* idx);
 matrix_t* new_matrix(int rows, int cols);
