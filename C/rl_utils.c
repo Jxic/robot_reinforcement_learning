@@ -57,12 +57,7 @@ matrix_t* sample_experience(experience_buffer* exp_buf, int num) {
     assert(exp_buf->experiences[idx]->cols == ret->cols);
     memcpy(ret->data+(i*ret->cols), exp_buf->experiences[idx]->data, ret->cols*sizeof(double));
   }
-  // for (int i = 0; i < exp_buf->curr_size; ++i) {
-  //   if (chosen[i]) {
-  //     printf("%d ", i);
-  //   }
-  // }
-  // printf("\n");
+
   return ret;
 }
 
