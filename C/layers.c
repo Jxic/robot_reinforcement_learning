@@ -137,7 +137,6 @@ static int sigmoid_forward(layer* l, matrix_t* x) {
 static int linear_forward(layer* l, matrix_t* x) {
   //caveat: address pointed by x should have enough space to hold new data
   linear_layer layer_data = l->data.l;
-
   copy_matrix(layer_data.cache, x);
   matrix_t* wx = matmul(x, layer_data.W);
   add_bias(wx, layer_data.b);

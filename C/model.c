@@ -131,6 +131,7 @@ int compile_model(model* m, layer_type loss, optimizer_type opt_type) {
 
 int print_network(model* m) {
   char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss", "no_loss"};
+  char* opt_names[] = {"sgd", "adam", "no_opt"};
   printf("---------------------------------------\n");
   printf(" input dimension: %d\n", m->input_dim);
   printf(" output dimension: %d\n", m->output_dim);
@@ -143,7 +144,7 @@ int print_network(model* m) {
                                   m->hidden_linears[i].data.l.W->cols,
                                   names[m->hidden_activations[i].type]);
   }
-  printf(" %s\n", names[m->loss_layer.type]);
+  printf(" %s %s\n", names[m->loss_layer.type], opt_names[m->optimizer.type]);
   printf("---------------------------------------\n");
   return 1;
 }
@@ -197,17 +198,23 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     printf("%f", loss);
     fflush(stdout);
     if (loss > 1000) {
+      printf("Anomalous loss %f\n", loss);
       exit(1);
     }
     #else
     //printf("%f\n", loss);
     #endif
   }
-  //printf("\n");
+  #ifdef RUN_TEST
+  printf("\n");
+  #endif
   return final_loss;
 }
 
 int init_caches(model* m, int batch_size) {
+  if (m->cache_initialzed) {
+    return 1;
+  }
   m->cache_initialzed = 1;
   int last_layer_out = m->input_dim;
   for (int i = 0; i < m->num_of_layers; ++i) {
