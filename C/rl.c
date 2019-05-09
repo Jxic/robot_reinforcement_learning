@@ -61,7 +61,6 @@ void test_run() {
   fit(m, x, y, batch_size, epoch, learning_rate, shuffle);
   save_model(m, "test_model.model");
   model* m_ = load_model("test_model.model");
-  init_caches(m_, x->rows);
   print_network(m_);
   double loss = eval(m_, x, y, min_max);
   printf("test run finished with error rate of %f (mse).\n", loss);

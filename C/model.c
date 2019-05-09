@@ -16,7 +16,7 @@ model* init_model(int input_dim) {
   new_m->hidden_linears = (layer*)malloc(sizeof(layer));
   new_m->hidden_activations = (layer*)malloc(sizeof(layer));
   new_m->loss_layer.type = no_loss;
-  new_m->cache_initialzed = 0;
+  new_m->cache_initialized = 0;
   new_m->optimizer.type = no_opt;
   return new_m;
 }
@@ -120,7 +120,7 @@ int compile_model(model* m, layer_type loss, optimizer_type opt_type) {
       break;
     }
     case no_opt: {
-      printf("[WARNING] Optimizer not specified\n");
+      printf("[CAVEAT] Optimizer not specified\n");
       break;
     }
     default:
@@ -152,7 +152,7 @@ int print_network(model* m) {
 double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
 
   assert(x->rows == y->rows);
-  if (!m->cache_initialzed && !init_caches(m, x->rows)) {
+  if (!m->cache_initialized && !init_caches(m, x->rows)) {
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
@@ -212,10 +212,10 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
 }
 
 int init_caches(model* m, int batch_size) {
-  if (m->cache_initialzed) {
+  if (m->cache_initialized) {
     return 1;
   }
-  m->cache_initialzed = 1;
+  m->cache_initialized = 1;
   int last_layer_out = m->input_dim;
   for (int i = 0; i < m->num_of_layers; ++i) {
     m->hidden_linears[i].data.l.cache = new_matrix(batch_size, last_layer_out);
@@ -249,6 +249,10 @@ int init_caches(model* m, int batch_size) {
 int predict(model* m, matrix_t* x) {
   assert(x->rows > 0 && x->cols > 0);
   augment_space(x, x->rows, m->max_out);
+  if (!m->cache_initialized) {
+    printf("[CAVEAT] Automatically initializing cache with size %d\n", x->rows);
+    init_caches(m, x->rows);
+  }
   for (int i = 0; i < m->num_of_layers; ++i) {
     if (!forward(m->hidden_linears+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth linear layer\n", i);

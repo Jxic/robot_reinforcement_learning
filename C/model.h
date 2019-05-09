@@ -13,7 +13,7 @@ typedef struct _model {
   layer* hidden_linears;
   layer* hidden_activations;
   int version;
-  int cache_initialzed;
+  int cache_initialized;
   optimizer optimizer;
 } model;
 

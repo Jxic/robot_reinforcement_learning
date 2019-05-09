@@ -122,7 +122,7 @@ model* load_model(char* model_name) {
   //m->num_of_layers = num_of_layers;
   //m->max_out = max_out;
   m->version = version;
-  m->cache_initialzed = 0;
+  m->cache_initialized = 0;
 
   for (int i = 0; i < num_of_layers; ++i) {
     int* w_info = calloc(2, sizeof(int));

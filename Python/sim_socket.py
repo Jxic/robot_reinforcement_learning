@@ -45,10 +45,10 @@ class sim_socket:
         if self.count < 25000:
           observation, reward, done, _ = self.t.step(action)
         else:
-          observation, reward, done, _ = self.t.step(action, render=True)
+          observation, reward, done, _ = self.t.step(action)#, render=True)
         terminate = 1.0 if done else 0.0
-        if reward > -3:
-          print("From C: a:{:.4f} r:{:.2f} d:{:.2f}".format(action[0],reward,terminate))
+        # if reward > -3:
+        #   print("From C: a:{:.4f} r:{:.2f} d:{:.2f}".format(action[0],reward,terminate))
         if self.count % 10000 == 0:
           print("Stepped for {} times".format(self.count))
         observation = list(observation)

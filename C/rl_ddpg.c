@@ -10,9 +10,10 @@
 #include <stdlib.h>
 #include "matrix_op.h"
 #include "optimizer.h"
+#include "model_utils.h"
 
 
-static int actor_layers_config[NUM_OF_LAYERS] = {100, 100, ACTION_DIM};
+static int actor_layers_config[NUM_OF_LAYERS] = {400, 300, ACTION_DIM};
 static int critic_layers_config[NUM_OF_LAYERS] = {400, 300, 1};
 static layer_type actor_layers_acts[NUM_OF_LAYERS] = {relu, relu, tanh_};
 static layer_type critic_layers_acts[NUM_OF_LAYERS] = {relu, relu, placeholder};
@@ -26,6 +27,7 @@ static int pre_training();
 static matrix_t* get_action(matrix_t* state, double act_noise);
 static double* run_epoch();
 static double train();
+static void save_all_model();
 
 void run_ddpg() {
   // preparation phase
@@ -52,6 +54,9 @@ void run_ddpg() {
     int msec = diff * 1000 / CLOCKS_PER_SEC;
     printf("Dones: %.1f | Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Time elapsed: %.1f mins \n", info[1], epc, info[0], info[2], msec/(double)60000);
     free(info);
+    if (epc % 50 == 0) {
+      save_all_model();
+    }
   }
   
   closeEnv();
@@ -287,4 +292,11 @@ static double train() {
   free_matrix(qs);
   free_matrix(rewards);
   return final_loss;
+}
+
+static void save_all_model() {
+  save_model(actor, DDPG_ACTOR_FILE);
+  save_model(actor_target, DDPG_ACTOR_T_FILE);
+  save_model(critic, DDPG_CRITIC_FILE);
+  save_model(critic_target, DDPG_CRITIC_T_FILE);
 }

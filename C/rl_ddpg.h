@@ -24,6 +24,11 @@
 #define ACTION_BOUND 2
 #define ENV_LIMIT 200
 
+#define DDPG_ACTOR_FILE "DDPG_ACTOR_PENDULUM.model"
+#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_PENDULUM.model"
+#define DDPG_CRITIC_FILE "DDPG_CRITIC_PENDULUM.model"
+#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_PENDULUM.model"
+
 void run_ddpg();
 
 #endif
