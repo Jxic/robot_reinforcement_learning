@@ -156,7 +156,7 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
-  double final_loss;
+  double final_loss = 0;
 
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
@@ -172,7 +172,7 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     }
     int data_size = x->rows;
     int start = 0;
-    double loss;
+    double loss = 0;
     while (start < data_size - 1) {
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
       
