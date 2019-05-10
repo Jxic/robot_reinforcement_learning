@@ -158,18 +158,18 @@ static int adam_update(model* m) {
     mult_scalar(corrected_fst_W, learning_rate);
     mult_scalar(corrected_fst_b, learning_rate);
     
-    if (any_larger(corrected_fst_W, 10)){
-      printf("gradients\n");
-      print_matrix(grad_W, 1);
-      print_matrix(grad_b, 1);
-      printf("weights\n");
-      print_matrix(nxt_linear->data.l.W, 1);
-      print_matrix(nxt_linear->data.l.b, 1);
-      printf("change\n");
-      print_matrix(corrected_fst_W,1);
-      print_matrix(corrected_fst_b,1);
-      exit(1);
-    }
+    // if (any_larger(corrected_fst_W, 10)){
+    //   printf("gradients\n");
+    //   print_matrix(grad_W, 1);
+    //   print_matrix(grad_b, 1);
+    //   printf("weights\n");
+    //   print_matrix(nxt_linear->data.l.W, 1);
+    //   print_matrix(nxt_linear->data.l.b, 1);
+    //   printf("change\n");
+    //   print_matrix(corrected_fst_W,1);
+    //   print_matrix(corrected_fst_b,1);
+    //   exit(1);
+    // }
 
 
     elem_wise_minus(nxt_linear->data.l.W, corrected_fst_W);

@@ -143,12 +143,12 @@ static int linear_forward(layer* l, matrix_t* x) {
   
   //update the data flowing through the network
   copy_matrix(x, wx);
-  if (contains_nan(x)) {
-    printf("[LINEAR FORWARD]");
-    // print_matrix(x,1);
-    // print_matrix(layer_data.W, 1);
-    exit(1);
-  }
+  // if (contains_nan(x)) {
+  //   printf("[LINEAR FORWARD]");
+  //   // print_matrix(x,1);
+  //   // print_matrix(layer_data.W, 1);
+  //   exit(1);
+  // }
   free_matrix(wx);
   return 1;
 }
@@ -187,12 +187,12 @@ static int linear_backward(layer* l, matrix_t* grad) {
   // printf("[normal===========================]\n");
   // print_matrix(l->data.l.grad_W, 1);
   // printf("[normal============================]\n");
-  if (contains_nan(grad)) {
-    printf("[LINEAR BACKWARD]");
-    // print_matrix(grad,1);
-    // print_matrix(layer_data.W, 1);
-    exit(1);
-  }
+  // if (contains_nan(grad)) {
+  //   printf("[LINEAR BACKWARD]");
+  //   // print_matrix(grad,1);
+  //   // print_matrix(layer_data.W, 1);
+  //   exit(1);
+  // }
   return 1;
 }
 

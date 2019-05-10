@@ -7,7 +7,9 @@
 #include <string.h>
 #include <math.h>
 #include "utils.h"
-
+#ifdef MKL
+#include "mkl.h"
+#endif
 
 
 void dummy(){
@@ -136,13 +138,35 @@ int neg(matrix_t* a) {
 
 int mult_scalar(matrix_t* a, double b) {
   assert(a->rows > 0 && a->cols >0);
+  #ifndef MKL
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] *= b;
+  #else
+  MKL_INT n = a->rows*a->cols;
+  MKL_INT inc = 1;
+  cblas_dscal(n, b, a->data, inc);
+  #endif
   return 1;
 }
 
 matrix_t* matmul(matrix_t* a, matrix_t* b) {
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
+  #ifdef MKL
+  int m, n, p, i;
+  double alpha, beta;
+  m = a->rows;
+  p = a->cols;
+  n = b->cols;
+  matrix_t* ret = new_matrix(m, n);
+  // printf("m %d, n %d, p %d", m, n, p);
+  alpha = 1.0;
+  beta = 0.0;
+  for (i = 0; i < m*n; i++) {
+    ret->data[i] = 0.0;
+  }
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, p, alpha, a->data, p, b->data, n, beta, ret->data, n);
+  return ret;
+  #endif
   matrix_t* new_mat = new_matrix(a->rows, b->cols);
   for (int i = 0; i < new_mat->rows; ++i) {
     for (int k = 0; k < a->cols; ++k) {
@@ -167,12 +191,20 @@ matrix_t* transpose(matrix_t* a) {
 double mean(matrix_t* a) {
   assert(a->rows > 0 && a->cols >0);
   double sum = 0;
+  #ifndef MKL
   for (int i = 0; i < a->rows*a->cols; ++i) sum += a->data[i];
+  #else
+  sum = cblas_dasum(a->rows*a->cols, a->data, 1);
+  #endif
   return sum / (double)(a->rows * a->cols);
 }
 
 int free_matrix(matrix_t* t) {
+  #ifndef MKL
   free(t->data);
+  #else
+  MKL_free(t->data);
+  #endif
   free(t);
   return 1;
 }
@@ -188,7 +220,11 @@ int augment_space(matrix_t* t, int rows, int cols) {
   assert(rows >= t->rows);
   assert(cols >= t->cols);
   t->max_size = rows * cols;
+  #ifndef MKL
   t->data = realloc(t->data, rows*cols*sizeof(double));
+  #else
+  t->data = mkl_realloc(t->data, rows*cols*sizeof(double));
+  #endif
   if (!t->data) {
     printf("[AUGMENT_SPACE] error reallocating memory");
     exit(1);
@@ -207,7 +243,14 @@ int any_larger(matrix_t* t, double thres) {
 
 int copy_matrix(matrix_t* dst, matrix_t* src) {
   assert(dst->max_size >= src->rows*src->cols);
+  #ifndef MKL
   memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
+  #else
+  MKL_INT n = src->rows*src->cols;
+  MKL_INT incx = 1;
+  MKL_INT incy = 1;
+  cblas_dcopy(n, src->data, incx, dst->data, incy);
+  #endif
   dst->rows = src->rows;
   dst->cols = src->cols;
   return 1;
@@ -235,9 +278,17 @@ int* shuffle_row_wise(matrix_t* t, int* pre_idx) {
   } else {
     idx = pre_idx;
   }
+  #ifndef MKL
   double* new_data = calloc(t->rows*t->cols, sizeof(double));
+  #else
+  double* new_data = MKL_calloc(t->rows*t->cols, sizeof(double), 64);
+  #endif
   for (int i = 0; i < t->rows; ++i) memcpy(new_data+i*t->cols, t->data+idx[i]*t->cols, t->cols*sizeof(double));
+  #ifndef MKL
   free(t->data);
+  #else
+  MKL_free(t->data);
+  #endif
   t->data = new_data;
   return idx;
 }
@@ -267,7 +318,11 @@ int print_matrix(matrix_t* t, int all) {
 
 matrix_t* new_matrix(int rows, int cols) {
   matrix_t* new_m = malloc(sizeof(matrix_t));
+  #ifndef MKL
   new_m->data = calloc(rows*cols, sizeof(double));
+  #else
+  new_m->data = mkl_calloc(rows*cols, sizeof(double), 64);
+  #endif
   assert(new_m && new_m->data);
   new_m->rows = rows;
   new_m->cols = cols;

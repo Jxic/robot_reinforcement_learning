@@ -11,19 +11,32 @@ EXE = main
 
 # for production
 CC = gcc
-CFLAGS = -Wall -Werror -pedantic -O3
+CFLAGS = -Wall -Werror -pedantic -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
+MKL_FLAGS =   ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_sequential.a ${MKLROOT}/lib/libmkl_core.a -lpthread -lm -ldl
+# -Rpass=loop-vectorize (append this to see which for loop is optimized)
+
+#
+CC_LINUX = gcc
+CFLAGS_LINUX = -Wall -Werror -pedantic  -DMKL_ILP64 -m64 -I${MKLROOT}/include
+MKL_FLAGS_LINUX =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
 .PHONY: all clean
 
-.all: $(EXE)
+.all:
 
 %.o : %.c $(DEPS)
-	$(CC)  $(CFLAGS) -c $< -o $@
+	$(CC) -c $< -o $@
 
-main : $(OBJ)
+main_mac : $(OBJ)
 	@mkdir -p $(BDIR)
-	@$(CC)  $(CFLAGS) $^ -o $@
+	@$(CC)  $(CFLAGS) $(MKL_FLAGS) $^ -o $@
 	@mv *.o $(BDIR)
 
+main_linux: $(OBJ)
+	@mkdir -p $(BDIR)
+	@$(CC_LINUX)  $(CFLAGS_LINUX) $(MKL_FLAGS_LINUX) $^ -o $@
+	@mv *.o $(BDIR)
+
+
 clean :
-	rm -rf *.o main $(BDIR)
+	rm -rf *.o main_mac main_linux $(BDIR)

@@ -53,6 +53,7 @@ char* test_all(){
   mu_run_test(matrix_test_slice_row_wise);
   mu_run_test(matrix_test_augment_space);
   mu_run_test(matrix_test_slice_col_wise);
+  //printf("testing break\n");
   return 0;
 }
 
@@ -153,6 +154,7 @@ char* matrix_test_matmul(){
   matrix_t* res = matmul(mat_3_3(),mat_3_3());
   mu_assert("[MATRIX_TEST_MATMUL] wrong result on matrix multiplication", 
             equal(mat_3_3_self_matmul(), res));
+
   return 0;
 }
 
@@ -187,150 +189,94 @@ char* matrix_test_equal(){
 }
 
 matrix_t* mat_3_3(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
-  for(int i = 0; i < 9; ++i) data[i] = i + 1;
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  matrix_t* new_mat = new_matrix(3,3);
+  for(int i = 0; i < 9; ++i) new_mat->data[i] = i + 1;
   return new_mat;
 }
 
 matrix_t* mat_3_3_self_add(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
-  for(int i = 0; i < 9; ++i) data[i] = 2 * i + 2;
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  matrix_t* new_mat = new_matrix(3,3);
+  for(int i = 0; i < 9; ++i) new_mat->data[i] = 2 * i + 2;
   return new_mat;
 }
 
 matrix_t* mat_3_3_self_minus(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
-  for(int i = 0; i < 9; ++i) data[i] = 0;
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  matrix_t* new_mat = new_matrix(3,3);
+  for(int i = 0; i < 9; ++i) new_mat->data[i] = 0;
   return new_mat;
 }
 
 matrix_t* mat_3_3_self_mult(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
-  for(int i = 0; i < 9; ++i) data[i] = (i + 1) * (i + 1);
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  matrix_t* new_mat = new_matrix(3,3);
+  for(int i = 0; i < 9; ++i) new_mat->data[i] = (i + 1) * (i + 1);
   return new_mat;
 }
 
 matrix_t* mat_3_3_self_matmul(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
+  matrix_t* new_mat = new_matrix(3,3);
   double answer[] = {30,36,42,66,81,96,102,126,150};
-  memcpy(data, answer, 9*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_4(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(12, sizeof(double));
-  for(int i = 0; i < 12; ++i) data[i] = i + 1;
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 4;
+  matrix_t* new_mat = new_matrix(3,4);
+  for(int i = 0; i < 12; ++i) new_mat->data[i] = i + 1;
   return new_mat;
 }
 
 matrix_t* mat_4_3(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(12, sizeof(double));
+  matrix_t* new_mat = new_matrix(4,3);
   double answer[] = {1,5,9,2,6,10,3,7,11,4,8,12};
-  memcpy(data, answer, 12*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 4;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 12*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_1_3(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(3, sizeof(double));
+  matrix_t* new_mat = new_matrix(1,3);
   double answer[] = {1,2,3};
-  memcpy(data, answer, 3*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 1;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 3*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_wiz_bias(){
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
+  matrix_t* new_mat = new_matrix(3,3);
   double answer[] = {2,4,6,5,7,9,8,10,12};
-  memcpy(data, answer, 9*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_wiz_scalar() {
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
+  matrix_t* new_mat = new_matrix(3,3);
   double answer[] = {4,5,6,7,8,9,10,11,12};
-  memcpy(data, answer, 9*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_neg() {
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
+  matrix_t* new_mat = new_matrix(3,3);
   double answer[] = {-1,-2,-3,-4,-5,-6,-7,-8,-9};
-  memcpy(data, answer, 9*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_wiz_factor() {
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(9, sizeof(double));
+  matrix_t* new_mat = new_matrix(3,3);
   double answer[] = {3,6,9,12,15,18,21,24,27};
-  memcpy(data, answer, 9*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_2_3() {
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(6, sizeof(double));
+  matrix_t* new_mat = new_matrix(2,3);
   double answer[] = {1,2,3,4,5,6};
-  memcpy(data, answer, 6*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 2;
-  new_mat->cols = 3;
+  memcpy(new_mat->data, answer, 6*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_2() {
-  matrix_t* new_mat = malloc(sizeof(matrix_t));
-  double* data = calloc(6, sizeof(double));
+  matrix_t* new_mat = new_matrix(3,2);
   double answer[] = {2,3,5,6,8,9};
-  memcpy(data, answer, 6*sizeof(double));
-  new_mat->data = data;
-  new_mat->rows = 3;
-  new_mat->cols = 2;
+  memcpy(new_mat->data, answer, 6*sizeof(double));
   return new_mat;
 }

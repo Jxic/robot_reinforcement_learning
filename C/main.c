@@ -7,6 +7,9 @@
 #include "rl.h"
 #include <time.h>
 #include <string.h>
+#ifdef MKL
+#include "mkl.h"
+#endif
 // cmd + shift + p -> edit configuration
 
 int _main() {
@@ -39,20 +42,21 @@ int _main() {
   // // matrix_t* t_mat = trunc_normal(20, 2, -2);
   // // print_matrix(t_mat,1);
   // return 1;
-  printf("TEST MODE\n\n");
-  printf("Testing matrix operations...\n");
-  test_results();
-  printf("\n");
-  printf("Testing data loading...\n");
-  matrix_t* t;
-  #ifndef C_AS_LIB
-  t = load_data("FM_dataset.dat");
-  #else
-  t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
-  #endif
-  print_matrix(t, 0);
-  printf("\n");
-  printf("Testing with sample data, timing...\n");
+  
+  // printf("TEST MODE\n\n");
+  // printf("Testing matrix operations...\n");
+  // test_results();
+  // printf("\n");
+  // printf("Testing data loading...\n");
+  // matrix_t* t;
+  // #ifndef C_AS_LIB
+  // t = load_data("FM_dataset.dat");
+  // #else
+  // t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
+  // #endif
+  // print_matrix(t, 0);
+  // printf("\n");
+  // printf("Testing with sample data, timing...\n");
   clock_t start = clock(), diff;
   run_rl(test);
   diff = clock() - start;
@@ -69,6 +73,9 @@ int _main() {
 
 #ifndef C_AS_LIB
 int main(){
+  #ifdef MKL
+  //mkl_set_num_threads(mkl_get_max_threads());
+  #endif
   return _main();
 }
 #endif

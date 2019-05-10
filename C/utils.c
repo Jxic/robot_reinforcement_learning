@@ -10,6 +10,10 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <limits.h>
+#include "macros.h"
+#ifdef MKL
+#include "mkl.h"
+#endif
 
 static int append(matrix_t* m, char* c, int create);
 static double convert_double(char* c);
@@ -101,7 +105,8 @@ static int remove_char(char* s, char c) {
 matrix_t* rand_normal(int n) {
   int i;
   int m = n + n % 2;
-  double* values = (double*)calloc(m,sizeof(double));
+  matrix_t* v = new_matrix(1, m);
+  double* values = v->data;
   //double average, deviation;
   if ( values ) {
     for ( i = 0; i < m; i += 2 ) {
@@ -116,16 +121,16 @@ matrix_t* rand_normal(int n) {
       values[i+1] = y * f;
     }
   }
-  matrix_t* ret = new_matrix(1, n);
-  memcpy(ret->data, values, n*sizeof(double));
-  free(values);
+  matrix_t* ret = slice_col_wise(v, 0, n);
+  free_matrix(v);
   return ret;
 }
 
 matrix_t* trunc_normal(int n, double high, double low) {
   int i = 0;
   int m = n + n % 2;
-  double* values = (double*)calloc(m,sizeof(double));
+  matrix_t* v = new_matrix(1, m);
+  double* values = v->data;
   //double average, deviation;
   if ( values ) {
     while (i < m) {
@@ -144,8 +149,7 @@ matrix_t* trunc_normal(int n, double high, double low) {
       i += 2;
     }
   }
-  matrix_t* ret = new_matrix(1, n);
-  memcpy(ret->data, values, n*sizeof(double));
-  free(values);
+  matrix_t* ret = slice_col_wise(v, 0, n);
+  free_matrix(v);
   return ret;
 }
