@@ -6,48 +6,48 @@
 
 #ifndef C_AS_LIB
 
-int initEnv() {
+int initEnv(int act_dim) {
   init_connection();
   return 1;
 }
 
-double random_action() {
-  matrix_t* init_mat = new_matrix(1, ACTION_DIM);
+matrix_t* random_action(int state_dim, int act_dim) {
+  matrix_t* init_mat = new_matrix(1, act_dim);
   int* flag = (int*)calloc(2, sizeof(int));
   flag[0] = 0;
   flag[1] = 0;
-  matrix_t* ret = sim_send(init_mat, flag);
-  double r = ret->data[0];
+  matrix_t* ret = sim_send(init_mat, flag, state_dim, act_dim);
+  matrix_t* action = slice_col_wise(ret, 0, act_dim);
   free_matrix(init_mat);
   free_matrix(ret);
-  return r;
+  return action;
 }
 
-matrix_t* resetState(int randAngle, int destPos) {
+matrix_t* resetState(int randAngle, int destPos, int state_dim, int act_dim) {
   int* flag = (int*)calloc(2, sizeof(int));
   flag[0] = 1;
   flag[1] = 0;
-  matrix_t* reset_mat = new_matrix(1, ACTION_DIM);
-  matrix_t* ret = sim_send(reset_mat, flag);
+  matrix_t* reset_mat = new_matrix(1, act_dim);
+  matrix_t* ret = sim_send(reset_mat, flag, state_dim, act_dim);
   free_matrix(reset_mat);
   return ret;
 }
 
-matrix_t* step(matrix_t* action) {
-  assert(action->cols == ACTION_DIM);
+matrix_t* step(matrix_t* action, int state_dim, int act_dim) {
+  assert(action->cols == act_dim);
   int* flag = (int*)calloc(2, sizeof(int));
   flag[0] = 0;
   flag[1] = 1;
-  matrix_t* ret = sim_send(action, flag);
+  matrix_t* ret = sim_send(action, flag, state_dim, act_dim);
   return ret;
 }
 
-void closeEnv() {
-  matrix_t* end_mat = new_matrix(1, ACTION_DIM);
+void closeEnv(int state_dim, int act_dim) {
+  matrix_t* end_mat = new_matrix(1, act_dim);
   int* flag = (int*)calloc(2, sizeof(int));
   flag[0] = 1;
   flag[1] = 1;
-  matrix_t* r = sim_send(end_mat, flag);
+  matrix_t* r = sim_send(end_mat, flag, state_dim, act_dim);
   free_matrix(r);
   free_matrix(end_mat);
   close_connection();

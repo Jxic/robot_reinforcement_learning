@@ -3,7 +3,7 @@
 
 #include <time.h>
 
-#define RUN_TEST
+//#define RUN_TEST
 #define MKL
 #define SEED time(0)
 

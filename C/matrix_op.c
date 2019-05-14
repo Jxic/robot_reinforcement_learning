@@ -115,7 +115,7 @@ int add_scalar(matrix_t* a, double b) {
 int inverse(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
   for (int i = 0; i < a->rows*a->cols; ++i) {
-    assert(a->data[i]);
+    //assert(a->data[i]);
     a->data[i] = 1/a->data[i];
   } 
   return 1;
@@ -352,6 +352,10 @@ matrix_t* slice_col_wise(matrix_t* t, int start, int end) {
   assert(start >= 0);
   assert(end <= t->cols);
   matrix_t* ret = new_matrix(t->rows, end-start);
+  if (!ret) {
+    printf("[SLICE COL WISE] failed to create new matrix\n");
+    exit(1);
+  }
   int row_size = end - start;
   for (int i = 0; i < t->rows; ++i) {
     memcpy(ret->data+(i*ret->cols), t->data+(i*t->cols+start), row_size*sizeof(double));

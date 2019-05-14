@@ -11,6 +11,9 @@
 #define PORT 6666
 #define HOST "127.0.0.1"
 
+#define INFO_DIM 2
+#define FLAG_DIM 2
+
 int socket_;
 struct sockaddr_in server;
 
@@ -32,16 +35,16 @@ int init_connection() {
   return 1;
 }
 
-matrix_t* sim_send(matrix_t* t, int* flag) {
+matrix_t* sim_send(matrix_t* t, int* flag, int state_dim, int act_dim) {
   // 0 0 initialize
   // 0 1 step
   // 1 0 reset
   // 1 1 close
   assert(t->rows==1);
-  assert(t->cols==ACTION_DIM);
+  assert(t->cols==act_dim);
   
-  int send_size = ACTION_DIM  + FLAG_DIM;
-  int receive_size = STATE_DIM + INFO_DIM;
+  int send_size = act_dim  + FLAG_DIM;
+  int receive_size = state_dim + INFO_DIM;
   double server_reply[receive_size];
   double packet[send_size];
   packet[0] = (double)flag[0];
@@ -55,6 +58,7 @@ matrix_t* sim_send(matrix_t* t, int* flag) {
     printf("[SEND] Failed to send full packet\n");
     exit(1);
   }
+  //printf("sent %d", send_size);
   int r = read(socket_, server_reply, receive_size*sizeof(double));
   if (r != receive_size*sizeof(double)) {
     printf("[SEND] Failed to read full response\n");

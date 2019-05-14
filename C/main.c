@@ -14,15 +14,25 @@
 
 int _main() {
   // preparation phase
-  //srand(SEED);
+  srand(SEED);
   // char a[30];
   // memset(a, 0, 30);
-  // for (int i = 0; i< 30; ++i) printf("%f ", rand_uniform(-3.14, 3.14));
+  // for (int i = 0; i< 30; ++i) printf("%d ", (int)rand_uniform(0, 50));
   // matrix_t* ra = rand_normal(10);
   // print_matrix(ra, 1);
   // return 1;
   // test mode
+  // matrix_t* m = new_matrix(2, 10);
+  // initialize(m, xavier);
+  // matrix_t* n = clone(m);
+  // free_matrix(m);
+  // for (int i = 0; i < 20; ++i) {
+  //   printf("%f ", n->data[i]);
+  // }
+  // printf("\n");
+  // exit(1);
   #ifdef RUN_TEST
+
   // matrix_t* a = new_matrix(3, 5);
   // initialize(a, xavier);
   // print_matrix(a,1 );
@@ -66,7 +76,7 @@ int _main() {
   return 0;
   // training mode
   #else
-  run_rl(ddpg);
+  run_rl(her);
   return 0;
   #endif
 }

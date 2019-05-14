@@ -10,3 +10,5 @@ c_rl_py.c
 log
 __pycache__
 models/
+OBJ_FILES
+main

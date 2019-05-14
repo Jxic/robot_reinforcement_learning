@@ -38,6 +38,9 @@ int free_experience_buffer(experience_buffer* exp_buf) {
 
 matrix_t* sample_experience(experience_buffer* exp_buf, int num) {
   assert(num <= exp_buf->max_size);
+  if (exp_buf->curr_size < num) {
+    num = exp_buf->curr_size;
+  }
   matrix_t* ret = new_matrix(num, exp_buf->experiences[0]->cols);
   
   int idx;

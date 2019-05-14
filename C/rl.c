@@ -6,6 +6,7 @@
 #include "macros.h"
 #include "model_utils.h"
 #include "rl_ddpg.h"
+#include "rl_ddpg_her.h"
 
 
 static void test_run();
@@ -20,6 +21,10 @@ void run_rl(rl_type t) {
     // deep deterministic policy gradient
     case ddpg:
       run_ddpg();
+      break;
+
+    case her:
+      run_ddpg_her();
       break;
     
     default:

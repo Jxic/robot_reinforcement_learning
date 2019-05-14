@@ -1,8 +1,8 @@
 import gym
 
 class test_sim():
-  def __init__(self):
-    self.env = gym.make('Pendulum-v0')
+  def __init__(self, game='Pendulum-v0'):
+    self.env = gym.make(game)
     
   
   def reset(self):
@@ -16,13 +16,14 @@ class test_sim():
 
   def random_run(self):
     observation = self.reset()
+    print(self.env.action_space.low)
     for _ in range(1000):
       print(observation)
       self.env.render()
       action = self.env.action_space.sample()
       observation, reward, done, info = self.step(action)
       print(action)
-      print("reward done info {} {} {}".format(reward, done, info))
+      #print("reward done info {} {} {}".format(reward, done, info))
       if done:
         break
   
