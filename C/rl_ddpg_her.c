@@ -38,6 +38,7 @@
 #define N_BATCHES 40
 #define RANDOM_EPS 0.3
 #define OBS_CLIP_RANGE 5
+#define NORMALIZE 0
 
 #define DDPG_ACTOR_FILE "DDPG_ACTOR_FETCHREACH1_NORM.model"
 #define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_NORM.model"
@@ -68,7 +69,9 @@ void run_ddpg_her() {
   // preparation phase
   init_actor_w_target();
   init_critic_w_target();
-  norm = init_normalizer(STATE_DIM, DEFAULT_CLIP_RANGE);
+  if (NORMALIZE) {
+    norm = init_normalizer(STATE_DIM, DEFAULT_CLIP_RANGE);
+  }
   exp_buf = init_experience_buffer(MEMORY_SIZE);
   initEnv(ACTION_DIM);
   printf("Initialized models\n");
@@ -232,7 +235,9 @@ static double* run_epoch() {
   }
   free_matrix(state);
 
-  update_normalizer(norm, episode_s1, count);
+  if (NORMALIZE) {
+    update_normalizer(norm, episode_s1, count);
+  }
   //update_normalizer(norm, episode_s2, count);
   store_sample_her(exp_buf, episode_s1, episode_s2, episode_a, count);
 
@@ -324,8 +329,10 @@ static double* train() {
   matrix_t* dones = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM, 2*STATE_DIM+ACTION_DIM+1);
   matrix_t* rewards = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM+1, 2*STATE_DIM+ACTION_DIM+2);
 
-  normalize_obs(norm, states);
-  normalize_obs(norm, nxt_states);
+  if (NORMALIZE) {
+    normalize_obs(norm, states);
+    normalize_obs(norm, nxt_states);
+  }
   // calculating critic's target
   matrix_t* nxt_actions = matrix_clone(nxt_states);
   predict(actor_target, nxt_actions);
