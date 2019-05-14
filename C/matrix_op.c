@@ -449,7 +449,7 @@ matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis) {
   return ret;
 }
 
-matrix_t* clone(matrix_t* a) {
+matrix_t* matrix_clone(matrix_t* a) {
   assert(a);
   matrix_t* ret = new_matrix(a->rows, a->cols);
   copy_matrix(ret, a);

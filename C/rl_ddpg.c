@@ -231,7 +231,7 @@ static double train() {
   matrix_t* rewards = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM+1, 2*STATE_DIM+ACTION_DIM+2);
 
   // calculating critic's target
-  matrix_t* nxt_actions = clone(nxt_states);
+  matrix_t* nxt_actions = matrix_clone(nxt_states);
   predict(actor_target, nxt_actions);
   matrix_t* nxt_qs = concatenate(nxt_states, nxt_actions, 1);
   
@@ -246,11 +246,11 @@ static double train() {
   double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);
 
   // find gradient of Q w.r.t action
-  matrix_t* n_actions = clone(states);
+  matrix_t* n_actions = matrix_clone(states);
   predict(actor, n_actions);
   matrix_t* q_n_actions = concatenate(states, n_actions, 1);
   predict(critic, q_n_actions);
-  matrix_t* c_grad = clone(q_n_actions);
+  matrix_t* c_grad = matrix_clone(q_n_actions);
   for (int i = 0; i < c_grad->rows*c_grad->cols; ++i) {
     c_grad->data[i] = 1 / (double)c_grad->rows;
   }
@@ -272,8 +272,8 @@ static double train() {
   for (int i = 0; i < num_of_layers; ++i) {
     matrix_t* W_target = actor_target->hidden_linears[i].data.l.W;
     matrix_t* b_target = actor_target->hidden_linears[i].data.l.b;
-    matrix_t* W = clone(actor->hidden_linears[i].data.l.W);
-    matrix_t* b = clone(actor->hidden_linears[i].data.l.b);
+    matrix_t* W = matrix_clone(actor->hidden_linears[i].data.l.W);
+    matrix_t* b = matrix_clone(actor->hidden_linears[i].data.l.b);
     mult_scalar(W, (1 - POLYAK));
     mult_scalar(b, (1 - POLYAK));
     mult_scalar(W_target, POLYAK);
@@ -288,8 +288,8 @@ static double train() {
   for (int i = 0; i < num_of_layers; ++i) {
     matrix_t* W_target = critic_target->hidden_linears[i].data.l.W;
     matrix_t* b_target = critic_target->hidden_linears[i].data.l.b;
-    matrix_t* W = clone(critic->hidden_linears[i].data.l.W);
-    matrix_t* b = clone(critic->hidden_linears[i].data.l.b);
+    matrix_t* W = matrix_clone(critic->hidden_linears[i].data.l.W);
+    matrix_t* b = matrix_clone(critic->hidden_linears[i].data.l.b);
     mult_scalar(W, (1 - POLYAK));
     mult_scalar(b, (1 - POLYAK));
     mult_scalar(W_target, POLYAK);

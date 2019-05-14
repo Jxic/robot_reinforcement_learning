@@ -115,8 +115,8 @@ static int adam_update(model* m) {
     mult_scalar(nxt_fst_moment->data.l.W, optimizer.beta1);
     mult_scalar(nxt_fst_moment->data.l.b, optimizer.beta1);
     
-    matrix_t* fst_temp_W = clone(grad_W);
-    matrix_t* fst_temp_b = clone(grad_b);
+    matrix_t* fst_temp_W = matrix_clone(grad_W);
+    matrix_t* fst_temp_b = matrix_clone(grad_b);
     mult_scalar(fst_temp_W, (1-optimizer.beta1));
     mult_scalar(fst_temp_b, (1-optimizer.beta1));
     elem_wise_add(nxt_fst_moment->data.l.W, fst_temp_W);
@@ -126,8 +126,8 @@ static int adam_update(model* m) {
     mult_scalar(nxt_snd_moment->data.l.W, optimizer.beta2);
     mult_scalar(nxt_snd_moment->data.l.b, optimizer.beta2);
 
-    matrix_t* snd_temp_W = clone(grad_W);
-    matrix_t* snd_temp_b = clone(grad_b);
+    matrix_t* snd_temp_W = matrix_clone(grad_W);
+    matrix_t* snd_temp_b = matrix_clone(grad_b);
     elem_wise_mult(snd_temp_W, snd_temp_W);
     elem_wise_mult(snd_temp_b, snd_temp_b);
     mult_scalar(snd_temp_W, (1-optimizer.beta2));
@@ -138,10 +138,10 @@ static int adam_update(model* m) {
     // compute bias-corrected first moment
     double beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
     double beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
-    matrix_t* corrected_fst_W = clone(nxt_fst_moment->data.l.W);
-    matrix_t* corrected_fst_b = clone(nxt_fst_moment->data.l.b);
-    matrix_t* corrected_snd_W = clone(nxt_snd_moment->data.l.W);
-    matrix_t* corrected_snd_b = clone(nxt_snd_moment->data.l.b);
+    matrix_t* corrected_fst_W = matrix_clone(nxt_fst_moment->data.l.W);
+    matrix_t* corrected_fst_b = matrix_clone(nxt_fst_moment->data.l.b);
+    matrix_t* corrected_snd_W = matrix_clone(nxt_snd_moment->data.l.W);
+    matrix_t* corrected_snd_b = matrix_clone(nxt_snd_moment->data.l.b);
 
 
     learning_rate = learning_rate * (sqrt(1-beta2_exp) / (1-beta1_exp));

@@ -55,7 +55,7 @@ matrix_t* new_matrix(int rows, int cols);
 matrix_t* slice_row_wise(matrix_t* t, int start, int end);
 matrix_t* slice_col_wise(matrix_t* t, int start, int end);
 matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis);
-matrix_t* clone(matrix_t* a);
+matrix_t* matrix_clone(matrix_t* a);
 int clip(matrix_t* a, double low, double high);
 
 

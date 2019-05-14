@@ -24,7 +24,7 @@ int _main() {
   // test mode
   // matrix_t* m = new_matrix(2, 10);
   // initialize(m, xavier);
-  // matrix_t* n = clone(m);
+  // matrix_t* n = matrix_clone(m);
   // free_matrix(m);
   // for (int i = 0; i < 20; ++i) {
   //   printf("%f ", n->data[i]);

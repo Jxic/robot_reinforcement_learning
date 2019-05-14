@@ -10,12 +10,12 @@ EXE = main
 # for production
 CC = gcc
 CFLAGS = -Wall -Werror -pedantic -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
-MKL_FLAGS =   ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_sequential.a ${MKLROOT}/lib/libmkl_core.a -lpthread -lm -ldl
+MKL_FLAGS =  ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_sequential.a ${MKLROOT}/lib/libmkl_core.a -lpthread -lm -ldl
 # -Rpass=loop-vectorize (append this to see which for loop is optimized)
 
 #
 CFLAGS_LINUX = -Wall -Werror -pedantic  -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
-MKL_FLAGS_LINUX_DY =   -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+MKL_FLAGS_LINUX_DY =  -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
 
 ifndef version
 version = macos
@@ -38,7 +38,7 @@ main : $(OBJ)
 ifeq ($(version), macos)
 	@$(CC)  $(CFLAGS) $(MKL_FLAGS) $^ -o $@
 else
-	@$(CC_LINUX) $(CFLAGS_LINUX) $(MKL_FLAGS_LINUX_DY) $^ -o $@
+	@$(CC) $(CFLAGS_LINUX) $(MKL_FLAGS_LINUX_DY) $^ -o $@
 endif
 	@mv *.o $(BDIR)
 

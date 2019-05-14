@@ -217,9 +217,9 @@ static double* run_epoch() {
     double new_reward = nxt_state->data[nxt_state->cols-1];
     sum += new_reward;
   
-    episode_s1[i] = clone(state);
-    episode_s2[i] = clone(nxt_state);
-    episode_a[i] = clone(new_action);
+    episode_s1[i] = matrix_clone(state);
+    episode_s2[i] = matrix_clone(nxt_state);
+    episode_a[i] = matrix_clone(new_action);
     count++;
     free_matrix(new_action);
     if (nxt_state->data[nxt_state->cols-2]) {
@@ -272,7 +272,7 @@ static int store_sample_her(experience_buffer* exp_buf, matrix_t** episode_s1, m
         } else {
           ag = slice_col_wise(future_ob1, STATE_DIM, STATE_DIM+AG_DIM);
         }
-        matrix_t* s_a_ns_dr_additional = clone(s_a_ns_dr);
+        matrix_t* s_a_ns_dr_additional = matrix_clone(s_a_ns_dr);
         int goal_offset_1 = STATE_DIM - G_DIM;
         int goal_offset_2 = STATE_DIM + ACTION_DIM + STATE_DIM - G_DIM;
         memcpy(s_a_ns_dr_additional->data+goal_offset_1, ag->data, G_DIM*sizeof(double));
@@ -327,7 +327,7 @@ static double* train() {
   normalize_obs(norm, states);
   normalize_obs(norm, nxt_states);
   // calculating critic's target
-  matrix_t* nxt_actions = clone(nxt_states);
+  matrix_t* nxt_actions = matrix_clone(nxt_states);
   predict(actor_target, nxt_actions);
   matrix_t* nxt_qs = concatenate(nxt_states, nxt_actions, 1);
   
@@ -342,11 +342,11 @@ static double* train() {
   double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);
 
   // find gradient of Q w.r.t action
-  matrix_t* n_actions = clone(states);
+  matrix_t* n_actions = matrix_clone(states);
   predict(actor, n_actions);
   matrix_t* q_n_actions = concatenate(states, n_actions, 1);
   predict(critic, q_n_actions);
-  matrix_t* c_grad = clone(q_n_actions);
+  matrix_t* c_grad = matrix_clone(q_n_actions);
   double mean_q = mean(q_n_actions);
   for (int i = 0; i < c_grad->rows*c_grad->cols; ++i) {
     c_grad->data[i] = 1 / (double)c_grad->rows;
@@ -389,8 +389,8 @@ static int update_target() {
   for (int i = 0; i < num_of_layers; ++i) {
     matrix_t* W_target = actor_target->hidden_linears[i].data.l.W;
     matrix_t* b_target = actor_target->hidden_linears[i].data.l.b;
-    matrix_t* W = clone(actor->hidden_linears[i].data.l.W);
-    matrix_t* b = clone(actor->hidden_linears[i].data.l.b);
+    matrix_t* W = matrix_clone(actor->hidden_linears[i].data.l.W);
+    matrix_t* b = matrix_clone(actor->hidden_linears[i].data.l.b);
     mult_scalar(W, (1 - POLYAK));
     mult_scalar(b, (1 - POLYAK));
     mult_scalar(W_target, POLYAK);
@@ -405,8 +405,8 @@ static int update_target() {
   for (int i = 0; i < num_of_layers; ++i) {
     matrix_t* W_target = critic_target->hidden_linears[i].data.l.W;
     matrix_t* b_target = critic_target->hidden_linears[i].data.l.b;
-    matrix_t* W = clone(critic->hidden_linears[i].data.l.W);
-    matrix_t* b = clone(critic->hidden_linears[i].data.l.b);
+    matrix_t* W = matrix_clone(critic->hidden_linears[i].data.l.W);
+    matrix_t* b = matrix_clone(critic->hidden_linears[i].data.l.b);
     mult_scalar(W, (1 - POLYAK));
     mult_scalar(b, (1 - POLYAK));
     mult_scalar(W_target, POLYAK);

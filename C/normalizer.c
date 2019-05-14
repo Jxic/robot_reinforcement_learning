@@ -25,14 +25,14 @@ int update_normalizer(normalizer* n, matrix_t** observations, int count) {
     matrix_t* nxt_x = slice_col_wise(observations[i], 0, state_dim);
 
     n->n++;
-    matrix_t* last_mean = clone(n->mean);
+    matrix_t* last_mean = matrix_clone(n->mean);
 
     neg(n->mean);
     elem_wise_add(n->mean, nxt_x);
     mult_scalar(n->mean, 1/(double)n->n);
     elem_wise_add(n->mean, last_mean);
 
-    matrix_t* curr_mean = clone(n->mean);
+    matrix_t* curr_mean = matrix_clone(n->mean);
     neg(last_mean);
     neg(curr_mean);
     elem_wise_add(last_mean, nxt_x);
@@ -41,7 +41,7 @@ int update_normalizer(normalizer* n, matrix_t** observations, int count) {
     elem_wise_add(n->mean_diff, curr_mean);
 
     free_matrix(n->var);
-    matrix_t* curr_mean_diff = clone(n->mean_diff);
+    matrix_t* curr_mean_diff = matrix_clone(n->mean_diff);
     mult_scalar(curr_mean_diff, 1/(double)n->n);
     clip(curr_mean_diff, 1e-2, n->clip_value);
     n->var = curr_mean_diff;
@@ -56,10 +56,10 @@ int update_normalizer(normalizer* n, matrix_t** observations, int count) {
 int normalize_obs(normalizer* n, matrix_t* states) {
   assert(n->mean->cols==states->cols);
 
-  matrix_t* std = clone(n->var);
+  matrix_t* std = matrix_clone(n->var);
   // print_matrix(std, 1);
   square_root(std);
-  matrix_t* mean = clone(n->mean);
+  matrix_t* mean = matrix_clone(n->mean);
   // print_matrix(mean, 1);
   matrix_t* shaped_std = new_matrix(states->rows, states->cols);
   matrix_t* shaped_mean = new_matrix(states->rows, states->cols);
