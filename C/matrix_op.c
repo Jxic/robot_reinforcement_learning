@@ -366,8 +366,8 @@ matrix_t* slice_col_wise(matrix_t* t, int start, int end) {
 }
 
 int xavier_init(matrix_t* a, double gain) {
-  double low = -gain * sqrt((double)1 / (double)(a->rows));// + a->cols));
-  double high = gain * sqrt((double)1 / (double)(a->rows));// + a-> cols));
+  double low = -gain * sqrt((double)6 / (double)(a->rows+a->cols));
+  double high = gain * sqrt((double)6 / (double)(a->rows+a->cols));
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = rand_uniform(low, high);
   return 1;
 }

@@ -21,7 +21,7 @@
 #define GAMMA 0.98
 #define C_LR 0.001
 #define A_LR 0.001
-#define EPOCH 1000
+#define EPOCH 999
 #define POLYAK 0.95
 #define MAX_EPOCH_LEN 1000
 #define BATCH_SIZE 256 // same as 64 timesteps
@@ -39,6 +39,7 @@
 #define RANDOM_EPS 0.3
 #define OBS_CLIP_RANGE 5
 #define NORMALIZE 1
+#define Q_RANGE ENV_LIMIT
 
 #define DDPG_ACTOR_FILE "DDPG_ACTOR_FETCHREACH1_NORM.model"
 #define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_NORM.model"
@@ -128,11 +129,11 @@ static int init_actor_w_target() {
     matrix_t* b_target = actor_target->hidden_linears[i].data.l.b;
     matrix_t* W = actor->hidden_linears[i].data.l.W;
     matrix_t* b = actor->hidden_linears[i].data.l.b;
-    if (i == NUM_OF_LAYERS-1) {
-      for (int i = 0; i < W->cols*W->rows; ++i) {
-        W->data[i] = rand_uniform(-0.003, 0.003);
-      }
-    }
+    // if (i == NUM_OF_LAYERS-1) {
+    //   for (int i = 0; i < W->cols*W->rows; ++i) {
+    //     W->data[i] = rand_uniform(-0.003, 0.003);
+    //   }
+    // }
     copy_matrix(W_target, W);
     copy_matrix(b_target, b);
   }
@@ -153,11 +154,11 @@ static int init_critic_w_target() {
     matrix_t* b_target = critic_target->hidden_linears[i].data.l.b;
     matrix_t* W = critic->hidden_linears[i].data.l.W;
     matrix_t* b = critic->hidden_linears[i].data.l.b;
-    if (i == NUM_OF_LAYERS-1) {
-      for (int i = 0; i < W->cols*W->rows; ++i) {
-        W->data[i] = rand_uniform(-0.003, 0.003);
-      }
-    }
+    // if (i == NUM_OF_LAYERS-1) {
+    //   for (int i = 0; i < W->cols*W->rows; ++i) {
+    //     W->data[i] = rand_uniform(-0.003, 0.003);
+    //   }
+    // }
     copy_matrix(W_target, W);
     copy_matrix(b_target, b);
   }
@@ -351,6 +352,8 @@ static double* train() {
   elem_wise_mult(nxt_qs, dones);
   mult_scalar(nxt_qs, GAMMA);
   elem_wise_add(rewards, nxt_qs);
+  clip(rewards, -Q_RANGE, 0);
+
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
   double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);

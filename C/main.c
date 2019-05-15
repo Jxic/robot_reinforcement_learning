@@ -79,7 +79,7 @@ int _main() {
   return 0;
   // training mode
   #else
-  //run_rl(her);
+  run_rl(her);
   //run_agent("DDPG_ACTOR_FETCHREACH1_NORM.model", 1, "DDPG_NORM_FETCHREACH1_NORM.norm");
 
   // normalizer* n = init_normalizer(5, 5);
