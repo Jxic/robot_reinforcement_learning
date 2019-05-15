@@ -8,8 +8,9 @@
 typedef struct _normalizer {
   int n;
   matrix_t* mean;
-  matrix_t* mean_diff;
-  matrix_t* var;
+  matrix_t* sum;
+  matrix_t* std;
+  matrix_t* sumsq;
   double clip_value;
 } normalizer;
 

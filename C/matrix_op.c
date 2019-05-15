@@ -24,6 +24,8 @@ int initialize(matrix_t* mat, initializer i) {
       return truncated_normal_init(mat);
     case zeros:
       return zero_init(mat);
+    case ones:
+      return ones_init(mat);
     default:
       printf("[INITIALIZE] unrecognized initializer type");
       exit(1);
@@ -380,6 +382,11 @@ int truncated_normal_init(matrix_t* t) {
 
 int zero_init(matrix_t* t) {
   for (int i = 0; i < t->cols*t->rows; ++i) t->data[i] = 0;
+  return 1;
+}
+
+int ones_init(matrix_t* a) {
+  for (int i = 0; i < a->cols*a->rows; ++i) a->data[i] = 1;
   return 1;
 }
 

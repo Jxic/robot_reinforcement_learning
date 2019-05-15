@@ -13,7 +13,7 @@ typedef struct _matrix_t {
 
 
 typedef enum _initializer {
-  xavier, truncated_normal, zeros
+  xavier, truncated_normal, zeros, ones
 } initializer;
 
 void dummy();
@@ -40,6 +40,7 @@ int equal(matrix_t* a, matrix_t* b);
 int xavier_init(matrix_t* a, double gain);
 int truncated_normal_init(matrix_t* a);
 int zero_init(matrix_t* a);
+int ones_init(matrix_t* a);
 
 matrix_t* normalize(matrix_t* t);
 int scale(matrix_t* x, matrix_t* min_max);

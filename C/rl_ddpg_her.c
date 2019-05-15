@@ -21,7 +21,7 @@
 #define GAMMA 0.98
 #define C_LR 0.001
 #define A_LR 0.001
-#define EPOCH 10
+#define EPOCH 1000
 #define POLYAK 0.95
 #define MAX_EPOCH_LEN 1000
 #define BATCH_SIZE 256 // same as 64 timesteps
@@ -337,6 +337,9 @@ static double* train() {
     normalize_obs(norm, states);
     normalize_obs(norm, nxt_states);
   }
+  // print_matrix(states, 1);
+  // print_matrix(nxt_states, 1);
+  // exit(1);
   // calculating critic's target
   matrix_t* nxt_actions = matrix_clone(nxt_states);
   predict(actor_target, nxt_actions);

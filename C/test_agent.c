@@ -23,13 +23,21 @@ void run_agent(char* model_name, int with_normalizer, char* norm_name) {
   initEnv(act_dim);
   for (int k = 0; k < TEST_LOOP; ++k) {
     matrix_t* obs = resetState(TEST_RAND_ANGLE, TEST_RAND_DEST, state_dim+3, act_dim);
+    obs = slice_col_wise(obs, 0, state_dim);
+    if (with_normalizer) {
+      normalize_obs(norm, obs);
+    }
     for (int i = 0; i < TEST_LOOP; ++i) {
       matrix_t* action = get_action(actor, obs);
       matrix_t* nxt_state = step(action, state_dim+3, act_dim);
       free_matrix(obs);
       free_matrix(action);
       obs = nxt_state;
-  }
+      obs = slice_col_wise(obs, 0, state_dim);
+      if (with_normalizer) {
+        normalize_obs(norm, obs);
+      }
+    }
   }
 }
 

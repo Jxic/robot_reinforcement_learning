@@ -200,17 +200,22 @@ int save_normalizer(normalizer* m, char* n_name) {
     return 0;
   }
   free(w_info);
-  matrix_t* mean_diff = m->mean_diff;
-  int b_rows = mean_diff->rows;
-  int b_cols = mean_diff->cols;
-  if (fwrite(mean_diff->data, sizeof(double), b_rows*b_cols, fp) != b_rows*b_cols) {
+  matrix_t* sum = m->sum;
+  int b_rows = sum->rows;
+  int b_cols = sum->cols;
+  if (fwrite(sum->data, sizeof(double), b_rows*b_cols, fp) != b_rows*b_cols) {
     printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
     return 0;
   }
-  matrix_t* var = m->var;
-  int v_rows = var->rows;
-  int v_cols = var->cols;
-  if (fwrite(var->data, sizeof(double), v_rows*v_cols, fp) != v_rows*v_cols) {
+  matrix_t* std = m->std;
+  int v_rows = std->rows;
+  int v_cols = std->cols;
+  if (fwrite(std->data, sizeof(double), v_rows*v_cols, fp) != v_rows*v_cols) {
+    printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
+    return 0;
+  }
+  matrix_t* sumsq = m->sumsq;
+  if (fwrite(sumsq->data, sizeof(double), v_rows*v_cols, fp) != v_rows*v_cols) {
     printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
     return 0;
   }
@@ -269,13 +274,18 @@ normalizer* load_normalizer(char* n_name) {
     return 0;
   }
 
-  if (fread(norm->mean_diff->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
-    printf("[LOAD_NORMALIZER] Failed to read mean_diffs, file could be corrupted, aborting...\n");
+  if (fread(norm->sum->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    printf("[LOAD_NORMALIZER] Failed to read sums, file could be corrupted, aborting...\n");
     return 0;
   }
 
-  if (fread(norm->var->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
-    printf("[LOAD_NORMALIZER] Failed to read vars, file could be corrupted, aborting...\n");
+  if (fread(norm->std->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    printf("[LOAD_NORMALIZER] Failed to read stds, file could be corrupted, aborting...\n");
+    return 0;
+  }
+
+  if (fread(norm->sumsq->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    printf("[LOAD_NORMALIZER] Failed to read sumsqs, file could be corrupted, aborting...\n");
     return 0;
   }
   free(w_info);
