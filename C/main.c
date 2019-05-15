@@ -7,6 +7,9 @@
 #include "rl.h"
 #include <time.h>
 #include <string.h>
+#include "normalizer.h"
+#include "model_utils.h"
+#include "test_agent.h"
 #ifdef MKL
 #include "mkl.h"
 #endif
@@ -76,7 +79,29 @@ int _main() {
   return 0;
   // training mode
   #else
-  run_rl(her);
+  // run_rl(her);
+  //run_agent("DDPG_ACTOR_FETCHREACH1.model", 0, "");
+
+  // normalizer* n = init_normalizer(5, 5);
+  // initialize(n->mean, xavier);
+  // initialize(n->mean_diff, xavier);
+  // initialize(n->var, xavier);
+  // n->n = 98765678;
+  
+  
+  
+  // save_normalizer(n, "test_save_normalizer");
+  // printf("------------------------------------\n");
+  // normalizer* m = load_normalizer("test_save_normalizer");
+  // printf("%d %f\n", n->n, n->clip_value);
+  // printf("%d %f\n", n->n, n->clip_value);
+  // print_matrix(n->mean, 1);
+  // print_matrix(m->mean, 1);
+  // print_matrix(n->mean_diff, 1);
+  // print_matrix(m->mean_diff, 1);
+  // print_matrix(n->var, 1);
+  // print_matrix(m->var, 1);
+  // save_normalizer(n, "test_save_normalizer");
   return 0;
   #endif
 }

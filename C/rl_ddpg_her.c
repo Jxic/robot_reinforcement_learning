@@ -44,6 +44,7 @@
 #define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_NORM.model"
 #define DDPG_CRITIC_FILE "DDPG_CRITIC_FETCHREACH1_NORM.model"
 #define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_FETCHREACH1_NORM.model"
+#define DDPG_NORM_FILE "DDPG_NORM_FETCHREACH1_NORM.norm"
 
 
 static int actor_layers_config[NUM_OF_LAYERS] = {256, 256, 256, ACTION_DIM};
@@ -434,6 +435,9 @@ static void save_all_model() {
   save_model(actor_target, DDPG_ACTOR_T_FILE);
   save_model(critic, DDPG_CRITIC_FILE);
   save_model(critic_target, DDPG_CRITIC_T_FILE);
+  if (NORMALIZE) {
+    save_normalizer(norm, DDPG_NORM_FILE);
+  }
 }
 
 

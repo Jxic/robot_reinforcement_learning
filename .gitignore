@@ -12,3 +12,4 @@ __pycache__
 models/
 OBJ_FILES
 main
+models_rl

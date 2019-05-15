@@ -13,6 +13,7 @@
 #define DEFAULT_MODE 0744
 #define MODEL_META_INFO_NUM 7
 #define PATH_BUFFER_SIZE 1024
+#define NORMALIZER_META_INFO_NUM 2
 
 int save_model(model* m, char* model_name) {
   printf("Saving data ... \n");
@@ -161,3 +162,125 @@ model* load_model(char* model_name) {
   return m;
 }
 
+
+int save_normalizer(normalizer* m, char* n_name) {
+  printf("Saving normalizer ... \n");
+  FILE* fp;
+  struct stat s;
+  // create sub-directory if not exist
+  if (stat(DEFAULT_MODEL_DIR, &s) == -1) {
+    mkdir(DEFAULT_MODEL_DIR, DEFAULT_MODE);
+  }
+  char path[PATH_BUFFER_SIZE];
+  strcpy(path, DEFAULT_MODEL_DIR);
+  strcat(path, n_name);
+  // open file and prepare for write
+  fp = fopen(path, "w+");
+  double* n_meta = calloc(NORMALIZER_META_INFO_NUM, sizeof(double));
+  n_meta[0] = (double)m->n;
+  n_meta[1] = m->clip_value;
+
+  // write meta info to file and iteratively save layers' weights
+  if (fwrite(n_meta, sizeof(double), NORMALIZER_META_INFO_NUM, fp) != NORMALIZER_META_INFO_NUM) {
+    printf("[SAVE_NORMALIZER] Failed to write NORMALIZER meta information to file, aborting...\n");
+    return 0;
+  }
+  free(n_meta);
+
+  matrix_t* mean = m->mean;
+  int* w_info = calloc(2, sizeof(int));
+  w_info[0] = mean->rows;
+  w_info[1] = mean->cols;
+  if (fwrite(w_info, sizeof(int), 2, fp) != 2) {
+    printf("[SAVE_NORMALIZER] Failed to write mean meta information to file, aborting...\n");
+    return 0;
+  }
+  if (fwrite(mean->data, sizeof(double), w_info[0]*w_info[1], fp) != w_info[0]*w_info[1]) {
+    printf("[SAVE_NORMALIZER] Failed to write mean to file, aborting...\n");
+    return 0;
+  }
+  free(w_info);
+  matrix_t* mean_diff = m->mean_diff;
+  int b_rows = mean_diff->rows;
+  int b_cols = mean_diff->cols;
+  if (fwrite(mean_diff->data, sizeof(double), b_rows*b_cols, fp) != b_rows*b_cols) {
+    printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
+    return 0;
+  }
+  matrix_t* var = m->var;
+  int v_rows = var->rows;
+  int v_cols = var->cols;
+  if (fwrite(var->data, sizeof(double), v_rows*v_cols, fp) != v_rows*v_cols) {
+    printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
+    return 0;
+  }
+  fclose(fp);
+  printf("NORMALIZER saved to %s\n", path);
+  return 1;
+}
+
+normalizer* load_normalizer(char* n_name) {
+  printf("Loading normalizer ... \n");
+  FILE* fp;
+  struct stat s;
+  // look for default directory
+  if (stat(DEFAULT_MODEL_DIR, &s) == -1) {
+    printf("[LOAD_NORMALIZER] NORMALIZER directory not found, no NORMALIZER has been created before\n");
+    return 0;
+  }
+  // look for model name
+  char path[PATH_BUFFER_SIZE];
+  strcpy(path, DEFAULT_MODEL_DIR);
+  strcat(path, n_name);
+  fp = fopen(path, "r");
+  if (!fp) {
+    printf("[LOAD_DATA] file not existed, %s\n", path);
+    char cwd[100];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+      printf("Current working dir: %s\n", cwd);
+    } else {
+      perror("getcwd() error");
+    }
+    exit(1);
+  }
+  // reconstructing normalizer
+  double* n_meta = calloc(NORMALIZER_META_INFO_NUM, sizeof(double));
+  if (fread(n_meta, sizeof(double), NORMALIZER_META_INFO_NUM, fp) != NORMALIZER_META_INFO_NUM) {
+    printf("[LOAD_NORMALIZER] Failed to read NORMALIZER meta information, file could be corrupted, aborting...\n");
+    return 0;
+  }
+
+  int n = (int)n_meta[0];
+  double clip_value = n_meta[1];
+
+  int* w_info = calloc(2, sizeof(int));
+  if (fread(w_info, sizeof(int), 2, fp) != 2) {
+    printf("[LOAD_NORMALIZER] Failed to read mean meta information, file could be corrupted, aborting...\n");
+    return 0;
+  }
+  int w_rows = w_info[0];
+  int w_cols = w_info[1];
+  
+  normalizer* norm = init_normalizer(w_cols, clip_value);
+  norm->n = n;
+
+  if (fread(norm->mean->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    printf("[LOAD_NORMALIZER] Failed to read means, file could be corrupted, aborting...\n");
+    return 0;
+  }
+
+  if (fread(norm->mean_diff->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    printf("[LOAD_NORMALIZER] Failed to read mean_diffs, file could be corrupted, aborting...\n");
+    return 0;
+  }
+
+  if (fread(norm->var->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    printf("[LOAD_NORMALIZER] Failed to read vars, file could be corrupted, aborting...\n");
+    return 0;
+  }
+  free(w_info);
+  fclose(fp);
+  free(n_meta);
+  printf("Normalizer loaded from %s ...\n", path);
+  return norm;
+}

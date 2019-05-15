@@ -17,20 +17,22 @@ class test_sim():
   def random_run(self):
     observation = self.reset()
     print(self.env.action_space.low)
-    for _ in range(1000):
-      print(observation)
-      self.env.render()
-      action = self.env.action_space.sample()
-      observation, reward, done, info = self.step(action)
-      print(action)
+    for _ in range(1000000):
+      print("observation {}".format(observation))
+      observation = self.reset()
+      # self.env.render()
+      # action = self.env.action_space.sample()
+      # print("action {}".format(observation))
+      # observation, reward, done, info = self.step(action)
+      # print("nxt observation {}".format(observation))
       #print("reward done info {} {} {}".format(reward, done, info))
-      if done:
-        break
+      # if done:
+      #   break
   
   def close(self):
     self.env.close()
 
 if __name__ == "__main__":
-  t = test_sim()
+  t = test_sim(game='FetchReach-v1')
   t.random_run()
   t.close()
