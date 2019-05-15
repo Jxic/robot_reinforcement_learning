@@ -21,7 +21,7 @@
 #define GAMMA 0.98
 #define C_LR 0.001
 #define A_LR 0.001
-#define EPOCH 10000000
+#define EPOCH 10
 #define POLYAK 0.95
 #define MAX_EPOCH_LEN 1000
 #define BATCH_SIZE 256 // same as 64 timesteps
@@ -38,7 +38,7 @@
 #define N_BATCHES 40
 #define RANDOM_EPS 0.3
 #define OBS_CLIP_RANGE 5
-#define NORMALIZE 0
+#define NORMALIZE 1
 
 #define DDPG_ACTOR_FILE "DDPG_ACTOR_FETCHREACH1_NORM.model"
 #define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_NORM.model"
@@ -91,6 +91,9 @@ void run_ddpg_her() {
     double* train_info = NULL;
     for (int i = 0; i < N_BATCHES; ++i) {
       train_info = train();
+      if (i != N_BATCHES - 1) {
+        free(train_info);
+      }
     }
     update_target();
     // printf("trained\n");

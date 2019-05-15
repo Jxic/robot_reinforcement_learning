@@ -71,5 +71,9 @@ int normalize_obs(normalizer* n, matrix_t* states) {
   elem_wise_add(states, shaped_mean);
   inverse(shaped_std);
   elem_wise_mult(states,shaped_std);
+  free_matrix(shaped_mean);
+  free_matrix(shaped_std);
+  free_matrix(mean);
+  free_matrix(std);
   return 1;
 }
