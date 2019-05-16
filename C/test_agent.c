@@ -39,6 +39,7 @@ void run_agent(char* model_name, int with_normalizer, char* norm_name) {
       }
     }
   }
+  closeEnv(state_dim+3, act_dim);
 }
 
 static matrix_t* get_action(model* m, matrix_t* state) {

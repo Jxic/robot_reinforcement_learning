@@ -13,3 +13,5 @@ models/
 OBJ_FILES
 main
 models_rl
+history_result
+optimization_result
