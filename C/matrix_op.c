@@ -193,11 +193,11 @@ matrix_t* transpose(matrix_t* a) {
 double mean(matrix_t* a) {
   assert(a->rows > 0 && a->cols >0);
   double sum = 0;
-  #ifndef MKL
+  // #ifndef MKL
   for (int i = 0; i < a->rows*a->cols; ++i) sum += a->data[i];
-  #else
-  sum = cblas_dasum(a->rows*a->cols, a->data, 1);
-  #endif
+  // #else
+  // sum = cblas_dasum(a->rows*a->cols, a->data, 1);
+  // #endif
   return sum / (double)(a->rows * a->cols);
 }
 

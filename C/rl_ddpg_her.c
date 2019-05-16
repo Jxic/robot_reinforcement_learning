@@ -313,6 +313,9 @@ static matrix_t* get_action(matrix_t* state, double noise_scale) {
     return random_action(STATE_DIM+AG_DIM, ACTION_DIM);
   }
   matrix_t* action = slice_col_wise(state, 0, STATE_DIM);
+  if (NORMALIZE) {
+    normalize_obs(norm, action);
+  }
   augment_space(action, action->rows, actor->max_out);
   predict(actor, action);
   mult_scalar(action, ACTION_BOUND);

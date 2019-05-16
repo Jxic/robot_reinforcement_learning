@@ -46,7 +46,7 @@ class sim_socket:
           print("Wrong data sent")
           break
         if self.count < 25000 or self.game != 'pendulum':
-          observation, reward, done, _ = self.t.step(action, render=True)
+          observation, reward, done, _ = self.t.step(action)#, render=True)
         else:
           observation, reward, done, _ = self.t.step(action)#, render=True)
         terminate = 1.0 if done else 0.0
