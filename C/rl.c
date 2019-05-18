@@ -7,7 +7,7 @@
 #include "model_utils.h"
 #include "rl_ddpg.h"
 #include "rl_ddpg_her.h"
-
+#include "rl_ddpg_her_sim.h"
 
 static void test_run();
 
@@ -15,17 +15,24 @@ void run_rl(rl_type t) {
   switch (t)
   {
     case test:
+      printf("Running test algorithm ... \n");
       test_run();
       break;
     
     // deep deterministic policy gradient
     case ddpg:
+      printf("Running ddpg ... \n");
       run_ddpg();
       break;
 
     case her:
+      printf("Running ddpg with hindsight experience replay ... \n");
       run_ddpg_her();
       break;
+
+    // case her_sim:
+    //   printf("Running ddpg with her on C++ simulation ... \n");
+    //   run_rl_ddpg_her_sim();
     
     default:
       printf("[RUN_MODEL] unrecognized model %d", t);

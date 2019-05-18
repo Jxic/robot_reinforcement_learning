@@ -17,17 +17,26 @@
 #ifdef RUN_TEST
 static int simple_test();
 #endif
+
+
 int _main() {
   // preparation phase
   srand(SEED);
   #ifdef RUN_TEST  
   return simple_test();
   #else
-  //run_rl(her);
+  #ifdef MKL
+  #ifdef MULTI_MKL_THREAD
+  mkl_set_num_threads(mkl_get_max_threads());
+  #endif
+  #endif
+  run_rl(her);
   //run_agent("DDPG_ACTOR_FETCHREACH1_NORM.model", 1, "DDPG_NORM_FETCHREACH1_NORM.norm");
   return 0;
   #endif
 }
+
+
 #ifdef RUN_TEST
 static int simple_test() {
   printf("TEST MODE\n\n");
@@ -53,13 +62,10 @@ static int simple_test() {
   return 0;
 }
 #endif
+
+
 #ifndef C_AS_LIB
 int main(){
-  #ifdef MKL
-  #ifdef MULTI_MKL_THREAD
-  mkl_set_num_threads(mkl_get_max_threads());
-  #endif
-  #endif
   return _main();
 }
 #endif
