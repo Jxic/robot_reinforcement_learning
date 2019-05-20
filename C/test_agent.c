@@ -4,6 +4,7 @@
 #include "normalizer.h"
 #include "model_utils.h"
 #include "sim_api.h"
+#include <stdlib.h>
 
 #define TEST_LOOP 50
 #define TEST_RAND_ANGLE 0
@@ -40,6 +41,38 @@ void run_agent(char* model_name, int with_normalizer, char* norm_name) {
     }
   }
   closeEnv(state_dim+3, act_dim);
+}
+
+matrix_t** collect_trace(char* model_name, int with_normalizer, char* norm_name) {
+  matrix_t** trace = calloc(TEST_LOOP, sizeof(*trace));
+  model* actor;
+  normalizer* norm = 0;
+  actor = load_model(model_name);
+  if (with_normalizer) {
+    norm = load_normalizer(norm_name);
+  }
+  int state_dim = actor->input_dim;
+  int act_dim = actor->output_dim;
+  initEnv(act_dim);
+
+  matrix_t* obs = resetState(TEST_RAND_ANGLE, TEST_RAND_DEST, state_dim+3, act_dim);
+  obs = slice_col_wise(obs, 0, state_dim);
+  if (with_normalizer) {
+    normalize_obs(norm, obs);
+  }
+  for (int i = 0; i < TEST_LOOP; ++i) {
+    matrix_t* action = get_action(actor, obs);
+    matrix_t* nxt_state = step(action, state_dim+3, act_dim);
+    free_matrix(obs);
+    //free_matrix(action);
+    trace[i] = action;
+    obs = nxt_state;
+    obs = slice_col_wise(obs, 0, state_dim);
+    if (with_normalizer) {
+      normalize_obs(norm, obs);
+    }
+  }
+  return trace;
 }
 
 static matrix_t* get_action(model* m, matrix_t* state) {
