@@ -450,8 +450,8 @@ matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis) {
     ret = new_matrix(rows, cols);
     //memcpy(ret->data, a->data, a->cols*a->rows*sizeof(double));
     //memcpy(ret->data+(a->rows*a->cols), b->data, b->cols*b->rows*sizeof(double));
-    for (int i = 0; i < rows; ++i) memcpy(ret->data+(i*cols), a->data+(i*cols), cols*sizeof(double));
-    for (int i = 0; i < rows; ++i) memcpy(ret->data+((i+a->cols)*cols), b->data+(i*cols), cols*sizeof(double));
+    for (int i = 0; i < a->rows; ++i) memcpy(ret->data+(i*cols), a->data+(i*cols), cols*sizeof(double));
+    for (int i = 0; i < b->rows; ++i) memcpy(ret->data+((i+a->rows)*cols), b->data+(i*cols), cols*sizeof(double));
   }
   return ret;
 }

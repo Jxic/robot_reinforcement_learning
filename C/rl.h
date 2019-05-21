@@ -4,7 +4,7 @@
 #include "model.h"
 
 typedef enum _rl_type {
-  test, ddpg, her, her_sim
+  test, ddpg, her, her_sim, her_demo
 } rl_type;
 
 void run_rl(rl_type t);

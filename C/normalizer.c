@@ -30,6 +30,7 @@ int update_normalizer(normalizer* n, matrix_t** observations, int count) {
     elem_wise_add(n->sum, nxt_x);
     elem_wise_mult(nxt_x, nxt_x);
     elem_wise_add(n->sumsq, nxt_x);
+    free_matrix(nxt_x);
   }
   free_matrix(n->mean);
   free_matrix(n->std);

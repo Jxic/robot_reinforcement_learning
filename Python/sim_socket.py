@@ -12,7 +12,7 @@ class sim_socket:
     self.port = 6666
     self.double_size = 8
     self.action_dim = 4 if game != 'pendulum' else 1
-    self.state_dim = 16 if game != 'pendulum' else 3
+    self.state_dim = 31 if game != 'pendulum' else 3
     self.flag_dim = 2
     self.info_dim = 2
     self.count =0
@@ -88,5 +88,5 @@ class sim_socket:
 
 
 if __name__ == "__main__":
-  new_socket = sim_socket(game='FetchReach-v1')
+  new_socket = sim_socket(game='FetchPickAndPlace-v1')
   new_socket.start_listen()

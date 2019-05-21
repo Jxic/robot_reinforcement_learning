@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <string.h>
 #include <stdio.h>
+#include "socket_utils.h"
 
 experience_buffer* init_experience_buffer(int size) {
   assert(size > 0);
@@ -13,6 +14,15 @@ experience_buffer* init_experience_buffer(int size) {
   new_buffer->curr_size = 0;
   new_buffer->end_pos = 0;
   return new_buffer;
+}
+
+experience_buffer* init_demo_buffer(int size, int transition_dim) {
+  #ifndef C_AS_LIB
+  init_demo_connection();
+  return build_demo_buffer(size, transition_dim);
+  #else
+  // todo: build demo buffer with inverse dynamics
+  #endif
 }
 
 int store_experience(experience_buffer* exp_buf, matrix_t* new_exp) {

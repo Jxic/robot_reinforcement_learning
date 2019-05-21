@@ -10,6 +10,7 @@
 #include "normalizer.h"
 #include "model_utils.h"
 #include "test_agent.h"
+#include "socket_utils.h"
 #ifdef MKL
 #include "mkl.h"
 #endif
@@ -30,8 +31,11 @@ int _main() {
   mkl_set_num_threads(mkl_get_max_threads());
   #endif
   #endif
-  run_rl(her);
+  run_rl(her_demo);
   //run_agent("DDPG_ACTOR_FETCHREACH1_NORM.model", 1, "DDPG_NORM_FETCHREACH1_NORM.norm");
+  // init_demo_connection();
+  // build_demo_buffer(5016, 62);
+  // print_experiences(b);
   return 0;
   #endif
 }

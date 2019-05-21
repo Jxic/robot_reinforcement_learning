@@ -1,10 +1,10 @@
 # for debugging checking memory leaks
-DEBUG_CC = /usr/local/Cellar/llvm/8.0.0/bin/clang
-CF_DEBUG_LAGS = -fsanitize=address -g
+CC = /usr/local/Cellar/llvm/8.0.0/bin/clang
+CFLAGS = -fsanitize=address -g
 
-DEPS = matrix_op.h tests.h utils.h rl.h layers.h data_structures.h macros.h model.h sim_api.h rl_utils.h rl_ddpg.h socket_utils.h optimizer.h model_utils.h rl_ddpg_her.h normalizer.h test_agent.h rl_ddpg_her_sim.h
+DEPS = matrix_op.h tests.h utils.h rl.h layers.h data_structures.h macros.h model.h sim_api.h rl_utils.h rl_ddpg.h socket_utils.h optimizer.h model_utils.h rl_ddpg_her.h normalizer.h test_agent.h rl_ddpg_her_sim.h rl_ddpg_her_demo.h
 BDIR = OBJ_FILES
-OBJ = main.o matrix_op.o tests.o utils.o rl.o layers.o model.o rl_utils.o rl_ddpg.o socket_utils.o optimizer.o model_utils.o sim_api.o rl_ddpg_her.o normalizer.o test_agent.c rl_ddpg_her_sim.o
+OBJ = main.o matrix_op.o tests.o utils.o rl.o layers.o model.o rl_utils.o rl_ddpg.o socket_utils.o optimizer.o model_utils.o sim_api.o rl_ddpg_her.o normalizer.o test_agent.c rl_ddpg_her_sim.o rl_ddpg_her_demo.o
 EXE = main
 
 # for production

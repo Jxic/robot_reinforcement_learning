@@ -8,6 +8,7 @@
 #include "rl_ddpg.h"
 #include "rl_ddpg_her.h"
 #include "rl_ddpg_her_sim.h"
+#include "rl_ddpg_her_demo.h"
 
 static void test_run();
 
@@ -28,6 +29,11 @@ void run_rl(rl_type t) {
     case her:
       printf("Running ddpg with hindsight experience replay ... \n");
       run_ddpg_her();
+      break;
+
+    case her_demo:
+      printf("Running ddpg with HER and demo ...\n");
+      run_ddpg_her_w_demo();
       break;
 
     // case her_sim:
