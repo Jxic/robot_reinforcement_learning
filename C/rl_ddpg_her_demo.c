@@ -94,7 +94,7 @@ void run_ddpg_her_w_demo() {
     }
     free(separated);
   }
-  initEnv(ACTION_DIM);
+  initEnv(ACTION_DIM, ENV_PICK_N_PLACE);
   printf("Initialized models\n");
   // randomly explore for certain number of steps
   if (!pre_training()) {

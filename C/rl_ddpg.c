@@ -59,7 +59,7 @@ void run_ddpg() {
   init_critic_w_target();
   exp_buf = init_experience_buffer(MEMORY_SIZE);
 
-  initEnv(ACTION_DIM);
+  initEnv(ACTION_DIM, ENV_REACHING);
   // randomly explore for certain number of steps
   printf("Initialized models\n");
   

@@ -12,7 +12,7 @@
 
 static matrix_t* get_action(model* m, matrix_t* state);
 
-void run_agent(char* model_name, int with_normalizer, char* norm_name) {
+void run_agent(char* model_name, int with_normalizer, char* norm_name, int task_flag) {
   model* actor;
   normalizer* norm = 0;
   actor = load_model(model_name);
@@ -21,7 +21,7 @@ void run_agent(char* model_name, int with_normalizer, char* norm_name) {
   }
   int state_dim = actor->input_dim;
   int act_dim = actor->output_dim;
-  initEnv(act_dim);
+  initEnv(act_dim, task_flag);
   for (int k = 0; k < TEST_LOOP; ++k) {
     matrix_t* obs = resetState(TEST_RAND_ANGLE, TEST_RAND_DEST, state_dim+3, act_dim);
     obs = slice_col_wise(obs, 0, state_dim);
@@ -43,7 +43,7 @@ void run_agent(char* model_name, int with_normalizer, char* norm_name) {
   closeEnv(state_dim+3, act_dim);
 }
 
-matrix_t** collect_trace(char* model_name, int with_normalizer, char* norm_name) {
+matrix_t** collect_trace(char* model_name, int with_normalizer, char* norm_name, int task_flag) {
   matrix_t** trace = calloc(TEST_LOOP, sizeof(*trace));
   model* actor;
   normalizer* norm = 0;
@@ -53,7 +53,7 @@ matrix_t** collect_trace(char* model_name, int with_normalizer, char* norm_name)
   }
   int state_dim = actor->input_dim;
   int act_dim = actor->output_dim;
-  initEnv(act_dim);
+  initEnv(act_dim, task_flag);
 
   matrix_t* obs = resetState(TEST_RAND_ANGLE, TEST_RAND_DEST, state_dim+3, act_dim);
   obs = slice_col_wise(obs, 0, state_dim);

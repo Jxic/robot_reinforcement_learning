@@ -78,7 +78,7 @@ void run_ddpg_her_sim() {
     norm = init_normalizer(STATE_DIM, DEFAULT_CLIP_RANGE);
   }
   exp_buf = init_experience_buffer(MEMORY_SIZE);
-  initEnv(ACTION_DIM);
+  initEnv(ACTION_DIM, ENV_REACHING);
   printf("Initialized models\n");
   // randomly explore for certain number of steps
   if (!pre_training()) {

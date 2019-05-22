@@ -3,12 +3,21 @@
 #include "stdlib.h"
 #include <assert.h>
 #include "rl_ddpg.h"
-
+#include <stdio.h>
 #ifndef C_AS_LIB
 
-int initEnv(int act_dim) {
+int initEnv(int act_dim, int task_flag) {
   init_connection();
   return 1;
+}
+
+void renderSteps(matrix_t** actions, int numOfActions) {
+  printf("C++ sim required\n");
+  exit(1);
+}
+matrix_t* inverse_km(matrix_t* ee_pos) {
+  printf("C++ sim required\n");
+  exit(1);
 }
 
 matrix_t* random_action(int state_dim, int act_dim) {
