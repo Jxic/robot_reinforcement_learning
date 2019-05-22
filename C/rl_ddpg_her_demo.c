@@ -21,10 +21,10 @@
 #define GAMMA 0.98
 #define C_LR 0.001
 #define A_LR 0.001
-#define EPOCH 10000
+#define EPOCH 100000
 #define POLYAK 0.95
 #define MAX_EPOCH_LEN 1000
-#define BATCH_SIZE 256 // same as 64 timesteps
+#define BATCH_SIZE 1024 // same as 64 timesteps
 #define PRE_TRAIN_STEPS 0
 #define MEMORY_SIZE 1000000
 #define NOISE_SCALE 0.1
@@ -35,7 +35,7 @@
 #define ENV_LIMIT 50
 #define PORTION_OF_TRANSITION_WITH_ADDITIONAL_GOAL 0.8
 #define REPLAY_K 4
-#define N_BATCHES 40
+#define N_BATCHES 20
 #define RANDOM_EPS 0.1
 #define OBS_CLIP_RANGE 5
 #define NORMALIZE 1
@@ -43,7 +43,7 @@
 #define PRM_LOSS_WEIGHT 0.001
 #define AUX_LOSS_WEIGHT 0.0078
 // #define NUM_DEMO 100
-#define DEMO_BATCH_SIZE 32 // 32/256 or 128/1024
+#define DEMO_BATCH_SIZE 128 // 32/256 or 128/1024
 #define NUM_DEMO_TRANSITIONS 5016
 
 #define DDPG_ACTOR_FILE "DDPG_ACTOR_PICKNPLACE_NORM.model"
@@ -368,6 +368,7 @@ static double* train() {
   // matrix_t* demo_rewards = slice_col_wise(demo_batch, 2*STATE_DIM+ACTION_DIM+1, 2*STATE_DIM+ACTION_DIM+2);
   
   if (NORMALIZE) {
+    normalize_obs(norm, demo_states);
     normalize_obs(norm, states);
     normalize_obs(norm, nxt_states);
   }
