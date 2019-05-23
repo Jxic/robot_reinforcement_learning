@@ -20,7 +20,12 @@ class test_sim():
     for _ in range(100000):
       observation = self.reset()
       while 1:
-        # print("observation {} {}".format(len(observation['observation']),observation))
+        #print("observation {} {}".format(len(observation['observation']),observation))
+        for v in observation.values():
+          a = [i for i in v if i >= 200 or i <= -200]
+          print(len(a))
+          if (len(a) > 0):
+            exit(1)
         self.env.render()
         action = self.env.action_space.sample()
         # print("action {}".format(action))

@@ -11,7 +11,7 @@ def collect_demos(collect_new=True):
     actions, observations, info = fetch_data_generation.main()
     np.savez_compressed(fileName, acs=actions, obs=observations, info=info)
   else:
-    demo_data = np.load(fileName)
+    demo_data = np.load(fileName, allow_pickle=True)
     actions, observations, info = demo_data['acs'], demo_data['obs'], demo_data['info']
 
   transitions = []

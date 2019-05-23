@@ -35,7 +35,7 @@
 #define ENV_LIMIT 50
 #define PORTION_OF_TRANSITION_WITH_ADDITIONAL_GOAL 0.8
 #define REPLAY_K 4
-#define N_BATCHES 20
+#define N_BATCHES 40
 #define RANDOM_EPS 0.1
 #define OBS_CLIP_RANGE 5
 #define NORMALIZE 1
@@ -379,8 +379,8 @@ static double* train() {
   matrix_t* nxt_qs = concatenate(nxt_states, nxt_actions, 1);
   
   predict(critic_target, nxt_qs);
-  neg(dones);
-  add_scalar(dones, 1);
+  // neg(dones);
+  // add_scalar(dones, 1);
   elem_wise_mult(nxt_qs, dones);
   mult_scalar(nxt_qs, GAMMA);
   elem_wise_add(rewards, nxt_qs);
@@ -388,7 +388,6 @@ static double* train() {
 
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
-  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);
   //printf("updated critic\n");
 
   // find gradient of Q w.r.t action
@@ -421,7 +420,7 @@ static double* train() {
   matrix_t* bc_grad = matrix_clone(policy_act_demo);
   elem_wise_minus(bc_grad, policy_act_demo_target);
   mult_scalar(bc_grad, (double)2);
-  mult_scalar(bc_grad, 1/(double)bc_grad->rows);
+  //mult_scalar(bc_grad, 1/(double)bc_grad->rows);
   for (int i = 0; i < DEMO_BATCH_SIZE; ++i) {
     if (q_n_actions->data[i+demo_offset] > demo_q->data[i]) {
       for (int j = 0; j < bc_grad->cols; ++j) {
@@ -441,6 +440,7 @@ static double* train() {
   predict(actor, refresher);
 
   // back propagation and update
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);
   model_backward(actor, a_grad);
   perform_update(actor, A_LR);
   //printf("freeing resource\n");

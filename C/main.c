@@ -11,6 +11,7 @@
 #include "model_utils.h"
 #include "test_agent.h"
 #include "socket_utils.h"
+#include "sim_api.h"
 #ifdef MKL
 #include "mkl.h"
 #endif
@@ -32,7 +33,7 @@ int _main() {
   #endif
   #endif
   run_rl(her_demo);
-  //run_agent("DDPG_ACTOR_FETCHREACH1_NORM.model", 1, "DDPG_NORM_FETCHREACH1_NORM.norm");
+  // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
   // init_demo_connection();
   // build_demo_buffer(5016, 62);
   // print_experiences(b);
