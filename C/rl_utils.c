@@ -113,7 +113,8 @@ static int env_step_limit = 50;
 
 static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
   assert(transition_dim == 2*state_dim + act_dim + info_dim + reward_dim);
-  experience_buffer* ret = init_experience_buffer(size);
+  printf("Initializing demo buffer to size: %d\n", size);
+  experience_buffer* ret = init_experience_buffer(size*env_step_limit);
   
   printf("Building buffer with state dimension: %d, action dimension: %d, total transition dimension: %d\n", state_dim, act_dim, transition_dim);
 
@@ -131,6 +132,7 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
       exit(1);
     }
     for (int j = 0; j < time_step; ++j) {
+      assert(transition_dim == transitions[j]->cols);
       store_experience(ret, transitions[j]);
     }
     printf("%d Reached target\n", i);
@@ -155,6 +157,7 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
       exit(1);
     }
     printf("%d Grabbed target\n", i);
+    assert(transition_dim == o_a_o2_dr->cols);
     store_experience(ret, o_a_o2_dr);
 
     // Deliver the target
@@ -167,7 +170,8 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
       exit(1);
     }
     for (int j = last_time_step; j < time_step; ++j) {
-      printf("transition at: %d\n", j);
+      // printf("transition at: %d\n", j);
+      assert(transition_dim == phase_2_transition[j]->cols);
       store_experience(ret, phase_2_transition[j]);
     }
     printf("%d Delivered target\n", i);
@@ -175,20 +179,20 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     matrix_t* phase_2_last_transition = phase_2_transition[time_step-1];
     matrix_t* phase_2_last_obs = slice_col_wise(phase_2_last_transition, state_dim+act_dim, phase_2_last_transition->cols);
     matrix_t** padding_transitions = fill_up_episode(phase_2_last_obs, time_step, env_step_limit);
-    for (int j = 0; j < env_step_limit-time_step; ++j) {
-      store_experience(ret, padding_transitions[i]);
+    for (int j = time_step; j < env_step_limit; ++j) {
+      assert(transition_dim == padding_transitions[j]->cols);
+      store_experience(ret, padding_transitions[j]);
     }
     printf("%d Filled up episode\n", i);
 
-    //exit(1);
-    
+    // printf("experience size: %d\n", ret->curr_size);
     // check behaviour with rendering
     matrix_t** all_actions = calloc(env_step_limit, sizeof(*all_actions));
     for (int j = 0; j < env_step_limit; ++j) {
       int offset = i * env_step_limit;
+      // printf("act: %d exp curr size: %d\n", i, ret->curr_size);
+      // print_matrix(ret->experiences[j+offset], 1);
       matrix_t* nxt_act = slice_col_wise(ret->experiences[j+offset], state_dim, state_dim+act_dim);
-      printf("act: %d\n", j+offset);
-      print_matrix(nxt_act, 1);
       all_actions[j] = nxt_act;
       // free resources
 
@@ -200,6 +204,25 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     #endif
 
     // free resources
+    for (int j = 0; j < env_step_limit; ++j) {
+      free_matrix(all_actions[j]);
+    }
+    free(all_actions);
+    free(padding_transitions);
+    free_matrix(phase_2_last_obs);
+    free(phase_2_transition);
+    free_matrix(nxt_stop);
+    free_matrix(o_a_o2);
+    free_matrix(o_a);
+    free_matrix(other_info);
+    free_matrix(nxt_obs);
+    free_matrix(nxt_state);
+    free_matrix(grab_act);
+    free_matrix(last_obs);
+    free(transitions);
+    free_matrix(first_stop);
+    free_matrix(init_obs);
+
 
   }
 
@@ -235,17 +258,29 @@ static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep) {
     matrix_t* o_a_o2 = concatenate(o_a, o2, 1);
     matrix_t* o_a_o2_dr = concatenate(o_a_o2, dr, 1);
 
+    free_matrix(state);
+    free_matrix(state_ee_pos);
     state = slice_col_wise(nxt_obs, 0, state_dim);
     state_ee_pos = slice_col_wise(state, g_dim, 2*g_dim);
 
     ret[*timestep] = o_a_o2_dr;
     *timestep += 1;
+
+    free_matrix(o_a_o2);
+    free_matrix(o_a);
+    free_matrix(dr);
+    free_matrix(o2);
+    free_matrix(nxt_obs);
+    free_matrix(normed_action);
+    free_matrix(curr_ja);
+    free_matrix(nxt_action);
+
   }
   return ret;
 }
 
 static matrix_t** fill_up_episode(matrix_t* obs, int curr_time_step, int to_time_step) {
-  matrix_t** ret = calloc(to_time_step-curr_time_step, sizeof(*ret));
+  matrix_t** ret = calloc(to_time_step, sizeof(*ret));
   matrix_t* state = slice_col_wise(obs, 0, state_dim);
   matrix_t* action = new_matrix(1, act_dim);
   initialize(action, zeros);
@@ -253,7 +288,8 @@ static matrix_t** fill_up_episode(matrix_t* obs, int curr_time_step, int to_time
   for (int i = curr_time_step; i < to_time_step; ++i) {
     matrix_t* o_a = concatenate(state, action, 1);
     matrix_t* o_a_o2_dr = concatenate(o_a, obs, 1);
-    ret[i-curr_time_step] = o_a_o2_dr;
+    ret[i] = o_a_o2_dr;
+    free_matrix(o_a);
   }
   return ret;
 }
@@ -268,6 +304,7 @@ static double distance(matrix_t* a, matrix_t* b) {
   for (int i = 0; i < a->cols; ++i) {
     sum += temp->data[i];
   }
+  free_matrix(temp);
   return sqrt(sum);
 }
 
