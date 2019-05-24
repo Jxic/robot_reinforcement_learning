@@ -9,6 +9,6 @@
 #define SEED time(0)
 
 #define C_AS_LIB
-#define RENDER
+// #define RENDER
 
 #endif

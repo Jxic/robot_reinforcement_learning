@@ -8,7 +8,7 @@
 #include "sim_api.h"
 #include <math.h>
 #include "macros.h"
-#define C_AS_LIB 1
+
 #ifdef C_AS_LIB
 static experience_buffer* build_sim_demo_buffer(int size, int transition_dim);
 #endif
@@ -195,8 +195,9 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     }
     printf("Ready for rendering\n");
     
+    #ifdef RENDER
     renderSteps(all_actions, env_step_limit);
-    // exit(1);
+    #endif
 
     // free resources
 
@@ -212,44 +213,33 @@ static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep) {
   matrix_t* state_ee_pos = slice_col_wise(state, g_dim, 2*g_dim);
   matrix_t** ret = calloc(env_step_limit, sizeof(*ret));
   while(distance(state_ee_pos, pos) > dist_threshold) {
-    printf("State: \n");
-    print_matrix(state, 1);
-    printf("Timestep: %d\n", *timestep);
+
     matrix_t* nxt_action = inverse_km(pos);
-    printf("obj pos:\n");
-    print_matrix(pos, 1);
-    printf("raw ja:\n");
-    print_matrix(nxt_action, 1);
+
     matrix_t* curr_ja = slice_col_wise(state, 0, g_dim);
     elem_wise_minus(nxt_action, curr_ja);
-    printf("delta:\n");
-    print_matrix(nxt_action, 1);
+
     clip(nxt_action, -act_clip_range, act_clip_range);
     matrix_t* normed_action = normalize_action(nxt_action);
     augment_space(normed_action, 1, act_dim);
     normed_action->cols = act_dim;
     normed_action->data[act_dim-1] = state->data[g_dim*2];
-    printf("Action: \n");
-    print_matrix(normed_action, 1);
+
     clip(normed_action, -1, 1);
     matrix_t* nxt_obs = step(normed_action, 0, 0);
-    printf("nxt_obs\n");
-    print_matrix(nxt_obs, 1);
+
     matrix_t* o2 = slice_col_wise(nxt_obs, 0, state_dim);
     matrix_t* dr = slice_col_wise(nxt_obs, state_dim+g_dim, nxt_obs->cols);
     
     matrix_t* o_a = concatenate(state, normed_action, 1);
     matrix_t* o_a_o2 = concatenate(o_a, o2, 1);
     matrix_t* o_a_o2_dr = concatenate(o_a_o2, dr, 1);
-    print_matrix(o_a_o2_dr, 1);
+
     state = slice_col_wise(nxt_obs, 0, state_dim);
     state_ee_pos = slice_col_wise(state, g_dim, 2*g_dim);
 
     ret[*timestep] = o_a_o2_dr;
     *timestep += 1;
-    // if (*timestep > 50) {
-    //   exit(1);
-    // }
   }
   return ret;
 }
