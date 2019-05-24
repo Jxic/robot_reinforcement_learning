@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "rl_ddpg.h"
 #include <stdio.h>
+#include "macros.h"
 #ifndef C_AS_LIB
 
 int initEnv(int act_dim, int task_flag) {

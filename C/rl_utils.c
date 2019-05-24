@@ -7,7 +7,8 @@
 #include "socket_utils.h"
 #include "sim_api.h"
 #include <math.h>
-
+#include "macros.h"
+#define C_AS_LIB 1
 #ifdef C_AS_LIB
 static experience_buffer* build_sim_demo_buffer(int size, int transition_dim);
 #endif
@@ -90,7 +91,6 @@ void print_experiences(experience_buffer* exp_buf) {
   print_matrix(all, 1);
 }
 
-#define C_AS_LIB 1
 #ifdef C_AS_LIB
 
 static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep);
@@ -121,7 +121,6 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
 
   for (int i = 0; i < size; ++i) {
     matrix_t* init_obs = resetState(rand_angle, rand_dest_pos, 0, 0);
-    // exit(1);
     int time_step = 0;
     // Reach the target with end effector
     matrix_t* first_stop = slice_col_wise(init_obs, obj_pos_offset, obj_pos_offset+g_dim);
@@ -134,19 +133,16 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     for (int j = 0; j < time_step; ++j) {
       store_experience(ret, transitions[j]);
     }
-    // print_experiences(ret);
-    // exit(1);
     printf("%d Reached target\n", i);
-    // exit(1);
-    // Grab up the target
+
+    // Grab the object
     matrix_t* last_transition = transitions[time_step-1];
     matrix_t* last_obs = slice_col_wise(last_transition, state_dim+act_dim, state_dim+act_dim+state_dim);
     matrix_t* grab_act = new_matrix(1, act_dim);
     initialize(grab_act, zeros);
     grab_act->data[grab_act->cols-1] = 1;
     matrix_t* nxt_state = step(grab_act, 0, 0);
-    print_matrix(nxt_state, 1);
-    // exit(1);
+
     matrix_t* nxt_obs = slice_col_wise(nxt_state, 0, state_dim);
     matrix_t* other_info = slice_col_wise(nxt_state, state_dim+g_dim, nxt_state->cols);
     matrix_t* o_a = concatenate(last_obs, grab_act, 1);
@@ -160,6 +156,7 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     }
     printf("%d Grabbed target\n", i);
     store_experience(ret, o_a_o2_dr);
+
     // Deliver the target
     int last_time_step = time_step;
     matrix_t* nxt_stop = slice_col_wise(nxt_state, state_dim-g_dim, state_dim);
@@ -174,7 +171,6 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
       store_experience(ret, phase_2_transition[j]);
     }
     printf("%d Delivered target\n", i);
-
     // Fill up the episode with padding
     matrix_t* phase_2_last_transition = phase_2_transition[time_step-1];
     matrix_t* phase_2_last_obs = slice_col_wise(phase_2_last_transition, state_dim+act_dim, phase_2_last_transition->cols);

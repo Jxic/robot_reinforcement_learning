@@ -10,6 +10,7 @@
 #include "rl_ddpg_her_sim.h"
 #include "rl_ddpg_her_demo.h"
 
+
 static void test_run();
 
 void run_rl(rl_type t) {

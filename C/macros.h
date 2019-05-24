@@ -8,4 +8,7 @@
 #define MULTI_MKL_THREAD
 #define SEED time(0)
 
+#define C_AS_LIB
+#define RENDER
+
 #endif
