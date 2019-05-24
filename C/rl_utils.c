@@ -27,7 +27,8 @@ experience_buffer* init_demo_buffer(int size, int transition_dim) {
   init_demo_connection();
   return build_demo_buffer(size, transition_dim);
   #else
-  return build_sim_demo_buffer();
+  printf("[INIT_DEMO_BUFFER] C_AS_LIB\n");
+  return build_sim_demo_buffer(size, transition_dim);
   #endif
 }
 
@@ -89,6 +90,7 @@ void print_experiences(experience_buffer* exp_buf) {
   print_matrix(all, 1);
 }
 
+#define C_AS_LIB 1
 #ifdef C_AS_LIB
 
 static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep);
@@ -100,7 +102,7 @@ static int reward_dim = 1;
 static int info_dim = 1;
 static int act_dim = 4;
 static int g_dim = 3;
-static int obj_pos_offset = 6;
+static int obj_pos_offset = 7;
 static int state_dim = 14;
 static double dist_threshold = 0.05;
 
@@ -113,13 +115,13 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
   assert(transition_dim == 2*state_dim + act_dim + info_dim + reward_dim);
   experience_buffer* ret = init_experience_buffer(size);
   
-  printf("Building buffer with state dimension: %d, action dimension: %d, \
-            total transition dimension: %d\n", state_dim, act_dim, transition_dim);
+  printf("Building buffer with state dimension: %d, action dimension: %d, total transition dimension: %d\n", state_dim, act_dim, transition_dim);
 
   initEnv(0, ENV_PICK_N_PLACE);
 
   for (int i = 0; i < size; ++i) {
     matrix_t* init_obs = resetState(rand_angle, rand_dest_pos, 0, 0);
+    // exit(1);
     int time_step = 0;
     // Reach the target with end effector
     matrix_t* first_stop = slice_col_wise(init_obs, obj_pos_offset, obj_pos_offset+g_dim);
@@ -127,11 +129,15 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     if (time_step > env_step_limit) {
       printf("Too many steps taken to reach the target, resampling target\n");
       i--;
-      continue;
+      exit(1);
     }
     for (int j = 0; j < time_step; ++j) {
-      store_experience(ret, transitions[i]);
+      store_experience(ret, transitions[j]);
     }
+    // print_experiences(ret);
+    // exit(1);
+    printf("%d Reached target\n", i);
+    // exit(1);
     // Grab up the target
     matrix_t* last_transition = transitions[time_step-1];
     matrix_t* last_obs = slice_col_wise(last_transition, state_dim+act_dim, state_dim+act_dim+state_dim);
@@ -139,6 +145,8 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     initialize(grab_act, zeros);
     grab_act->data[grab_act->cols-1] = 1;
     matrix_t* nxt_state = step(grab_act, 0, 0);
+    print_matrix(nxt_state, 1);
+    // exit(1);
     matrix_t* nxt_obs = slice_col_wise(nxt_state, 0, state_dim);
     matrix_t* other_info = slice_col_wise(nxt_state, state_dim+g_dim, nxt_state->cols);
     matrix_t* o_a = concatenate(last_obs, grab_act, 1);
@@ -148,38 +156,51 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     if (time_step > env_step_limit) {
       printf("Too many steps taken to grab the target, resampling target\n");
       i--;
-      continue;
+      exit(1);
     }
+    printf("%d Grabbed target\n", i);
     store_experience(ret, o_a_o2_dr);
     // Deliver the target
+    int last_time_step = time_step;
     matrix_t* nxt_stop = slice_col_wise(nxt_state, state_dim-g_dim, state_dim);
     matrix_t** phase_2_transition = go_to_point(nxt_state ,nxt_stop, &time_step);
     if (time_step > env_step_limit) {
       printf("Too many steps taken to deliver the target, resampling target\n");
       i--;
-      continue;
+      exit(1);
     }
-    for (int j = 0; j < time_step; ++j) {
-      store_experience(ret, phase_2_transition[i]);
+    for (int j = last_time_step; j < time_step; ++j) {
+      printf("transition at: %d\n", j);
+      store_experience(ret, phase_2_transition[j]);
     }
+    printf("%d Delivered target\n", i);
+
     // Fill up the episode with padding
     matrix_t* phase_2_last_transition = phase_2_transition[time_step-1];
     matrix_t* phase_2_last_obs = slice_col_wise(phase_2_last_transition, state_dim+act_dim, phase_2_last_transition->cols);
     matrix_t** padding_transitions = fill_up_episode(phase_2_last_obs, time_step, env_step_limit);
-    for (int j = 0; j < env_step_limit; ++j) {
+    for (int j = 0; j < env_step_limit-time_step; ++j) {
       store_experience(ret, padding_transitions[i]);
     }
+    printf("%d Filled up episode\n", i);
 
+    //exit(1);
+    
     // check behaviour with rendering
     matrix_t** all_actions = calloc(env_step_limit, sizeof(*all_actions));
     for (int j = 0; j < env_step_limit; ++j) {
       int offset = i * env_step_limit;
       matrix_t* nxt_act = slice_col_wise(ret->experiences[j+offset], state_dim, state_dim+act_dim);
+      printf("act: %d\n", j+offset);
+      print_matrix(nxt_act, 1);
       all_actions[j] = nxt_act;
-      renderSteps(all_actions, env_step_limit);
       // free resources
 
     }
+    printf("Ready for rendering\n");
+    
+    renderSteps(all_actions, env_step_limit);
+    // exit(1);
 
     // free resources
 
@@ -195,20 +216,44 @@ static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep) {
   matrix_t* state_ee_pos = slice_col_wise(state, g_dim, 2*g_dim);
   matrix_t** ret = calloc(env_step_limit, sizeof(*ret));
   while(distance(state_ee_pos, pos) > dist_threshold) {
+    printf("State: \n");
+    print_matrix(state, 1);
+    printf("Timestep: %d\n", *timestep);
     matrix_t* nxt_action = inverse_km(pos);
+    printf("obj pos:\n");
+    print_matrix(pos, 1);
+    printf("raw ja:\n");
+    print_matrix(nxt_action, 1);
+    matrix_t* curr_ja = slice_col_wise(state, 0, g_dim);
+    elem_wise_minus(nxt_action, curr_ja);
+    printf("delta:\n");
+    print_matrix(nxt_action, 1);
     clip(nxt_action, -act_clip_range, act_clip_range);
     matrix_t* normed_action = normalize_action(nxt_action);
+    augment_space(normed_action, 1, act_dim);
+    normed_action->cols = act_dim;
+    normed_action->data[act_dim-1] = state->data[g_dim*2];
+    printf("Action: \n");
+    print_matrix(normed_action, 1);
     clip(normed_action, -1, 1);
     matrix_t* nxt_obs = step(normed_action, 0, 0);
+    printf("nxt_obs\n");
+    print_matrix(nxt_obs, 1);
     matrix_t* o2 = slice_col_wise(nxt_obs, 0, state_dim);
     matrix_t* dr = slice_col_wise(nxt_obs, state_dim+g_dim, nxt_obs->cols);
     
     matrix_t* o_a = concatenate(state, normed_action, 1);
     matrix_t* o_a_o2 = concatenate(o_a, o2, 1);
     matrix_t* o_a_o2_dr = concatenate(o_a_o2, dr, 1);
+    print_matrix(o_a_o2_dr, 1);
+    state = slice_col_wise(nxt_obs, 0, state_dim);
+    state_ee_pos = slice_col_wise(state, g_dim, 2*g_dim);
 
     ret[*timestep] = o_a_o2_dr;
     *timestep += 1;
+    // if (*timestep > 50) {
+    //   exit(1);
+    // }
   }
   return ret;
 }
@@ -218,6 +263,7 @@ static matrix_t** fill_up_episode(matrix_t* obs, int curr_time_step, int to_time
   matrix_t* state = slice_col_wise(obs, 0, state_dim);
   matrix_t* action = new_matrix(1, act_dim);
   initialize(action, zeros);
+  action->data[action->cols-1] = 1;
   for (int i = curr_time_step; i < to_time_step; ++i) {
     matrix_t* o_a = concatenate(state, action, 1);
     matrix_t* o_a_o2_dr = concatenate(o_a, obs, 1);
@@ -244,7 +290,7 @@ static matrix_t* normalize_action(matrix_t* action) {
   add_scalar(ret, act_clip_range);
   mult_scalar(ret, 1.0/(act_clip_range*2));
   mult_scalar(ret, 2);
-  add_scalar(ret, 1);
+  add_scalar(ret, -1);
   return ret;
 }
 
