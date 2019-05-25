@@ -70,7 +70,7 @@ static double* train();
 static void save_all_model();
 static int update_target();
 
-void run_ddpg_her_sim() {
+void run_rl_ddpg_her_sim() {
   // preparation phase
   init_actor_w_target();
   init_critic_w_target();
