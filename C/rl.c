@@ -9,7 +9,7 @@
 #include "rl_ddpg_her.h"
 #include "rl_ddpg_her_sim.h"
 #include "rl_ddpg_her_demo.h"
-
+#include "rl_ddpg_her_demo_sim.h"
 
 static void test_run();
 
@@ -40,6 +40,10 @@ void run_rl(rl_type t) {
     case her_sim:
       printf("Running ddpg with her on C++ simulation ... \n");
       run_rl_ddpg_her_sim();
+
+    case her_demo_sim:
+      printf("Running ddpg with her & demo on C++ simulation ... \n");
+      run_ddpg_her_w_demo_sim();
     
     default:
       printf("[RUN_MODEL] unrecognized model %d", t);

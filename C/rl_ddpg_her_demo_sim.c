@@ -1,4 +1,4 @@
-#include "rl_ddpg_her_demo.h"
+#include "rl_ddpg_her_demo_sim.h"
 #include <stdio.h>
 #include <time.h>
 #include "rl_utils.h"
@@ -14,7 +14,7 @@
 #include <string.h>
 #include "normalizer.h"
 
-#define STATE_DIM 28 //16
+#define STATE_DIM 14 //16
 #define G_DIM 3
 #define AG_DIM 3
 #define ACTION_DIM 4
@@ -28,7 +28,7 @@
 #define PRE_TRAIN_STEPS 0
 #define MEMORY_SIZE 1000000
 #define NOISE_SCALE 0.1
-#define RANDOM_INIT_ANGLE 1
+#define RANDOM_INIT_ANGLE 0
 #define RANDOM_INIT_DEST 1
 #define NUM_OF_LAYERS 4
 #define ACTION_BOUND 1
@@ -42,15 +42,15 @@
 #define Q_RANGE ENV_LIMIT
 #define PRM_LOSS_WEIGHT 0.001
 #define AUX_LOSS_WEIGHT 0.0078
-// #define NUM_DEMO 100
+#define NUM_DEMO 100
 #define DEMO_BATCH_SIZE 128 // 32/256 or 128/1024
-#define NUM_DEMO_TRANSITIONS 5016
+#define NUM_DEMO_TRANSITIONS 5000
 
-#define DDPG_ACTOR_FILE "DDPG_ACTOR_PICKNPLACE_NORM.model"
-#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_PICKNPLACE_NORM.model"
-#define DDPG_CRITIC_FILE "DDPG_CRITIC_PICKNPLACE_NORM.model"
-#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_PICKNPLACE_NORM.model"
-#define DDPG_NORM_FILE "DDPG_NORM_PICKNPLACE_NORM.norm"
+#define DDPG_ACTOR_FILE "DDPG_ACTOR_PICKNPLACE_NORM_SIM.model"
+#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_PICKNPLACE_NORM_SIM.model"
+#define DDPG_CRITIC_FILE "DDPG_CRITIC_PICKNPLACE_NORM_SIM.model"
+#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_PICKNPLACE_NORM_SIM.model"
+#define DDPG_NORM_FILE "DDPG_NORM_PICKNPLACE_NORM_SIM.norm"
 
 
 static int actor_layers_config[NUM_OF_LAYERS] = {256, 256, 256, ACTION_DIM};
@@ -74,11 +74,11 @@ static double* train();
 static void save_all_model();
 static int update_target();
 
-void run_ddpg_her_w_demo() {
+void run_ddpg_her_w_demo_sim() {
   // preparation phase
   init_actor_w_target();
   init_critic_w_target();
-  demo_buf = init_demo_buffer(NUM_DEMO_TRANSITIONS, STATE_DIM+ACTION_DIM+STATE_DIM+2);
+  demo_buf = init_demo_buffer(NUM_DEMO, STATE_DIM+ACTION_DIM+STATE_DIM+2);
   exp_buf = init_experience_buffer(MEMORY_SIZE);
   if (NORMALIZE) {
     norm = init_normalizer(STATE_DIM, DEFAULT_CLIP_RANGE);
@@ -520,5 +520,6 @@ static void save_all_model() {
     save_normalizer(norm, DDPG_NORM_FILE);
   }
 }
+
 
 
