@@ -10,6 +10,7 @@
 #include "rl_ddpg_her_sim.h"
 #include "rl_ddpg_her_demo.h"
 #include "rl_ddpg_her_demo_sim.h"
+#include "multi_agents/rl_ddpg_her_sim_mpi.h"
 
 static void test_run();
 
@@ -78,7 +79,7 @@ void test_run() {
   int epoch = 100;
   double learning_rate = 0.001;
   int shuffle = 1;
-  fit(m, x, y, batch_size, epoch, learning_rate, shuffle);
+  fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
   // save_model(m, "test_model.model");
   // model* m_ = load_model("test_model.model");
   // print_network(m_);

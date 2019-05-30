@@ -1,60 +1,59 @@
-#include "rl_ddpg_her_sim.h"
+#include "rl_ddpg_her_sim_mpi.h"
+#include "mpi_utils.h"
 
-
-#include "rl_ddpg_her.h"
 #include <stdio.h>
 #include <time.h>
-#include "rl_utils.h"
-#include "sim_api.h"
-#include "model.h"
-#include "utils.h"
+#include "../rl_utils.h"
+#include "../sim_api.h"
+#include "../model.h"
+#include "../utils.h"
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
-#include "matrix_op.h"
-#include "optimizer.h"
-#include "model_utils.h"
+#include "../matrix_op.h"
+#include "../optimizer.h"
+#include "../model_utils.h"
 #include <string.h>
-#include "normalizer.h"
+#include "../normalizer.h"
 
-#define STATE_DIM 9 //16
+#define STATE_DIM 13 //16
 #define G_DIM 3
 #define AG_DIM 3
-#define ACTION_DIM 3
-#define GAMMA 0.99
+#define ACTION_DIM 4
+#define GAMMA 0.98
 #define C_LR 0.001
-#define A_LR 0.0001
-#define EPOCH 100000
-#define POLYAK 0.99
+#define A_LR 0.001
+#define EPOCH 999
+#define POLYAK 0.95
 #define MAX_EPOCH_LEN 1000
-#define BATCH_SIZE 128 // same as 64 timesteps
-#define PRE_TRAIN_STEPS 5000
+#define BATCH_SIZE 256 // same as 64 timesteps
+#define PRE_TRAIN_STEPS 0
 #define MEMORY_SIZE 1000000
-#define NOISE_SCALE 0.1
-#define RANDOM_INIT_ANGLE 0
+#define NOISE_SCALE 0.2
+#define RANDOM_INIT_ANGLE 1
 #define RANDOM_INIT_DEST 1
-#define NUM_OF_LAYERS 3
+#define NUM_OF_LAYERS 4
 #define ACTION_BOUND 1
 #define ENV_LIMIT 50
 #define PORTION_OF_TRANSITION_WITH_ADDITIONAL_GOAL 0.8
-#define REPLAY_K 8
-#define N_BATCHES 50
-#define RANDOM_EPS 0.15
+#define REPLAY_K 4
+#define N_BATCHES 40
+#define RANDOM_EPS 0.3
 #define OBS_CLIP_RANGE 5
 #define NORMALIZE 1
 #define Q_RANGE ENV_LIMIT
 
-#define DDPG_ACTOR_FILE "DDPG_ACTOR_SIM_NORM.model"
-#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_SIM_NORM.model"
-#define DDPG_CRITIC_FILE "DDPG_CRITIC_SIM_NORM.model"
-#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_SIM_NORM.model"
-#define DDPG_NORM_FILE "DDPG_NORM_SIM_NORM.norm"
+#define DDPG_ACTOR_FILE "DDPG_ACTOR_FETCHREACH1_NORM.model"
+#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_NORM.model"
+#define DDPG_CRITIC_FILE "DDPG_CRITIC_FETCHREACH1_NORM.model"
+#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_FETCHREACH1_NORM.model"
+#define DDPG_NORM_FILE "DDPG_NORM_FETCHREACH1_NORM.norm"
 
 
-static int actor_layers_config[NUM_OF_LAYERS] = {400, 300, ACTION_DIM};
-static int critic_layers_config[NUM_OF_LAYERS] = {400, 300, 1};
-static layer_type actor_layers_acts[NUM_OF_LAYERS] = {relu, relu, tanh_};
-static layer_type critic_layers_acts[NUM_OF_LAYERS] = {relu, relu, placeholder};
+static int actor_layers_config[NUM_OF_LAYERS] = {256, 256, 256, ACTION_DIM};
+static int critic_layers_config[NUM_OF_LAYERS] = {256, 256, 256, 1};
+static layer_type actor_layers_acts[NUM_OF_LAYERS] = {relu, relu, relu, tanh_};
+static layer_type critic_layers_acts[NUM_OF_LAYERS] = {relu, relu, relu, placeholder};
 static model *actor, *critic, *actor_target, *critic_target;
 static experience_buffer* exp_buf;
 static normalizer* norm;
@@ -70,7 +69,7 @@ static double* train();
 static void save_all_model();
 static int update_target();
 
-void run_rl_ddpg_her_sim() {
+void run_ddpg_her_sim_mpi() {
   // preparation phase
   init_actor_w_target();
   init_critic_w_target();
@@ -285,12 +284,11 @@ static int store_sample_her(experience_buffer* exp_buf, matrix_t** episode_s1, m
         } else {
           ag = slice_col_wise(future_ob1, STATE_DIM, STATE_DIM+AG_DIM);
         }
-        assert(ag->cols==AG_DIM);
         matrix_t* s_a_ns_dr_additional = matrix_clone(s_a_ns_dr);
         int goal_offset_1 = STATE_DIM - G_DIM;
         int goal_offset_2 = STATE_DIM + ACTION_DIM + STATE_DIM - G_DIM;
-        memcpy(s_a_ns_dr_additional->data+goal_offset_1, ag->data, AG_DIM*sizeof(double));
-        memcpy(s_a_ns_dr_additional->data+goal_offset_2, ag->data, AG_DIM*sizeof(double));
+        memcpy(s_a_ns_dr_additional->data+goal_offset_1, ag->data, G_DIM*sizeof(double));
+        memcpy(s_a_ns_dr_additional->data+goal_offset_2, ag->data, G_DIM*sizeof(double));
         s_a_ns_dr_additional->data[STATE_DIM*2+ACTION_DIM+1] = new_reward;
         store_experience(exp_buf, s_a_ns_dr_additional);
         free_matrix(ag);
@@ -363,7 +361,7 @@ static double* train() {
 
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
-  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 0);
 
   // find gradient of Q w.r.t action
   matrix_t* n_actions = matrix_clone(states);
@@ -381,7 +379,7 @@ static double* train() {
   assert(c_grad->cols == STATE_DIM + ACTION_DIM);
   matrix_t* a_grad = slice_col_wise(c_grad, STATE_DIM, STATE_DIM+ACTION_DIM);
   mult_scalar(a_grad, ACTION_BOUND);
-  //mult_scalar(a_grad, 1/(double) a_grad->rows);
+  // mult_scalar(a_grad, 1/(double) a_grad->rows);
   neg(a_grad);
 
   // back propagation and update
@@ -452,6 +450,5 @@ static void save_all_model() {
     save_normalizer(norm, DDPG_NORM_FILE);
   }
 }
-
 
 

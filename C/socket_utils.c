@@ -24,7 +24,7 @@ struct sockaddr_in server;
 int demo_socket_;
 struct sockaddr_in demo_server;
 
-int init_connection() {
+int init_connection(int port) {
   socket_ = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_ == -1) {
     printf("[INIT_CONNECTION] Failed to initialize socket ...\n");
@@ -33,7 +33,7 @@ int init_connection() {
   
   server.sin_addr.s_addr = inet_addr(HOST);
   server.sin_family = AF_INET;
-  server.sin_port = htons(PORT);
+  server.sin_port = htons(port);
 
   if ((connect(socket_, (struct sockaddr*)&server, sizeof(server))) != 0) {
     printf("[INIT_CONNECTION] Failed to establish connection ...\n");

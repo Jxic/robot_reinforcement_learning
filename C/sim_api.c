@@ -8,7 +8,7 @@
 #ifndef C_AS_LIB
 
 int initEnv(int act_dim, int task_flag) {
-  init_connection();
+  init_connection(6666);
   return 1;
 }
 

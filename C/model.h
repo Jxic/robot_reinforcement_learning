@@ -25,7 +25,7 @@ int print_network(model* m);
 
 // initialize all the memories for cache according to batch size
 // run through all the sample and update model
-double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle);
+double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle, int auto_update);
 int predict(model* m, matrix_t* x);
 double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max);
 

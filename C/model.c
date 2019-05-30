@@ -149,7 +149,7 @@ int print_network(model* m) {
   return 1;
 }
 
-double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle) {
+double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle, int auto_update) {
 
   assert(x->rows == y->rows);
   if (!m->cache_initialized && !init_caches(m, x->rows)) {
@@ -187,7 +187,11 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       matrix_t* grad = loss_backward(&m->loss_layer);
       model_backward(m, grad);
       free_matrix(grad);
-      perform_update(m, learning_rate);
+      if (auto_update) {
+        perform_update(m, learning_rate);
+      } else if (batch_size != x->rows || epoch != 1) {
+        printf("[Warning] Model is not updating, entering next loop ... ");
+      }
 
       start = start + curr_batch;
     }

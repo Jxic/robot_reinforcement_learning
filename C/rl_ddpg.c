@@ -243,7 +243,7 @@ static double train() {
   elem_wise_add(rewards, nxt_qs);
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
-  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
 
   // find gradient of Q w.r.t action
   matrix_t* n_actions = matrix_clone(states);

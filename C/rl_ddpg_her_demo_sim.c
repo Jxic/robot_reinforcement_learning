@@ -440,7 +440,7 @@ static double* train() {
   predict(actor, refresher);
 
   // back propagation and update
-  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0);
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
   model_backward(actor, a_grad);
   perform_update(actor, A_LR);
   //printf("freeing resource\n");
