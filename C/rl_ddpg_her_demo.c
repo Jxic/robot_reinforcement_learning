@@ -13,6 +13,10 @@
 #include "model_utils.h"
 #include <string.h>
 #include "normalizer.h"
+#include "macros.h"
+#ifdef MPI
+#include "multi_agents/mpi_utils.h"
+#endif
 
 #define STATE_DIM 28 //16
 #define G_DIM 3
@@ -73,9 +77,15 @@ static double* run_epoch();
 static double* train();
 static void save_all_model();
 static int update_target();
+#ifdef MPI
+static int rank;
+#endif
 
 void run_ddpg_her_w_demo() {
   // preparation phase
+  #ifdef MPI
+  rank = mpi_init();
+  #endif
   init_actor_w_target();
   init_critic_w_target();
   demo_buf = init_demo_buffer(NUM_DEMO_TRANSITIONS, STATE_DIM+ACTION_DIM+STATE_DIM+2);
@@ -120,7 +130,13 @@ void run_ddpg_her_w_demo() {
     // printf("trained\n");
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
+    #ifdef MPI
+    if (!rank) {
+      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    }
+    #else
     printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    #endif
     free(info);
     free(train_info);
     if (epc % 1000 == 0) {
@@ -136,6 +152,9 @@ void run_ddpg_her_w_demo() {
   free_model(actor_target);
   free_model(critic);
   free_model(critic_target);
+  #ifdef MPI
+  mpi_finalize();
+  #endif
 }
 
 static int init_actor_w_target() {
@@ -160,6 +179,10 @@ static int init_actor_w_target() {
   init_caches(actor_target, BATCH_SIZE);
   compile_model(actor, no_loss, adam);
   compile_model(actor_target, no_loss, adam);
+  #ifdef MPI
+  mpi_sync(actor);
+  mpi_sync(actor_target);
+  #endif
   return 1;
 }
 
@@ -185,6 +208,10 @@ static int init_critic_w_target() {
   compile_model(critic_target, mse_loss, adam);
   init_caches(critic, BATCH_SIZE);
   init_caches(critic_target, BATCH_SIZE);
+  #ifdef MPI
+  mpi_sync(critic);
+  mpi_sync(critic_target);
+  #endif
   return 1;
 }
 
@@ -260,7 +287,11 @@ static double* run_epoch() {
   free_matrix(state);
 
   if (NORMALIZE) {
+    #ifdef MPI
+    mpi_update_normalizer(norm, episode_s1, count);
+    #else
     update_normalizer(norm, episode_s1, count);
+    #endif
   }
   //update_normalizer(norm, episode_s2, count);
   store_sample_her(exp_buf, episode_s1, episode_s2, episode_a, count);
@@ -440,9 +471,18 @@ static double* train() {
   predict(actor, refresher);
 
   // back propagation and update
+  #ifdef MPI
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 0);
+  mpi_perform_update(critic, C_LR, 0);
+  #else
   double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
+  #endif
   model_backward(actor, a_grad);
+  #ifdef MPI
+  mpi_perform_update(actor, A_LR, 0);
+  #else
   perform_update(actor, A_LR);
+  #endif
   //printf("freeing resource\n");
   free_matrix(refresher);
   free_matrix(a_grad);

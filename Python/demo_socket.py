@@ -48,7 +48,7 @@ def simple_test():
 
 def transfer_transitions():
   host = '127.0.0.1'
-  port = 6665
+  port = 5555
   double_size = 8
   transtion_dim = 62
   count = 0
@@ -59,7 +59,7 @@ def transfer_transitions():
   s.bind((host, port))
   s.listen()
   print(len(transitions))
-  print("Demo collector starts listening ... ")
+  print("Demo collector starts listening on {} ... ".format(port))
   conn, addr = s.accept()
   print("Demo collector established connection from {}".format(str(addr)))
   

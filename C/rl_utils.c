@@ -8,7 +8,9 @@
 #include "sim_api.h"
 #include <math.h>
 #include "macros.h"
-
+#ifdef MPI
+#include "mpi.h"
+#endif
 #ifdef C_AS_LIB
 static experience_buffer* build_sim_demo_buffer(int size, int transition_dim);
 #endif
@@ -25,7 +27,13 @@ experience_buffer* init_experience_buffer(int size) {
 
 experience_buffer* init_demo_buffer(int size, int transition_dim) {
   #ifndef C_AS_LIB
-  init_demo_connection();
+  #ifdef MPI
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  init_demo_connection(5555+rank);
+  #else
+  init_demo_connection(5555);
+  #endif
   return build_demo_buffer(size, transition_dim);
   #else
   printf("[INIT_DEMO_BUFFER] C_AS_LIB\n");

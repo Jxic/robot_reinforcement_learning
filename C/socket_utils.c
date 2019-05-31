@@ -11,7 +11,7 @@
 #define PORT 6666
 #define HOST "127.0.0.1"
 
-#define DEMO_PORT 6665
+#define DEMO_PORT 5555
 
 #define INFO_DIM 2
 #define FLAG_DIM 2
@@ -42,7 +42,7 @@ int init_connection(int port) {
   return 1;
 }
 
-int init_demo_connection() {
+int init_demo_connection(int port) {
   demo_socket_ = socket(AF_INET, SOCK_STREAM, 0);
   if (demo_socket_ == -1) {
     printf("[INIT_DEMO_CONNECTION] Failed to initialize socket ...\n");
@@ -51,10 +51,10 @@ int init_demo_connection() {
 
   demo_server.sin_addr.s_addr = inet_addr(HOST);
   demo_server.sin_family = AF_INET;
-  demo_server.sin_port = htons(DEMO_PORT);
+  demo_server.sin_port = htons(port);
 
   if ((connect(demo_socket_, (struct sockaddr*)&demo_server, sizeof(demo_server))) != 0) {
-    printf("[INIT_CONNECTION] Failed to establish connection ...\n");
+    printf("[INIT_CONNECTION] Failed to establish connection to %d ...\n", port);
   }
   return 1;
 }

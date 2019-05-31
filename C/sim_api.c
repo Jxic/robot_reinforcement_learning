@@ -5,7 +5,9 @@
 #include "rl_ddpg.h"
 #include <stdio.h>
 #include "macros.h"
+#ifdef MPI
 #include "mpi.h"
+#endif
 #ifndef C_AS_LIB
 
 int initEnv(int act_dim, int task_flag) {

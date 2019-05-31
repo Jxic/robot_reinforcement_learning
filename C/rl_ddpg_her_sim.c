@@ -1,6 +1,5 @@
 #include "rl_ddpg_her_sim.h"
 
-
 #include "rl_ddpg_her.h"
 #include <stdio.h>
 #include <time.h>
@@ -16,6 +15,10 @@
 #include "model_utils.h"
 #include <string.h>
 #include "normalizer.h"
+#include "macros.h"
+#ifdef MPI
+#include "multi_agents/mpi_utils.h"
+#endif
 
 #define STATE_DIM 9 //16
 #define G_DIM 3
@@ -59,6 +62,7 @@ static model *actor, *critic, *actor_target, *critic_target;
 static experience_buffer* exp_buf;
 static normalizer* norm;
 
+
 static int store_sample_her(experience_buffer* expbuf, matrix_t** episode_s1, matrix_t** episode_s2, matrix_t** episode_a, int count);
 static int init_actor_w_target();
 static int init_critic_w_target();
@@ -70,8 +74,15 @@ static double* train();
 static void save_all_model();
 static int update_target();
 
+#ifdef MPI
+static int rank;
+#endif
+
 void run_rl_ddpg_her_sim() {
   // preparation phase
+  #ifdef MPI
+  rank = mpi_init();
+  #endif
   init_actor_w_target();
   init_critic_w_target();
   if (NORMALIZE) {
@@ -104,7 +115,13 @@ void run_rl_ddpg_her_sim() {
     // printf("trained\n");
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
+    #ifdef MPI
+    if (!rank) {
+      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    }
+    #else
     printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    #endif
     free(info);
     free(train_info);
     if (epc % 1000 == 0) {
@@ -120,6 +137,9 @@ void run_rl_ddpg_her_sim() {
   free_model(actor_target);
   free_model(critic);
   free_model(critic_target);
+  #ifdef MPI
+  mpi_finalize();
+  #endif
 }
 
 static int init_actor_w_target() {
@@ -144,6 +164,10 @@ static int init_actor_w_target() {
   init_caches(actor_target, BATCH_SIZE);
   compile_model(actor, no_loss, adam);
   compile_model(actor_target, no_loss, adam);
+  #ifdef MPI
+  mpi_sync(actor);
+  mpi_sync(actor_target);
+  #endif
   return 1;
 }
 
@@ -169,6 +193,10 @@ static int init_critic_w_target() {
   compile_model(critic_target, mse_loss, adam);
   init_caches(critic, BATCH_SIZE);
   init_caches(critic_target, BATCH_SIZE);
+  #ifdef MPI
+  mpi_sync(critic);
+  mpi_sync(critic_target);
+  #endif
   return 1;
 }
 
@@ -244,7 +272,11 @@ static double* run_epoch() {
   free_matrix(state);
 
   if (NORMALIZE) {
+    #ifdef MPI
+    mpi_update_normalizer(norm, episode_s1, count);
+    #else
     update_normalizer(norm, episode_s1, count);
+    #endif
   }
   //update_normalizer(norm, episode_s2, count);
   store_sample_her(exp_buf, episode_s1, episode_s2, episode_a, count);
@@ -363,7 +395,12 @@ static double* train() {
 
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
+  #ifdef MPI
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 0);
+  mpi_perform_update(critic, C_LR, 0);
+  #else
   double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
+  #endif
 
   // find gradient of Q w.r.t action
   matrix_t* n_actions = matrix_clone(states);
@@ -386,7 +423,11 @@ static double* train() {
 
   // back propagation and update
   model_backward(actor, a_grad);
+  #ifdef MPI
+  mpi_perform_update(actor, A_LR, 0);
+  #else
   perform_update(actor, A_LR);
+  #endif
 
   free_matrix(a_grad);
   free_matrix(c_grad);
