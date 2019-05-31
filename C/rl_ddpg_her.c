@@ -13,6 +13,10 @@
 #include "model_utils.h"
 #include <string.h>
 #include "normalizer.h"
+#include "macros.h"
+#ifdef MPI
+#include "multi_agents/mpi_utils.h"
+#endif
 
 #define STATE_DIM 13 //16
 #define G_DIM 3
@@ -25,7 +29,7 @@
 #define POLYAK 0.95
 #define MAX_EPOCH_LEN 1000
 #define BATCH_SIZE 256 // same as 64 timesteps
-#define PRE_TRAIN_STEPS 0
+#define PRE_TRAIN_STEPS 0 // remember to substitute in mpi functions when using pre_train
 #define MEMORY_SIZE 1000000
 #define NOISE_SCALE 0.2
 #define RANDOM_INIT_ANGLE 1
@@ -41,11 +45,11 @@
 #define NORMALIZE 1
 #define Q_RANGE ENV_LIMIT
 
-#define DDPG_ACTOR_FILE "DDPG_ACTOR_FETCHREACH1_NORM.model"
-#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_NORM.model"
-#define DDPG_CRITIC_FILE "DDPG_CRITIC_FETCHREACH1_NORM.model"
-#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_FETCHREACH1_NORM.model"
-#define DDPG_NORM_FILE "DDPG_NORM_FETCHREACH1_NORM.norm"
+#define DDPG_ACTOR_FILE "DDPG_ACTOR_FETCHREACH1_MPI_NORM.model"
+#define DDPG_ACTOR_T_FILE "DDPG_ACTOR_T_FETCHREACH1_MPI_NORM.model"
+#define DDPG_CRITIC_FILE "DDPG_CRITIC_FETCHREACH1_MPI_NORM.model"
+#define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_FETCHREACH1_MPI_NORM.model"
+#define DDPG_NORM_FILE "DDPG_NORM_FETCHREACH1_MPI_NORM.norm"
 
 
 static int actor_layers_config[NUM_OF_LAYERS] = {256, 256, 256, ACTION_DIM};
@@ -55,6 +59,9 @@ static layer_type critic_layers_acts[NUM_OF_LAYERS] = {relu, relu, relu, placeho
 static model *actor, *critic, *actor_target, *critic_target;
 static experience_buffer* exp_buf;
 static normalizer* norm;
+#ifdef MPI
+static int rank;
+#endif
 
 static int store_sample_her(experience_buffer* expbuf, matrix_t** episode_s1, matrix_t** episode_s2, matrix_t** episode_a, int count);
 static int init_actor_w_target();
@@ -69,6 +76,9 @@ static int update_target();
 
 void run_ddpg_her() {
   // preparation phase
+  #ifdef MPI
+  rank = mpi_init();
+  #endif
   init_actor_w_target();
   init_critic_w_target();
   if (NORMALIZE) {
@@ -101,7 +111,13 @@ void run_ddpg_her() {
     // printf("trained\n");
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
+    #ifdef MPI
+    if (!rank) {
+      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    }
+    #else
     printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    #endif
     free(info);
     free(train_info);
     if (epc % 1000 == 0) {
@@ -117,6 +133,9 @@ void run_ddpg_her() {
   free_model(actor_target);
   free_model(critic);
   free_model(critic_target);
+  #ifdef MPI
+  mpi_finalize();
+  #endif
 }
 
 static int init_actor_w_target() {
@@ -141,6 +160,10 @@ static int init_actor_w_target() {
   init_caches(actor_target, BATCH_SIZE);
   compile_model(actor, no_loss, adam);
   compile_model(actor_target, no_loss, adam);
+  #ifdef MPI
+  mpi_sync(actor);
+  mpi_sync(actor_target);
+  #endif
   return 1;
 }
 
@@ -166,6 +189,10 @@ static int init_critic_w_target() {
   compile_model(critic_target, mse_loss, adam);
   init_caches(critic, BATCH_SIZE);
   init_caches(critic_target, BATCH_SIZE);
+  #ifdef MPI
+  mpi_sync(critic);
+  mpi_sync(critic_target);
+  #endif
   return 1;
 }
 
@@ -241,7 +268,11 @@ static double* run_epoch() {
   free_matrix(state);
 
   if (NORMALIZE) {
+    #ifdef MPI
+    mpi_update_normalizer(norm, episode_s1, count);
+    #else
     update_normalizer(norm, episode_s1, count);
+    #endif
   }
   //update_normalizer(norm, episode_s2, count);
   store_sample_her(exp_buf, episode_s1, episode_s2, episode_a, count);
@@ -359,7 +390,12 @@ static double* train() {
 
   // update critic
   matrix_t* qs = concatenate(states, actions, 1);
+  #ifdef MPI
+  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 0);
+  mpi_perform_update(critic, C_LR, 0);
+  #else
   double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
+  #endif
 
   // find gradient of Q w.r.t action
   matrix_t* n_actions = matrix_clone(states);
@@ -382,7 +418,11 @@ static double* train() {
 
   // back propagation and update
   model_backward(actor, a_grad);
+  #ifdef MPI
+  mpi_perform_update(actor, A_LR, 0);
+  #else
   perform_update(actor, A_LR);
+  #endif
 
   free_matrix(a_grad);
   free_matrix(c_grad);

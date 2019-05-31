@@ -9,9 +9,13 @@
 #ifndef C_AS_LIB
 
 int initEnv(int act_dim, int task_flag) {
+  #ifdef MPI
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   init_connection(6666+rank);
+  #else
+  init_connection(6666);
+  #endif
   return 1;
 }
 

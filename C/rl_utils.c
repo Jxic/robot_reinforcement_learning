@@ -291,7 +291,7 @@ static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep) {
   // print_matrix(state_ee_pos, 1);
   // printf("to :\n");
   // print_matrix(pos, 1);
-  // matrix_t** ret = calloc(env_step_limit, sizeof(*ret));
+  matrix_t** ret = calloc(env_step_limit, sizeof(*ret));
   // printf("Distance to go %f\n", distance(state_ee_pos, pos));
   while(distance(state_ee_pos, pos) > dist_threshold) {
     
