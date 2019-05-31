@@ -4,6 +4,6 @@
 #include "../matrix_op.h"
 
 
-void run_ddpg_her_sim_mpi();
+void run_ddpg_her_mpi();
 
 #endif

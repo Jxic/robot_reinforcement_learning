@@ -189,8 +189,8 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       free_matrix(grad);
       if (auto_update) {
         perform_update(m, learning_rate);
-      } else if (batch_size != x->rows || epoch != 1) {
-        printf("[Warning] Model is not updating, entering next loop ... ");
+      } else if (batch_size < x->rows || epoch != 1) {
+        printf("[Warning] Model is not updating, entering next loop ... batch size: %d, x_size: %d, epoch: %d\n", batch_size, x->rows, epoch);
       }
 
       start = start + curr_batch;

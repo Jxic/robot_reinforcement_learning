@@ -21,8 +21,8 @@ normalizer* init_normalizer(int state_dim, double clip_range) {
 }
 
 int update_normalizer(normalizer* n, matrix_t** observations, int count) {
-  assert(count > 0);
-  assert(observations[0]->cols > n->mean->cols);
+  // assert(count > 0);
+  // assert(observations[0]->cols > n->mean->cols);
   int state_dim = n->mean->cols;
   n->n += count;
   for (int i = 0; i < count; ++i) {

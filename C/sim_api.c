@@ -5,10 +5,13 @@
 #include "rl_ddpg.h"
 #include <stdio.h>
 #include "macros.h"
+#include "mpi.h"
 #ifndef C_AS_LIB
 
 int initEnv(int act_dim, int task_flag) {
-  init_connection(6666);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  init_connection(6666+rank);
   return 1;
 }
 

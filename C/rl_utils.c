@@ -162,28 +162,59 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     store_experience(ret, o_a_o2_dr);
 
     // Deliver the target
-    int lift_start_time_step = time_step;
+    
     matrix_t* nxt_stop = slice_col_wise(nxt_state, state_dim-g_dim, state_dim);
     matrix_t* inter_stop = matrix_clone(first_stop);
     elem_wise_add(inter_stop, nxt_stop);
     mult_scalar(inter_stop, 0.5);
-    printf("inter stop\n");
+    // printf("%d inter stop\n", i);
     inter_stop->data[1] = distance(first_stop, nxt_stop) / 3;
-    print_matrix(inter_stop, 1);
-    matrix_t** inter_transition = go_to_point(nxt_state, inter_stop, &time_step);
+    // printf("%d calculated distance\n", i);
+    matrix_t* fst_quater_stop = matrix_clone(first_stop);
+    matrix_t* snd_quater_stop = matrix_clone(nxt_stop);
+    // elem_wise_add(fst_quater_stop, first_stop);
+    // mult_scalar(fst_quater_stop, 0.5);
+    // elem_wise_add(snd_quater_stop, nxt_stop);
+    // mult_scalar(snd_quater_stop, 0.5);
+    fst_quater_stop->data[1] = snd_quater_stop->data[1] = inter_stop->data[1];
+    // printf("%d got quater stops\n", i);
+
+    int fst_quater_start_time_step = time_step;
+    matrix_t** fst_quater_transition = go_to_point(nxt_state, fst_quater_stop, &time_step);
+    matrix_t* half_lifted_state = fst_quater_start_time_step != time_step ? \
+      slice_col_wise(fst_quater_transition[time_step-1], state_dim+act_dim, state_dim+act_dim+state_dim) : nxt_state;
+    printf("%d reached first quater\n", i);
+    int lift_start_time_step = time_step;
+    matrix_t** inter_transition = go_to_point(half_lifted_state, inter_stop, &time_step);
+    matrix_t* lifted_state = lift_start_time_step != time_step ? \
+      slice_col_wise(inter_transition[time_step-1], state_dim+act_dim, state_dim+act_dim+state_dim) : half_lifted_state; 
+    printf("%d reached inter\n", i);
+    int snd_quater_start_time_step = time_step;
+    matrix_t** snd_quater_transition = go_to_point(lifted_state, snd_quater_stop, &time_step);
+    matrix_t* half_descend_state = snd_quater_start_time_step != time_step ? \
+     slice_col_wise(snd_quater_transition[time_step-1], state_dim+act_dim, state_dim+act_dim+state_dim) : lifted_state;
+    printf("%d reached second quater\n", i);
     int deliver_start_time_step = time_step;
-    printf("%d Lifted object\n", i);
-    matrix_t* lifted_state = slice_col_wise(inter_transition[time_step-1], state_dim+act_dim, state_dim+act_dim+state_dim);
-    matrix_t** phase_2_transition = go_to_point(lifted_state ,nxt_stop, &time_step);
+    matrix_t** phase_2_transition = go_to_point(half_descend_state ,nxt_stop, &time_step);
     if (time_step > env_step_limit) {
       printf("Too many steps taken to deliver the target, resampling target\n");
       i--;
       exit(1);
     }
-    for (int j = lift_start_time_step; j < deliver_start_time_step; ++j) {
+    for (int j = fst_quater_start_time_step; j < lift_start_time_step; ++j) {
+      // printf("transition at: %d\n", j);
+      assert(transition_dim == fst_quater_transition[j]->cols);
+      store_experience(ret, fst_quater_transition[j]);
+    }
+    for (int j = lift_start_time_step; j < snd_quater_start_time_step; ++j) {
       // printf("transition at: %d\n", j);
       assert(transition_dim == inter_transition[j]->cols);
       store_experience(ret, inter_transition[j]);
+    }
+    for (int j = snd_quater_start_time_step; j < deliver_start_time_step; ++j) {
+      // printf("transition at: %d\n", j);
+      assert(transition_dim == snd_quater_transition[j]->cols);
+      store_experience(ret, snd_quater_transition[j]);
     }
     for (int j = deliver_start_time_step; j < time_step; ++j) {
       // printf("transition at: %d\n", j);
@@ -194,6 +225,8 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
     // Fill up the episode with padding
     matrix_t* phase_2_last_transition = phase_2_transition[time_step-1];
     matrix_t* phase_2_last_obs = slice_col_wise(phase_2_last_transition, state_dim+act_dim, phase_2_last_transition->cols);
+    // printf("%d Actually delivered target: %f\n", i, phase_2_last_obs->data[state_dim-g_dim-1]);
+    assert(phase_2_last_obs->data[state_dim-g_dim-1]);
     matrix_t** padding_transitions = fill_up_episode(phase_2_last_obs, time_step, env_step_limit);
     for (int j = time_step; j < env_step_limit; ++j) {
       assert(transition_dim == padding_transitions[j]->cols);
@@ -213,9 +246,9 @@ static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
       // free resources
 
     }
-    printf("Ready for rendering\n");
     
     #ifdef RENDER
+    printf("Ready for rendering\n");
     renderSteps(all_actions, env_step_limit);
     #endif
 
@@ -254,9 +287,14 @@ static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep) {
   //target position (dest position): (3)
   matrix_t* state = slice_col_wise(obs, 0, state_dim);
   matrix_t* state_ee_pos = slice_col_wise(state, g_dim, 2*g_dim);
-  matrix_t** ret = calloc(env_step_limit, sizeof(*ret));
+  // printf("going from: \n");
+  // print_matrix(state_ee_pos, 1);
+  // printf("to :\n");
+  // print_matrix(pos, 1);
+  // matrix_t** ret = calloc(env_step_limit, sizeof(*ret));
+  // printf("Distance to go %f\n", distance(state_ee_pos, pos));
   while(distance(state_ee_pos, pos) > dist_threshold) {
-
+    
     matrix_t* nxt_action = inverse_km(pos);
 
     matrix_t* curr_ja = slice_col_wise(state, 0, g_dim);
@@ -270,7 +308,8 @@ static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep) {
 
     clip(normed_action, -1, 1);
     matrix_t* nxt_obs = step(normed_action, 0, 0);
-
+    // printf("nxt: %d\n", *timestep);
+    // print_matrix(nxt_obs, 1);
     matrix_t* o2 = slice_col_wise(nxt_obs, 0, state_dim);
     matrix_t* dr = slice_col_wise(nxt_obs, state_dim+g_dim, nxt_obs->cols);
     
@@ -304,7 +343,7 @@ static matrix_t** fill_up_episode(matrix_t* obs, int curr_time_step, int to_time
   matrix_t* state = slice_col_wise(obs, 0, state_dim);
   matrix_t* action = new_matrix(1, act_dim);
   initialize(action, zeros);
-  action->data[action->cols-1] = 1;
+  // action->data[action->cols-1] = 1;
   for (int i = curr_time_step; i < to_time_step; ++i) {
     matrix_t* o_a = concatenate(state, action, 1);
     matrix_t* o_a_o2_dr = concatenate(o_a, obs, 1);

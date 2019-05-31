@@ -32,7 +32,7 @@ int _main() {
   mkl_set_num_threads(mkl_get_max_threads());
   #endif
   #endif
-  // run_rl(her);
+  run_rl(her_mpi);
   // init_demo_buffer(100, 34);
   // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
   // init_demo_connection();
