@@ -32,6 +32,15 @@ int _main() {
   mkl_set_num_threads(mkl_get_max_threads());
   #endif
   #endif
+  // matrix_t* a = new_matrix(3,4);
+  // matrix_t* b = new_matrix(4,5);
+  // for (int i = 0; i < 12; ++i) {
+  //   a->data[i] = (double) i;
+  // }
+  // for (int i = 0; i < 20; ++i) {
+  //   b->data[i] = (double) i;
+  // }
+  // print_matrix(matmul(a, b), 1);
   // run_rl(her_demo);
   // init_demo_buffer(100, 34);
   // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
@@ -46,8 +55,9 @@ int _main() {
 #ifdef RUN_TEST
 static int simple_test() {
   printf("TEST MODE\n\n");
+  
   printf("Testing matrix operations...\n");
-  test_results();
+  // test_results();
   printf("\n");
   printf("Testing data loading...\n");
   matrix_t* t;

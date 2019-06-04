@@ -5,6 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include "macros.h"
 
 // hidden layer neurons forward
 static int linear_forward(layer* l, matrix_t* x);
@@ -167,19 +168,32 @@ static int linear_backward(layer* l, matrix_t* grad) {
 
   matrix_t* cache_T = transpose(layer_data.cache);
 
-  l->data.l.grad_W = matmul(cache_T, grad);
+  
 
   matrix_t* ones = new_matrix(1, grad->rows);
   for (int i = 0; i < grad->rows; ++i) {
     ones->data[i] = 1;
   }
-  l->data.l.grad_b = matmul(ones, grad);
-  
+  matrix_t* w_T = transpose(layer_data.W);
+  matrix_t* new_grad;
+  #ifdef GPU
+  if (layer_data.W->rows*layer_data.W->cols >= 40000) {
+    matrix_t** updates = mat_mul_series(cache_T, grad, ones, grad, grad, w_T);
+    l->data.l.grad_W = updates[0];
+    l->data.l.grad_b = updates[1];
+    
+    new_grad = updates[2];
+  } else {
+  #endif
+    l->data.l.grad_W = matmul(cache_T, grad);
+    l->data.l.grad_b = matmul(ones, grad);
+
+    new_grad = matmul(grad, w_T);
+  #ifdef GPU
+  }
+  #endif
   free_matrix(ones);
   
-  matrix_t* w_T = transpose(layer_data.W);
-  matrix_t* new_grad = matmul(grad, w_T);
-
   copy_matrix(grad, new_grad);
   free_matrix(cache_T);
   free_matrix(w_T);

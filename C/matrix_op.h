@@ -3,7 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "macros.h"
 typedef struct _matrix_t {
   double* data;
   int rows;
@@ -30,7 +30,12 @@ int neg(matrix_t* a);
 int inverse(matrix_t* a);
 int square_root(matrix_t* a);
 
+matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, matrix_t* e, matrix_t* f);
+
 matrix_t* matmul(matrix_t* a, matrix_t* b);
+#ifdef GPU
+matrix_t** matmul_gpu(matrix_t** ms, int count);
+#endif
 matrix_t* transpose(matrix_t* a);
 
 double mean(matrix_t* a);

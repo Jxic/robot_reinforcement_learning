@@ -6,9 +6,16 @@
 #include "macros.h"
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include "utils.h"
 #ifdef MKL
 #include "mkl.h"
+#include "mkl_vml.h"
+#endif
+
+#ifdef GPU
+#include "cuda_runtime.h"
+#include "cublas_v2.h"
 #endif
 
 
@@ -51,7 +58,14 @@ int equal(matrix_t* a, matrix_t* b) {
 int elem_wise_add(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
-
+  #ifdef MKL
+  int n = a->rows*a->cols;
+  int alpha = 1;
+  int incx = 1;
+  int incy = 1;
+  cblas_daxpy(n, alpha, b->data, incx, a->data, incy);
+  return 1;
+  #endif
   int size = a->rows*a->cols;
   for (int i = 0; i < size; ++i) {
     a->data[i] += b->data[i];
@@ -63,7 +77,14 @@ int elem_wise_add(matrix_t* a, matrix_t* b) {
 int elem_wise_minus(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
-
+  #ifdef MKL
+  int n = a->rows*a->cols;
+  int alpha = -1;
+  int incx = 1;
+  int incy = 1;
+  cblas_daxpy(n, alpha, b->data, incx, a->data, incy);
+  return 1;
+  #endif
   int size = a->rows*a->cols;
   for (int i = 0; i < size; ++i) {
     a->data[i] -= b->data[i];
@@ -75,6 +96,12 @@ int elem_wise_minus(matrix_t* a, matrix_t* b) {
 int elem_wise_mult(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
+  #ifdef MKL
+  vdMul(a->rows*a->cols, a->data, b->data, a->data);
+  // free(a->data);
+  // a->data = ret;
+  return 1;
+  #endif
 
   int size = a->rows*a->cols;
   for (int i = 0; i < size; ++i) {
@@ -116,6 +143,10 @@ int add_scalar(matrix_t* a, double b) {
 
 int inverse(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
+  #ifdef MKL
+  vdInv(a->rows*a->cols, a->data, a->data);
+  return 1;
+  #endif
   for (int i = 0; i < a->rows*a->cols; ++i) {
     //assert(a->data[i]);
     a->data[i] = 1/a->data[i];
@@ -125,6 +156,10 @@ int inverse(matrix_t* a) {
 
 int square_root(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
+  #ifdef MKL
+  vdSqrt(a->rows*a->cols, a->data, a->data);
+  return 1;
+  #endif
   for (int i = 0; i < a->rows*a->cols; ++i) {
     assert(a->data[i]>=0);
     a->data[i] = sqrt(a->data[i]);
@@ -150,9 +185,95 @@ int mult_scalar(matrix_t* a, double b) {
   return 1;
 }
 
+#ifdef GPU
+matrix_t** matmul_gpu(matrix_t** ms, int count) {
+  cublasHandle_t handle;
+  cublasStatus_t status = cublasCreate(&handle);
+  matrix_t** rets = calloc(count/2, sizeof(matrix_t*));
+  matrix_t *a, *b;
+  for (int i = 0; i < count/2; ++i) {
+    a = ms[i*2];
+    b = ms[i*2+1];
+    int row_a = a->rows;
+    int col_a = a->cols;
+    int row_b = b->rows;
+    int col_b = b->cols;
+    int row_c = row_a;
+    int col_c = col_b;
+
+    matrix_t* ret = new_matrix(row_c, col_c);
+    double* dev_a, *dev_b, *dev_c;
+
+    cudaMalloc((void**)&dev_a, row_a * col_a * sizeof(double));
+    cudaMalloc((void**)&dev_b, row_b * col_b * sizeof(double));
+    cudaMalloc((void**)&dev_c, row_c * col_c * sizeof(double));
+
+    //int i, j;
+    cublasSetMatrix(row_a, col_a, sizeof(double), a->data, row_a, dev_a, row_a);
+    cublasSetMatrix(row_b, col_b, sizeof(double), b->data, row_b, dev_b, row_b);
+
+  
+
+    if (status != CUBLAS_STATUS_SUCCESS) {
+      printf("Failed to create gpu task handle\n");
+    }
+
+    double alpha = 1;
+    double beta = 0;
+
+    status = cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, col_b, row_a, col_a, &alpha, dev_b, col_b, dev_a, col_a, &beta, dev_c, col_b);
+
+    if (status != CUBLAS_STATUS_SUCCESS) {
+      printf("Failed GEMM\n");
+    }
+
+    cublasGetMatrix(row_c, col_c, sizeof(double), dev_c, row_c, ret->data, row_c);
+    rets[i] = ret;
+    cudaFree(dev_a);
+    cudaFree(dev_b);
+    cudaFree(dev_c);
+  }
+
+  status = cublasDestroy(handle);
+  if (status != CUBLAS_STATUS_SUCCESS) {
+    printf("Failed destroying handle\n");
+  }
+
+  
+  return rets;
+}
+
+
+matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, matrix_t* e, matrix_t* f) {
+  matrix_t** m_list = calloc(6, sizeof(matrix_t*));
+  m_list[0] = a;
+  m_list[1] = b;
+  m_list[2] = c;
+  m_list[3] = d;
+  m_list[4] = e;
+  m_list[5] = f;
+  matrix_t** gpu_ret = matmul_gpu(m_list, 6);
+  return gpu_ret;
+}
+#endif
+
 matrix_t* matmul(matrix_t* a, matrix_t* b) {
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
+
+#ifdef GPU
+  if (a->rows*a->cols >= 40000) {
+    matrix_t** m_list = calloc(2, sizeof(matrix_t*));
+    m_list[0] = a;
+    m_list[1] = b;
+    matrix_t** gpu_ret =  matmul_gpu(m_list, 2);
+    matrix_t* gpu_ret0 = gpu_ret[0];
+    free(gpu_ret);
+
+    return gpu_ret0;
+  }
+#endif
+  
   #ifdef MKL
   int m, n, p, i;
   double alpha, beta;
@@ -181,6 +302,13 @@ matrix_t* matmul(matrix_t* a, matrix_t* b) {
 }
 
 matrix_t* transpose(matrix_t* a) {
+  // #ifdef MKL
+  // matrix_t* ret = matrix_clone(a);
+  // mkl_dimatcopy('r', 't', a->rows, a->cols, 1, ret->data, a->rows, a->cols);
+  // ret->cols = a->rows;
+  // ret->rows = a->cols;
+  // return ret;
+  // #endif
   matrix_t* new_mat = new_matrix(a->cols, a->rows);
   for (int i = 0; i < new_mat->rows; ++i) {
     for (int j = 0; j < new_mat->cols; ++j) {
