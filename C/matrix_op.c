@@ -257,24 +257,8 @@ matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, ma
 }
 #endif
 
-matrix_t* matmul(matrix_t* a, matrix_t* b) {
-  assert(a->cols == b->rows);
-  assert(a->rows * b->cols > 0);
-
-#ifdef GPU
-  if (a->rows*a->cols >= 40000) {
-    matrix_t** m_list = calloc(2, sizeof(matrix_t*));
-    m_list[0] = a;
-    m_list[1] = b;
-    matrix_t** gpu_ret =  matmul_gpu(m_list, 2);
-    matrix_t* gpu_ret0 = gpu_ret[0];
-    free(gpu_ret);
-
-    return gpu_ret0;
-  }
-#endif
-  
-  #ifdef MKL
+#ifdef MKL
+matrix_t* matmul_mkl(matrix_t* a, matrix_t* b) {
   int m, n, p, i;
   double alpha, beta;
   m = a->rows;
@@ -289,6 +273,28 @@ matrix_t* matmul(matrix_t* a, matrix_t* b) {
   }
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, p, alpha, a->data, p, b->data, n, beta, ret->data, n);
   return ret;
+}
+#endif
+
+matrix_t* matmul(matrix_t* a, matrix_t* b) {
+  assert(a->cols == b->rows);
+  assert(a->rows * b->cols > 0);
+
+  #ifdef GPU
+  if (a->rows*a->cols >= 40000) {
+    matrix_t** m_list = calloc(2, sizeof(matrix_t*));
+    m_list[0] = a;
+    m_list[1] = b;
+    matrix_t** gpu_ret =  matmul_gpu(m_list, 2);
+    matrix_t* gpu_ret0 = gpu_ret[0];
+    free(gpu_ret);
+
+    return gpu_ret0;
+  }
+  #endif
+  
+  #ifdef MKL
+  return matmul_mkl(a, b);
   #endif
   matrix_t* new_mat = new_matrix(a->rows, b->cols);
   for (int i = 0; i < new_mat->rows; ++i) {

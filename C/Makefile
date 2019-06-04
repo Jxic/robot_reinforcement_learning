@@ -17,6 +17,8 @@ MKL_FLAGS = ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_sequential
 CFLAGS_LINUX = -Wall -Werror -pedantic  -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
 MKL_FLAGS_LINUX_DY = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
+GPU_DY = -L/usr/local/cuda/lib64 -lcublas -lcudart
+
 ifndef version
 version = macos
 endif

@@ -160,6 +160,7 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
 
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
+    clock_t e_start = clock(), e_diff;
     printf("\repoch %d: ", epc+1);
     #else
     // printf("epoch %d: ", epc+1);
@@ -199,7 +200,9 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       final_loss = loss;
     }
     #ifdef RUN_TEST
-    printf("%f", loss);
+    e_diff = clock() - e_start;
+    int msec = e_diff * 1000 / CLOCKS_PER_SEC;
+    printf("%f, time: %d ms", loss, msec);
     fflush(stdout);
     if (loss > 1000) {
       printf("Anomalous loss %f\n", loss);
