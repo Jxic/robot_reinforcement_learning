@@ -15,7 +15,7 @@ MKL_FLAGS =  ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_sequentia
 
 #
 CFLAGS_LINUX = -Wall -Werror -pedantic  -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
-MKL_FLAGS_LINUX_DY = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+MKL_FLAGS_LINUX_DY =   -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl
 
 GPU_DY = -L/usr/local/cuda/lib64 -lcublas -lcudart
 
@@ -40,7 +40,7 @@ main : $(OBJ)
 ifeq ($(version), macos)
 	@$(CC)  $(CFLAGS) $(MKL_FLAGS) $^ -o $@
 else
-	@$(CC) $(CFLAGS_LINUX)  $^ -o $@ $(MKL_FLAGS_LINUX_DY)
+	@$(CC) $(CFLAGS_LINUX)  $^ -o $@ $(MKL_FLAGS_LINUX_DY) $(GPU_DY)
 endif
 	@mv *.o $(BDIR)
 	@mv multi_agents/*.o $(BDIR)

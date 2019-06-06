@@ -137,6 +137,10 @@ int mult_bias(matrix_t* a, matrix_t* b) {
 
 int add_scalar(matrix_t* a, double b) {
   assert(a->rows > 0 && a->cols > 0);
+  #ifdef MKL
+  vdLinearFrac( a->rows*a->cols, a->data, a->data, 1, b, 0, 1, a->data );
+  return 1;
+  #endif
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] += b;
   return 1;
 }
@@ -169,6 +173,9 @@ int square_root(matrix_t* a) {
 
 int neg(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
+  #ifdef MKL
+  mult_scalar(a, -1);
+  #endif
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = -a->data[i];
   return 1;
 }
@@ -280,18 +287,18 @@ matrix_t* matmul(matrix_t* a, matrix_t* b) {
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
 
-  #ifdef GPU
-  if (a->rows*a->cols >= 40000) {
-    matrix_t** m_list = calloc(2, sizeof(matrix_t*));
-    m_list[0] = a;
-    m_list[1] = b;
-    matrix_t** gpu_ret =  matmul_gpu(m_list, 2);
-    matrix_t* gpu_ret0 = gpu_ret[0];
-    free(gpu_ret);
+  // #ifdef GPU
+  // if (a->rows*a->cols >= 40000) {
+  //   matrix_t** m_list = calloc(2, sizeof(matrix_t*));
+  //   m_list[0] = a;
+  //   m_list[1] = b;
+  //   matrix_t** gpu_ret =  matmul_gpu(m_list, 2);
+  //   matrix_t* gpu_ret0 = gpu_ret[0];
+  //   free(gpu_ret);
 
-    return gpu_ret0;
-  }
-  #endif
+  //   return gpu_ret0;
+  // }
+  // #endif
   
   #ifdef MKL
   return matmul_mkl(a, b);
@@ -308,13 +315,13 @@ matrix_t* matmul(matrix_t* a, matrix_t* b) {
 }
 
 matrix_t* transpose(matrix_t* a) {
-  // #ifdef MKL
-  // matrix_t* ret = matrix_clone(a);
-  // mkl_dimatcopy('r', 't', a->rows, a->cols, 1, ret->data, a->rows, a->cols);
-  // ret->cols = a->rows;
-  // ret->rows = a->cols;
-  // return ret;
-  // #endif
+  #ifdef MKL
+  matrix_t* ret = matrix_clone(a);
+  mkl_dimatcopy('r', 't', a->rows, a->cols, 1, ret->data, a->cols, a->rows);
+  ret->cols = a->rows;
+  ret->rows = a->cols;
+  return ret;
+  #endif
   matrix_t* new_mat = new_matrix(a->cols, a->rows);
   for (int i = 0; i < new_mat->rows; ++i) {
     for (int j = 0; j < new_mat->cols; ++j) {

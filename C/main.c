@@ -27,7 +27,7 @@ int _main() {
 
   // #ifdef MKL
   // #ifdef MULTI_MKL_THREAD
-  // mkl_set_num_threads(1);
+  // mkl_set_num_threads(10);
   // #endif
   // #endif
 

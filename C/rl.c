@@ -80,7 +80,7 @@ void test_run() {
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
   int batch_size = 16;
-  int epoch = 100;
+  int epoch = 10;
   double learning_rate = 0.001;
   int shuffle = 1;
   fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);

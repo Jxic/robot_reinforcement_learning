@@ -177,7 +177,7 @@ static int linear_backward(layer* l, matrix_t* grad) {
   matrix_t* w_T = transpose(layer_data.W);
   matrix_t* new_grad;
   #ifdef GPU
-  if (layer_data.W->rows*layer_data.W->cols >= 40000) {
+  if (layer_data.W->rows*layer_data.W->cols >= 4000000000000000000) {
     matrix_t** updates = mat_mul_series(cache_T, grad, ones, grad, grad, w_T);
 
     copy_matrix(l->data.l.grad_W, updates[0]);

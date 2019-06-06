@@ -1,3 +1,4 @@
+#include "macros.h"
 #ifdef GPU
 #include "optimizer.h"
 #include <stdlib.h>
@@ -6,10 +7,8 @@
 #include "model.h"
 #include <assert.h>
 #include <time.h>
-#include <pthread.h>
 
 int init_adam(model* m) {
-
   adam_optimizer new_opt;
   new_opt.beta1 = 0.9;
   new_opt.beta2 = 0.999;
@@ -96,14 +95,14 @@ static int adam_update(model* m) {
   adam_optimizer optimizer = m->optimizer.cache.a;
   double learning_rate = optimizer.learning_rate;
 
-  matrix_t* params = new_matrix(1, m->param_size);
+  // matrix_t* params = new_matrix(1, m->param_size);
   matrix_t* grads = new_matrix(1, m->param_size);
 
   matrix_t* fst_moment = optimizer.first_moment;
   matrix_t* snd_moment = optimizer.second_moment;
 
   for (int i = 0; i < m->param_size; ++i) {
-    params->data[i] = *optimizer.trainable_params[i];
+    // params->data[i] = *optimizer.trainable_params[i];
     grads->data[i] = *optimizer.trainable_params_g[i];
   }
 
@@ -136,16 +135,15 @@ static int adam_update(model* m) {
   elem_wise_mult(corrected_fst, corrected_snd);
   mult_scalar(corrected_fst, learning_rate);
 
-  elem_wise_minus(params, corrected_fst);
+  //elem_wise_minus(params, corrected_fst);
 
 
   for (int j = 0; j < m->param_size; ++j) {
-    *optimizer.trainable_params[j] = params->data[j];
+    *optimizer.trainable_params[j] -= corrected_fst->data[j];
   }
 
-  free_matrix(params);
+  // free_matrix(params);
   free_matrix(grads);
-
   return 1;
 }
 
@@ -278,10 +276,11 @@ static int adam_update(model* m) {
     new_u->m = m;
     new_u->to = i*step_size + step_size;
     new_u->from = i*step_size;
-    // printf("Starting thread from %d to %d\n", new_u->start, new_u->end);
+    // printf("Starting thread from %d to %d, total %d\n", new_u->from, new_u->to, activate_n);
     pthread_create(&threads[i], NULL, update_layer, (void*)new_u);
   }
   if (NUM_UPDATE_WORKERS*step_size < num_layers) {
+    // printf("doing extra work\n");
     update_info* new_u = malloc(sizeof(*new_u));
     new_u->m = m;
     new_u->to = NUM_UPDATE_WORKERS*step_size + step_size;
@@ -290,7 +289,7 @@ static int adam_update(model* m) {
     pthread_create(&extra_thread, NULL, update_layer, (void*)new_u);
     pthread_join(extra_thread, NULL);
   }
-  for (int j = 0; j < NUM_UPDATE_WORKERS; ++j) {
+  for (int j = 0; j < activate_n; ++j) {
     pthread_join(threads[j], NULL);
   }
   return 1;
@@ -307,6 +306,7 @@ void* update_layer(void* arg) {
   double learning_rate = optimizer.learning_rate;
 
   for (int i = from; i < to; ++i) {
+    // printf("doing %d\n", i);
     layer* nxt_linear = m->hidden_linears + i;
     layer* nxt_fst_moment = optimizer.first_moment + i;
     layer* nxt_snd_moment = optimizer.second_moment + i;
@@ -375,6 +375,7 @@ void* update_layer(void* arg) {
     free_matrix(snd_temp_W);
     free_matrix(fst_temp_b);
     free_matrix(fst_temp_W);
+    // printf("finish %d\n", i);
   }
   return 0;
 }
