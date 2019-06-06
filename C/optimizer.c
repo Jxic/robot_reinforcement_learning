@@ -8,36 +8,6 @@
 #include <time.h>
 #include <pthread.h>
 
-#define NUM_UPDATE_WORKERS 2
-pthread_t threads[NUM_UPDATE_WORKERS];
-typedef struct update_info_ {
-  double** to;
-  double* from;
-  int start;
-  int end;
-} update_info;
-
-void* update_weights_with_new(void* args) {
-  update_info* update = (update_info*) args;
-  int start = update->start;
-  int end = update->end;
-  double** to = update->to;
-  double* from = update->from;
-
-  // printf("setting from %d to %d\n", start, end);
-
-  for (int i = start; i < end; ++i) {
-    *to[i] = from[i];
-  }
-  // printf("worker %d exiting\n", start);
-  free(update);
-  return 0;
-}
-
-void* warm_up(){
-  return 0;
-}
-
 int init_adam(model* m) {
 
   adam_optimizer new_opt;
@@ -47,10 +17,6 @@ int init_adam(model* m) {
   new_opt.timestamp = 0;
   new_opt.learning_rate = ADAM_LR;
   new_opt.num_of_layers = m->num_of_layers;
-
-  for (int i = 0; i < NUM_UPDATE_WORKERS; ++i) {
-    pthread_create(&threads[i], NULL, warm_up, NULL);
-  }
 
   new_opt.first_moment = new_matrix(1, m->param_size);
   new_opt.second_moment = new_matrix(1, m->param_size);
@@ -171,37 +137,15 @@ static int adam_update(model* m) {
   mult_scalar(corrected_fst, learning_rate);
 
   elem_wise_minus(params, corrected_fst);
-  // printf("before joining\n");
-  
-  
-  // printf("after joining\n");
 
-  int i;
-  int step_size = m->param_size/NUM_UPDATE_WORKERS;
-  int worker_online = 0;
-  for (i = 0; i < m->param_size; i += step_size) {
-    // *optimizer.trainable_params[i] = params->data[i];
-    update_info* new_u = malloc(sizeof(*new_u));
-    new_u->to = optimizer.trainable_params;
-    new_u->from = params->data;
-    new_u->start = i;
-    new_u->end = i + step_size > m->param_size ? m->param_size : i + step_size;
-    // printf("Starting thread from %d to %d\n", new_u->start, new_u->end);
-    pthread_create(&threads[worker_online], NULL, update_weights_with_new, (void*)new_u);
+
+  for (int j = 0; j < m->param_size; ++j) {
+    *optimizer.trainable_params[j] = params->data[j];
   }
 
+  free_matrix(params);
+  free_matrix(grads);
 
-
-  if (i < m->param_size) {
-    for (int j = i; j < m->param_size; ++j) {
-      *optimizer.trainable_params[i] = params->data[i];
-    }
-  }
-
-  for (int j = 0; j < NUM_UPDATE_WORKERS; ++j) {
-    pthread_join(threads[j], NULL);
-  }
-  
   return 1;
 }
 
