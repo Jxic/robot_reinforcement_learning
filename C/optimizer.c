@@ -144,6 +144,8 @@ static int adam_update(model* m) {
 
   // free_matrix(params);
   free_matrix(grads);
+  free_matrix(corrected_fst);
+  free_matrix(corrected_snd);
   return 1;
 }
 
