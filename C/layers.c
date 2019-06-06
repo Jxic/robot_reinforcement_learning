@@ -136,10 +136,13 @@ static int sigmoid_forward(layer* l, matrix_t* x) {
 }
 
 static int linear_forward(layer* l, matrix_t* x) {
+
   //caveat: address pointed by x should have enough space to hold new data
   linear_layer layer_data = l->data.l;
   copy_matrix(layer_data.cache, x);
-  matrix_t* wx = matmul(x, layer_data.W);
+
+  matrix_t* wx = new_matrix(x->rows, layer_data.W->cols);
+  matmul(x, layer_data.W, wx);
   add_bias(wx, layer_data.b);
   
   //update the data flowing through the network
@@ -161,6 +164,8 @@ static int linear_forward(layer* l, matrix_t* x) {
 // }
 
 static int linear_backward(layer* l, matrix_t* grad) {
+
+
   // caveat: memory needs to be realloced to hold new data
   linear_layer layer_data = l->data.l;
   // free_matrix(l->data.l.grad_W);
@@ -175,7 +180,6 @@ static int linear_backward(layer* l, matrix_t* grad) {
     ones->data[i] = 1;
   }
   matrix_t* w_T = transpose(layer_data.W);
-  matrix_t* new_grad;
   #ifdef GPU
   if (layer_data.W->rows*layer_data.W->cols >= 4000000000000000000) {
     matrix_t** updates = mat_mul_series(cache_T, grad, ones, grad, grad, w_T);
@@ -185,27 +189,23 @@ static int linear_backward(layer* l, matrix_t* grad) {
     free_matrix(updates[0]);
     free_matrix(updates[1]);
     
-    new_grad = updates[2];
+    copy_matrix(grad, updates[2]);
+    free_matrix(updates[2]);
+    free(updates);
   } else {
   #endif
-    matrix_t* g_W = matmul(cache_T, grad);
-    copy_matrix(l->data.l.grad_W, g_W);
-    matrix_t* g_b = matmul(ones, grad);
-    copy_matrix(l->data.l.grad_b, g_b);
+    matmul(cache_T, grad, l->data.l.grad_W);
+    matmul(ones, grad, l->data.l.grad_b);
 
-    free_matrix(g_W);
-    free_matrix(g_b);
-
-    new_grad = matmul(grad, w_T);
+    matmul(grad, w_T, grad);
   #ifdef GPU
   }
   #endif
+
   free_matrix(ones);
   
-  copy_matrix(grad, new_grad);
   free_matrix(cache_T);
   free_matrix(w_T);
-  free_matrix(new_grad);
   // printf("[normal===========================]\n");
   // print_matrix(l->data.l.grad_W, 1);
   // printf("[normal============================]\n");

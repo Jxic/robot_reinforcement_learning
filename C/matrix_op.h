@@ -32,12 +32,12 @@ int square_root(matrix_t* a);
 
 matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, matrix_t* e, matrix_t* f);
 
-matrix_t* matmul(matrix_t* a, matrix_t* b);
+int matmul(matrix_t* a, matrix_t* b, matrix_t* ret);
 #ifdef GPU
 matrix_t** matmul_gpu(matrix_t** ms, int count);
 #endif
 #ifdef MKL
-matrix_t* matmul_mkl(matrix_t* a, matrix_t* b);
+int matmul_mkl(matrix_t* a, matrix_t* b, matrix_t* ret);
 #endif
 matrix_t* transpose(matrix_t* a);
 

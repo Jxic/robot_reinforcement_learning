@@ -151,7 +151,8 @@ char* matrix_test_transpose(){
 }
 
 char* matrix_test_matmul(){
-  matrix_t* res = matmul(mat_3_3(),mat_3_3());
+  matrix_t* res = new_matrix(3,3);
+  matmul(mat_3_3(),mat_3_3(), res);
   mu_assert("[MATRIX_TEST_MATMUL] wrong result on matrix multiplication", 
             equal(mat_3_3_self_matmul(), res));
 

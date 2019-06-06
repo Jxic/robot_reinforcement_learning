@@ -265,27 +265,25 @@ matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, ma
 #endif
 
 #ifdef MKL
-matrix_t* matmul_mkl(matrix_t* a, matrix_t* b) {
-  int m, n, p, i;
+int matmul_mkl(matrix_t* a, matrix_t* b, matrix_t* ret) {
+  int m, n, p;
   double alpha, beta;
   m = a->rows;
   p = a->cols;
   n = b->cols;
-  matrix_t* ret = new_matrix(m, n);
   // printf("m %d, n %d, p %d", m, n, p);
   alpha = 1.0;
   beta = 0.0;
-  for (i = 0; i < m*n; i++) {
-    ret->data[i] = 0.0;
-  }
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, p, alpha, a->data, p, b->data, n, beta, ret->data, n);
-  return ret;
+  return 1;
 }
 #endif
 
-matrix_t* matmul(matrix_t* a, matrix_t* b) {
+int matmul(matrix_t* a, matrix_t* b, matrix_t* ret) {
+  // printf("a cols b rows %d %d\n", a->cols, b->rows);
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
+  assert(ret->max_size >= a->rows*b->cols);
 
   // #ifdef GPU
   // if (a->rows*a->cols >= 40000) {
@@ -301,7 +299,9 @@ matrix_t* matmul(matrix_t* a, matrix_t* b) {
   // #endif
   
   #ifdef MKL
-  return matmul_mkl(a, b);
+  ret->rows = a->rows;
+  ret->cols = b->cols;
+  return matmul_mkl(a, b, ret);
   #endif
   matrix_t* new_mat = new_matrix(a->rows, b->cols);
   for (int i = 0; i < new_mat->rows; ++i) {
@@ -311,7 +311,9 @@ matrix_t* matmul(matrix_t* a, matrix_t* b) {
       }
     }
   }
-  return new_mat;
+  copy_matrix(ret, new_mat);
+  free_matrix(new_mat);
+  return 1;
 }
 
 matrix_t* transpose(matrix_t* a) {
