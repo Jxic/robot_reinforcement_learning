@@ -96,30 +96,28 @@ static int adam_update(model* m) {
   double learning_rate = optimizer.learning_rate;
 
   // matrix_t* params = new_matrix(1, m->param_size);
-  matrix_t* grads = new_matrix(1, m->param_size);
+  matrix_t* grads1 = new_matrix(1, m->param_size);
+  matrix_t* grads2 = new_matrix(1, m->param_size);
 
   matrix_t* fst_moment = optimizer.first_moment;
   matrix_t* snd_moment = optimizer.second_moment;
 
   for (int i = 0; i < m->param_size; ++i) {
     // params->data[i] = *optimizer.trainable_params[i];
-    grads->data[i] = *optimizer.trainable_params_g[i];
+    grads1->data[i] = grads2->data[i] = *optimizer.trainable_params_g[i];
   }
 
   mult_scalar(fst_moment, optimizer.beta1);
-  matrix_t* grad_tmp = matrix_clone(grads);
-  mult_scalar(grad_tmp, (1-optimizer.beta1));
-  elem_wise_add(fst_moment, grad_tmp);
-
-  free_matrix(grad_tmp);
+  mult_scalar(grads1, (1-optimizer.beta1));
+  elem_wise_add(fst_moment, grads1);
 
   mult_scalar(snd_moment, optimizer.beta2);
-  grad_tmp = matrix_clone(grads);
-  elem_wise_mult(grad_tmp, grad_tmp);
-  mult_scalar(grad_tmp, (1-optimizer.beta2));
-  elem_wise_add(snd_moment, grad_tmp);
+  elem_wise_mult(grads2, grads2);
+  mult_scalar(grads2, (1-optimizer.beta2));
+  elem_wise_add(snd_moment, grads2);
 
-  free_matrix(grad_tmp);
+  free_matrix(grads1);
+  free_matrix(grads2);
 
   double beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
   double beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
@@ -143,7 +141,6 @@ static int adam_update(model* m) {
   }
 
   // free_matrix(params);
-  free_matrix(grads);
   free_matrix(corrected_fst);
   free_matrix(corrected_snd);
   return 1;

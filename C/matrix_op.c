@@ -173,9 +173,9 @@ int square_root(matrix_t* a) {
 
 int neg(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
-  #ifdef MKL
-  mult_scalar(a, -1);
-  #endif
+  // #ifdef MKL
+  // mult_scalar(a, -1);
+  // #endif
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = -a->data[i];
   return 1;
 }
@@ -280,7 +280,7 @@ int matmul_mkl(matrix_t* a, matrix_t* b, matrix_t* ret) {
 #endif
 
 int matmul(matrix_t* a, matrix_t* b, matrix_t* ret) {
-  // printf("a cols b rows %d %d\n", a->cols, b->rows);
+
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
   assert(ret->max_size >= a->rows*b->cols);
@@ -301,6 +301,7 @@ int matmul(matrix_t* a, matrix_t* b, matrix_t* ret) {
   #ifdef MKL
   ret->rows = a->rows;
   ret->cols = b->cols;
+
   return matmul_mkl(a, b, ret);
   #endif
   matrix_t* new_mat = new_matrix(a->rows, b->cols);

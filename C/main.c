@@ -25,11 +25,11 @@ int _main() {
   // preparation phase
   srand(SEED);
 
-  // #ifdef MKL
-  // #ifdef MULTI_MKL_THREAD
-  // mkl_set_num_threads(10);
-  // #endif
-  // #endif
+  #ifdef MKL
+  #ifdef MULTI_MKL_THREAD
+//  mkl_set_num_threads(4);
+  #endif
+  #endif
 
   #ifdef RUN_TEST  
   return simple_test();

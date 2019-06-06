@@ -32,7 +32,7 @@ endif
 .all: main
 
 %.o : %.c $(DEPS)
-	$(CC) -c $< -o $@
+	$(CC) -c $< -o $@ -pg
 
 
 main : $(OBJ)
@@ -40,7 +40,7 @@ main : $(OBJ)
 ifeq ($(version), macos)
 	@$(CC)  $(CFLAGS) $(MKL_FLAGS) $^ -o $@
 else
-	@$(CC) $(CFLAGS_LINUX)  $^ -o $@ $(MKL_FLAGS_LINUX_DY)
+	@$(CC) $(CFLAGS_LINUX)  $^ -o $@ $(MKL_FLAGS_LINUX_DY) -pg
 endif
 	@mv *.o $(BDIR)
 	@mv multi_agents/*.o $(BDIR)

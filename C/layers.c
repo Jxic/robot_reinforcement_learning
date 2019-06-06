@@ -136,7 +136,6 @@ static int sigmoid_forward(layer* l, matrix_t* x) {
 }
 
 static int linear_forward(layer* l, matrix_t* x) {
-
   //caveat: address pointed by x should have enough space to hold new data
   linear_layer layer_data = l->data.l;
   copy_matrix(layer_data.cache, x);
@@ -164,7 +163,6 @@ static int linear_forward(layer* l, matrix_t* x) {
 // }
 
 static int linear_backward(layer* l, matrix_t* grad) {
-
 
   // caveat: memory needs to be realloced to hold new data
   linear_layer layer_data = l->data.l;
@@ -194,10 +192,12 @@ static int linear_backward(layer* l, matrix_t* grad) {
     free(updates);
   } else {
   #endif
+    matrix_t* new_grad = new_matrix(grad->rows, w_T->cols);
     matmul(cache_T, grad, l->data.l.grad_W);
     matmul(ones, grad, l->data.l.grad_b);
-
-    matmul(grad, w_T, grad);
+    matmul(grad, w_T, new_grad);
+    copy_matrix(grad, new_grad);
+    free_matrix(new_grad);
   #ifdef GPU
   }
   #endif
@@ -234,6 +234,7 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
 
   elem_wise_mult(grad, temp);
   free_matrix(temp);
+
 
   return 1;
 }
@@ -283,8 +284,8 @@ static matrix_t* mse_loss_backward(layer* l) {
   matrix_t* grad = new_matrix(rows, cols);
   copy_matrix(grad, layer_data.cache_pred);
   elem_wise_minus(grad, layer_data.cache_target);
-  mult_scalar(grad, (double)2);
-  mult_scalar(grad, 1/((double)rows));
+  mult_scalar(grad, 2/(double)rows);
+  //mult_scalar(grad, 1/((double)rows));
   return grad;
 }
 
