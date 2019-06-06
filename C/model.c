@@ -6,6 +6,7 @@
 #include "layers.h"
 #include "macros.h"
 #include <math.h>
+#include <time.h>
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
 
@@ -178,6 +179,14 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     int data_size = x->rows;
     int start = 0;
     double loss = 0;
+    clock_t timer_start = clock(), timer_diff;
+    int timer_msec;
+
+    int prep = 0;
+    int forward = 0;
+    int backward = 0;
+    int update = 0;
+
     while (start < data_size - 1) {
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
       
@@ -185,18 +194,40 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       matrix_t* next_batch = slice_row_wise(x, start, start+curr_batch);
       matrix_t* next_target = slice_row_wise(y, start, start+curr_batch);
 
+      timer_diff = clock() - timer_start;
+      timer_msec = timer_diff * 1000 / CLOCKS_PER_SEC;
+      prep += timer_msec;
+      timer_start = clock();
+
       augment_space(next_batch, batch_size, m->max_out);
 
       // one forward and backward pass
       loss = model_forward(m, next_batch, next_target);
+
+      timer_diff = clock() - timer_start;
+      timer_msec = timer_diff * 1000 / CLOCKS_PER_SEC;
+      forward += timer_msec;
+      timer_start = clock();
+
       matrix_t* grad = loss_backward(&m->loss_layer);
       model_backward(m, grad);
+
+      timer_diff = clock() - timer_start;
+      timer_msec = timer_diff * 1000 / CLOCKS_PER_SEC;
+      backward += timer_msec;
+      timer_start = clock();
+
       free_matrix(grad);
       if (auto_update) {
         perform_update(m, learning_rate);
       } else if (batch_size < x->rows || epoch != 1) {
         printf("[Warning] Model is not updating, entering next loop ... batch size: %d, x_size: %d, epoch: %d\n", batch_size, x->rows, epoch);
       }
+
+      timer_diff = clock() - timer_start;
+      timer_msec = timer_diff * 1000 / CLOCKS_PER_SEC;
+      update += timer_msec;
+      timer_start = clock();
 
       start = start + curr_batch;
     }
@@ -206,7 +237,7 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     #ifdef RUN_TEST
     e_diff = clock() - e_start;
     int msec = e_diff * 1000 / CLOCKS_PER_SEC;
-    printf("%f, time: %d ms", loss, msec);
+    printf("%f, time: %d ms | prep: %d, forward: %d, backward: %d, update %d", loss, msec, prep, forward, backward, update);
     fflush(stdout);
     if (loss > 1000) {
       printf("Anomalous loss %f\n", loss);

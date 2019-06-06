@@ -58,8 +58,8 @@ void run_rl(rl_type t) {
 static model* init_model_0() {
   model* new_model = init_model(3);
   new_model->version = 0;
-  add_linear_layer(new_model, 100, relu);
-  add_linear_layer(new_model, 100, relu);
+  add_linear_layer(new_model, 400, relu);
+  add_linear_layer(new_model, 400, relu);
   add_linear_layer(new_model, 3, placeholder);
   compile_model(new_model, mse_loss, adam);
   print_network(new_model);
@@ -79,7 +79,7 @@ void test_run() {
   shuffle_row_wise(t, 0);
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
-  int batch_size = 256;
+  int batch_size = 16;
   int epoch = 100;
   double learning_rate = 0.001;
   int shuffle = 1;
