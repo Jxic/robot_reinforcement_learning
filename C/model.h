@@ -15,6 +15,7 @@ typedef struct _model {
   int version;
   int cache_initialized;
   optimizer optimizer;
+  int param_size;
 } model;
 
 

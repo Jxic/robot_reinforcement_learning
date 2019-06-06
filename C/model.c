@@ -18,6 +18,7 @@ model* init_model(int input_dim) {
   new_m->loss_layer.type = no_loss;
   new_m->cache_initialized = 0;
   new_m->optimizer.type = no_opt;
+  new_m->param_size = 0;
   return new_m;
 }
 
@@ -28,6 +29,9 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
   // new linear layer
   layer linear_wrapper;
   init_linear(&linear_wrapper, m->output_dim, number_of_neurons);
+  
+  m->param_size += m->output_dim * number_of_neurons;
+  m->param_size += m->output_dim;
   
   // realloc m->hidden_linears to hold one more layer
   m->hidden_linears = realloc(m->hidden_linears, sizeof(layer)*m->num_of_layers);

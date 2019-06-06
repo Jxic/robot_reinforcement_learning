@@ -79,7 +79,7 @@ void test_run() {
   shuffle_row_wise(t, 0);
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
-  int batch_size = 16;
+  int batch_size = 256;
   int epoch = 100;
   double learning_rate = 0.001;
   int shuffle = 1;

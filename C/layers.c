@@ -163,8 +163,8 @@ static int linear_forward(layer* l, matrix_t* x) {
 static int linear_backward(layer* l, matrix_t* grad) {
   // caveat: memory needs to be realloced to hold new data
   linear_layer layer_data = l->data.l;
-  free_matrix(l->data.l.grad_W);
-  free_matrix(l->data.l.grad_b);
+  // free_matrix(l->data.l.grad_W);
+  // free_matrix(l->data.l.grad_b);
 
   matrix_t* cache_T = transpose(layer_data.cache);
 
@@ -179,14 +179,22 @@ static int linear_backward(layer* l, matrix_t* grad) {
   #ifdef GPU
   if (layer_data.W->rows*layer_data.W->cols >= 40000) {
     matrix_t** updates = mat_mul_series(cache_T, grad, ones, grad, grad, w_T);
-    l->data.l.grad_W = updates[0];
-    l->data.l.grad_b = updates[1];
+
+    copy_matrix(l->data.l.grad_W, updates[0]);
+    copy_matrix(l->data.l.grad_b, updates[1]);
+    free_matrix(updates[0]);
+    free_matrix(updates[1]);
     
     new_grad = updates[2];
   } else {
   #endif
-    l->data.l.grad_W = matmul(cache_T, grad);
-    l->data.l.grad_b = matmul(ones, grad);
+    matrix_t* g_W = matmul(cache_T, grad);
+    copy_matrix(l->data.l.grad_W, g_W);
+    matrix_t* g_b = matmul(ones, grad);
+    copy_matrix(l->data.l.grad_b, g_b);
+
+    free_matrix(g_W);
+    free_matrix(g_b);
 
     new_grad = matmul(grad, w_T);
   #ifdef GPU

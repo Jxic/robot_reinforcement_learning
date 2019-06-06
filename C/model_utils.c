@@ -294,3 +294,48 @@ normalizer* load_normalizer(char* n_name) {
   printf("Normalizer loaded from %s ...\n", path);
   return norm;
 }
+
+
+matrix_t* flatten(matrix_t** ms, int count) {
+  assert(count > 0);
+  int size = 0;
+  for (int i = 0; i < count; ++i) {
+    size += ms[i]->cols*ms[i]->rows;
+  }
+
+  int start = 0;
+  matrix_t* ret = new_matrix(1, size);
+  for (int i = 0; i < count; ++i) {
+    memcpy(ret->data+start, ms[i]->data, ms[i]->rows*ms[i]->cols*sizeof(double));
+    start += ms[i]->rows*ms[i]->cols;
+  }
+
+  return ret;
+}
+
+matrix_t** rebuild(model* m, matrix_t* flattened) {
+  assert(flattened->rows == 1);
+  assert(flattened->cols > 0);
+
+  matrix_t** ret = calloc(2*m->num_of_layers, sizeof(*ret));
+  int start = 0;
+  for (int i = 0; i < 2*m->num_of_layers; i+=2) {
+    int w_rows = m->hidden_linears[i/2].data.l.W->rows;
+    int w_cols = m->hidden_linears[i/2].data.l.W->cols;
+    int b_rows = m->hidden_linears[i/2].data.l.b->rows;
+    int b_cols = m->hidden_linears[i/2].data.l.b->cols;
+    matrix_t* W = new_matrix(w_rows, w_cols);
+    matrix_t* b = new_matrix(b_rows, b_cols);
+    assert(start < flattened->cols);
+    memcpy(W->data, flattened->data+start, w_rows*w_cols*sizeof(double));
+    start += w_rows*w_cols;
+    assert(start < flattened->cols);
+    memcpy(b->data, flattened->data+start, b_rows*b_cols*sizeof(double));
+    start += b_rows*b_cols;
+    ret[i] = W;
+    ret[i+1] = b;
+  }
+  
+  return ret;
+}
+

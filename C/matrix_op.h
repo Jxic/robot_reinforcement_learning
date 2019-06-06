@@ -37,7 +37,7 @@ matrix_t* matmul(matrix_t* a, matrix_t* b);
 matrix_t** matmul_gpu(matrix_t** ms, int count);
 #endif
 #ifdef MKL
-matrix_t* matmul(matrix_t* a, matrix_t* b);
+matrix_t* matmul_mkl(matrix_t* a, matrix_t* b);
 #endif
 matrix_t* transpose(matrix_t* a);
 

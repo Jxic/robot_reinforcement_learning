@@ -24,14 +24,17 @@ static int simple_test();
 int _main() {
   // preparation phase
   srand(SEED);
+
+  #ifdef MKL
+  #ifdef MULTI_MKL_THREAD
+  mkl_set_num_threads(1);
+  #endif
+  #endif
+
   #ifdef RUN_TEST  
   return simple_test();
   #else
-  #ifdef MKL
-  #ifdef MULTI_MKL_THREAD
-  mkl_set_num_threads(mkl_get_max_threads());
-  #endif
-  #endif
+  
   // matrix_t* a = new_matrix(3,4);
   // matrix_t* b = new_matrix(4,5);
   // for (int i = 0; i < 12; ++i) {

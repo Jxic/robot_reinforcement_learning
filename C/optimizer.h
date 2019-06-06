@@ -2,6 +2,7 @@
 #define OPTIMIZER_H
 
 #include "layers.h"
+#include "matrix_op.h"
 
 #define SGD_LR 0.01
 #define ADAM_LR 0.001
@@ -10,8 +11,12 @@ typedef struct _adam_optimizer {
   int timestamp;
   double beta1;
   double beta2;
-  layer* first_moment;
-  layer* second_moment;
+  // layer* first_moment;
+  // layer* second_moment;
+  matrix_t* first_moment;
+  matrix_t* second_moment;
+  double** trainable_params;
+  double** trainable_params_g;
   double epsilon;
   double learning_rate;
   int num_of_layers;

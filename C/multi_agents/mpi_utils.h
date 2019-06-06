@@ -2,6 +2,7 @@
 #define MPI_UTILS_H
 #include "../model.h"
 #include "../normalizer.h"
+#include "../model_utils.h"
 #include "mpi.h"
 
 int mpi_init();

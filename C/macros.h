@@ -5,7 +5,7 @@
 
 #define RUN_TEST
 #define MKL
-// #define MULTI_MKL_THREAD
+#define MULTI_MKL_THREAD
 #define SEED time(0)
 
 // #define C_AS_LIB
