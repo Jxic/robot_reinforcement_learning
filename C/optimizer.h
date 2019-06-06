@@ -1,6 +1,7 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
-#ifdef GPU
+#include "macros.h"
+#ifdef OPITMIZER_V1
 #include "layers.h"
 #include "matrix_op.h"
 

@@ -1,5 +1,5 @@
 #include "macros.h"
-#ifdef GPU
+#ifdef OPITMIZER_V1
 #include "optimizer.h"
 #include <stdlib.h>
 #include <stdio.h>
