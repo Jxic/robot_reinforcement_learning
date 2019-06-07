@@ -8,6 +8,7 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
+#include "utils.h"
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
 
@@ -155,19 +156,7 @@ int print_network(model* m) {
   return 1;
 }
 
-static void timer_reset(struct timeval* t) {
-  gettimeofday(t, NULL); 
-}
 
-static double timer_check(struct timeval* t) {
-  struct timeval end;
-  gettimeofday(&end, NULL); 
-  double time_taken;
-  time_taken = (end.tv_sec - t->tv_sec) * 1e6;
-  time_taken = (time_taken + (end.tv_usec - t->tv_usec)) * 1e-3; 
-  timer_reset(t);
-  return time_taken;
-} 
 
 double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle, int auto_update) {
   struct timeval t_start;

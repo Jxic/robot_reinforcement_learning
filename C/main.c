@@ -72,11 +72,11 @@ static int simple_test() {
   print_matrix(t, 0);
   printf("\n");
   printf("Testing with sample data, timing...\n");
-  clock_t start = clock(), diff;
+  struct timeval start;
+  timer_reset(&start);
   run_rl(test);
-  diff = clock() - start;
-  int msec = diff * 1000 / CLOCKS_PER_SEC;
-  printf("Test training took %ds %dms\n", msec/1000, msec%1000);
+  double diff = timer_check(&start);
+  printf("Test training took %.1f s\n", diff/1000);
   printf("\n");
   return 0;
 }

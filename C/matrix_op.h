@@ -22,6 +22,7 @@ int initialize(matrix_t* mat, initializer i);
 int elem_wise_add(matrix_t* a, matrix_t* b);
 int elem_wise_minus(matrix_t* a, matrix_t* b);
 int elem_wise_mult(matrix_t* a, matrix_t* b);
+int elem_wise_div(matrix_t* a, matrix_t* b);
 int add_bias(matrix_t* a, matrix_t* b);
 int mult_bias(matrix_t* a, matrix_t* b);
 int add_scalar(matrix_t* a, double b);
@@ -29,6 +30,7 @@ int mult_scalar(matrix_t* a, double b);
 int neg(matrix_t* a);
 int inverse(matrix_t* a);
 int square_root(matrix_t* a);
+int square(matrix_t* a);
 
 matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, matrix_t* e, matrix_t* f);
 

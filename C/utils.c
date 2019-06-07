@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include "macros.h"
+#include <sys/time.h>
 #ifdef MKL
 #include "mkl.h"
 #endif
@@ -153,3 +154,17 @@ matrix_t* trunc_normal(int n, double high, double low) {
   free_matrix(v);
   return ret;
 }
+
+void timer_reset(struct timeval* t) {
+  gettimeofday(t, NULL); 
+}
+
+double timer_check(struct timeval* t) {
+  struct timeval end;
+  gettimeofday(&end, NULL); 
+  double time_taken;
+  time_taken = (end.tv_sec - t->tv_sec) * 1e6;
+  time_taken = (time_taken + (end.tv_usec - t->tv_usec)) * 1e-3; 
+  timer_reset(t);
+  return time_taken;
+} 

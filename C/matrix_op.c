@@ -111,6 +111,24 @@ int elem_wise_mult(matrix_t* a, matrix_t* b) {
   return 1;
 }
 
+int elem_wise_div(matrix_t* a, matrix_t* b) {
+  assert(a->rows == b->rows);
+  assert(b->cols == b->cols);
+  #ifdef MKL
+  vdDiv(a->rows*a->cols, a->data, b->data, a->data);
+  // free(a->data);
+  // a->data = ret;
+  return 1;
+  #endif
+
+  int size = a->rows*a->cols;
+  for (int i = 0; i < size; ++i) {
+    a->data[i] /= b->data[i];
+  }
+  
+  return 1;
+}
+
 int add_bias(matrix_t* a, matrix_t* b) {
   assert(a->cols == b->cols);
 
@@ -171,6 +189,19 @@ int square_root(matrix_t* a) {
   return 1;
 }
 
+int square(matrix_t* a) {
+  assert(a->rows > 0 && a->cols > 0);
+  #ifdef MKL
+  vdSqr(a->rows*a->cols, a->data, a->data);
+  return 1;
+  #endif
+  for (int i = 0; i < a->rows*a->cols; ++i) {
+    assert(a->data[i]>=0);
+    a->data[i] = pow(a->data[i],2);
+  } 
+  return 1;
+}
+
 int neg(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
   // #ifdef MKL
@@ -182,13 +213,13 @@ int neg(matrix_t* a) {
 
 int mult_scalar(matrix_t* a, double b) {
   assert(a->rows > 0 && a->cols >0);
-  #ifndef MKL
-  for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] *= b;
-  #else
+  #ifdef MKL
   MKL_INT n = a->rows*a->cols;
   MKL_INT inc = 1;
   cblas_dscal(n, b, a->data, inc);
+  return 1;
   #endif
+  for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] *= b;
   return 1;
 }
 
