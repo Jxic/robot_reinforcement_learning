@@ -15,3 +15,8 @@ main
 models_rl
 history_result
 optimization_result
+.DS_Store
+*.out
+*.data
+*.old
+prof*

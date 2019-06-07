@@ -58,7 +58,7 @@ int save_model(model* m, char* model_name) {
       printf("[SAVE_MODEL] Failed to write layer activation to file, aborting...\n");
       return 0;
     }
-    if (fwrite(nxt_linear.W->data, sizeof(double), w_info[0]*w_info[1], fp) != w_info[0]*w_info[1]) {
+    if (fwrite(nxt_linear.W->data, sizeof(float), w_info[0]*w_info[1], fp) != w_info[0]*w_info[1]) {
       printf("[SAVE_MODEL] Failed to write layer weights to file, aborting...\n");
       return 0;
     }
@@ -69,7 +69,7 @@ int save_model(model* m, char* model_name) {
     //   printf("[SAVE_MODEL] Failed to write layer bias meta information to file, aborting...\n");
     //   return 0;
     // }
-    if (fwrite(nxt_linear.b->data, sizeof(double), b_rows*b_cols, fp) != b_rows*b_cols) {
+    if (fwrite(nxt_linear.b->data, sizeof(float), b_rows*b_cols, fp) != b_rows*b_cols) {
       printf("[SAVE_MODEL] Failed to write layer bias to file, aborting...\n");
       return 0;
     }
@@ -139,14 +139,14 @@ model* load_model(char* model_name) {
       return 0;
     }
     add_linear_layer(m, w_cols, act_type);
-    if (fread(m->hidden_linears[i].data.l.W->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+    if (fread(m->hidden_linears[i].data.l.W->data, sizeof(float), w_rows*w_cols, fp) != w_rows*w_cols) {
       printf("[LOAD_MODEL] Failed to read layer weights, file could be corrupted, aborting...\n");
       return 0;
     }
     free(w_info);
     int b_rows = m->hidden_linears[i].data.l.b->rows;
     int b_cols = m->hidden_linears[i].data.l.b->cols;
-    if (fread(m->hidden_linears[i].data.l.b->data, sizeof(double), b_rows*b_cols, fp) != b_rows*b_cols) {
+    if (fread(m->hidden_linears[i].data.l.b->data, sizeof(float), b_rows*b_cols, fp) != b_rows*b_cols) {
       printf("[LOAD_MODEL] Failed to read layer bias, file could be corrupted, aborting...\n");
       return 0;
     }
@@ -176,12 +176,12 @@ int save_normalizer(normalizer* m, char* n_name) {
   strcat(path, n_name);
   // open file and prepare for write
   fp = fopen(path, "w+");
-  double* n_meta = calloc(NORMALIZER_META_INFO_NUM, sizeof(double));
-  n_meta[0] = (double)m->n;
+  float* n_meta = calloc(NORMALIZER_META_INFO_NUM, sizeof(float));
+  n_meta[0] = (float)m->n;
   n_meta[1] = m->clip_value;
 
   // write meta info to file and iteratively save layers' weights
-  if (fwrite(n_meta, sizeof(double), NORMALIZER_META_INFO_NUM, fp) != NORMALIZER_META_INFO_NUM) {
+  if (fwrite(n_meta, sizeof(float), NORMALIZER_META_INFO_NUM, fp) != NORMALIZER_META_INFO_NUM) {
     printf("[SAVE_NORMALIZER] Failed to write NORMALIZER meta information to file, aborting...\n");
     return 0;
   }
@@ -195,7 +195,7 @@ int save_normalizer(normalizer* m, char* n_name) {
     printf("[SAVE_NORMALIZER] Failed to write mean meta information to file, aborting...\n");
     return 0;
   }
-  if (fwrite(mean->data, sizeof(double), w_info[0]*w_info[1], fp) != w_info[0]*w_info[1]) {
+  if (fwrite(mean->data, sizeof(float), w_info[0]*w_info[1], fp) != w_info[0]*w_info[1]) {
     printf("[SAVE_NORMALIZER] Failed to write mean to file, aborting...\n");
     return 0;
   }
@@ -203,19 +203,19 @@ int save_normalizer(normalizer* m, char* n_name) {
   matrix_t* sum = m->sum;
   int b_rows = sum->rows;
   int b_cols = sum->cols;
-  if (fwrite(sum->data, sizeof(double), b_rows*b_cols, fp) != b_rows*b_cols) {
+  if (fwrite(sum->data, sizeof(float), b_rows*b_cols, fp) != b_rows*b_cols) {
     printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
     return 0;
   }
   matrix_t* std = m->std;
   int v_rows = std->rows;
   int v_cols = std->cols;
-  if (fwrite(std->data, sizeof(double), v_rows*v_cols, fp) != v_rows*v_cols) {
+  if (fwrite(std->data, sizeof(float), v_rows*v_cols, fp) != v_rows*v_cols) {
     printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
     return 0;
   }
   matrix_t* sumsq = m->sumsq;
-  if (fwrite(sumsq->data, sizeof(double), v_rows*v_cols, fp) != v_rows*v_cols) {
+  if (fwrite(sumsq->data, sizeof(float), v_rows*v_cols, fp) != v_rows*v_cols) {
     printf("[SAVE_NORMALIZER] Failed to write layer bias to file, aborting...\n");
     return 0;
   }
@@ -249,14 +249,14 @@ normalizer* load_normalizer(char* n_name) {
     exit(1);
   }
   // reconstructing normalizer
-  double* n_meta = calloc(NORMALIZER_META_INFO_NUM, sizeof(double));
-  if (fread(n_meta, sizeof(double), NORMALIZER_META_INFO_NUM, fp) != NORMALIZER_META_INFO_NUM) {
+  float* n_meta = calloc(NORMALIZER_META_INFO_NUM, sizeof(float));
+  if (fread(n_meta, sizeof(float), NORMALIZER_META_INFO_NUM, fp) != NORMALIZER_META_INFO_NUM) {
     printf("[LOAD_NORMALIZER] Failed to read NORMALIZER meta information, file could be corrupted, aborting...\n");
     return 0;
   }
 
   int n = (int)n_meta[0];
-  double clip_value = n_meta[1];
+  float clip_value = n_meta[1];
 
   int* w_info = calloc(2, sizeof(int));
   if (fread(w_info, sizeof(int), 2, fp) != 2) {
@@ -269,22 +269,22 @@ normalizer* load_normalizer(char* n_name) {
   normalizer* norm = init_normalizer(w_cols, clip_value);
   norm->n = n;
 
-  if (fread(norm->mean->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+  if (fread(norm->mean->data, sizeof(float), w_rows*w_cols, fp) != w_rows*w_cols) {
     printf("[LOAD_NORMALIZER] Failed to read means, file could be corrupted, aborting...\n");
     return 0;
   }
 
-  if (fread(norm->sum->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+  if (fread(norm->sum->data, sizeof(float), w_rows*w_cols, fp) != w_rows*w_cols) {
     printf("[LOAD_NORMALIZER] Failed to read sums, file could be corrupted, aborting...\n");
     return 0;
   }
 
-  if (fread(norm->std->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+  if (fread(norm->std->data, sizeof(float), w_rows*w_cols, fp) != w_rows*w_cols) {
     printf("[LOAD_NORMALIZER] Failed to read stds, file could be corrupted, aborting...\n");
     return 0;
   }
 
-  if (fread(norm->sumsq->data, sizeof(double), w_rows*w_cols, fp) != w_rows*w_cols) {
+  if (fread(norm->sumsq->data, sizeof(float), w_rows*w_cols, fp) != w_rows*w_cols) {
     printf("[LOAD_NORMALIZER] Failed to read sumsqs, file could be corrupted, aborting...\n");
     return 0;
   }
@@ -306,7 +306,7 @@ matrix_t* flatten(matrix_t** ms, int count) {
   int start = 0;
   matrix_t* ret = new_matrix(1, size);
   for (int i = 0; i < count; ++i) {
-    memcpy(ret->data+start, ms[i]->data, ms[i]->rows*ms[i]->cols*sizeof(double));
+    memcpy(ret->data+start, ms[i]->data, ms[i]->rows*ms[i]->cols*sizeof(float));
     start += ms[i]->rows*ms[i]->cols;
   }
 
@@ -327,10 +327,10 @@ matrix_t** rebuild(model* m, matrix_t* flattened) {
     matrix_t* W = new_matrix(w_rows, w_cols);
     matrix_t* b = new_matrix(b_rows, b_cols);
     assert(start < flattened->cols);
-    memcpy(W->data, flattened->data+start, w_rows*w_cols*sizeof(double));
+    memcpy(W->data, flattened->data+start, w_rows*w_cols*sizeof(float));
     start += w_rows*w_cols;
     assert(start < flattened->cols);
-    memcpy(b->data, flattened->data+start, b_rows*b_cols*sizeof(double));
+    memcpy(b->data, flattened->data+start, b_rows*b_cols*sizeof(float));
     start += b_rows*b_cols;
     ret[i] = W;
     ret[i+1] = b;

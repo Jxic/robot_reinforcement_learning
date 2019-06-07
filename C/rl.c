@@ -58,8 +58,8 @@ void run_rl(rl_type t) {
 static model* init_model_0() {
   model* new_model = init_model(3);
   new_model->version = 0;
-  add_linear_layer(new_model, 400, relu);
-  add_linear_layer(new_model, 400, relu);
+  add_linear_layer(new_model, 100, relu);
+  add_linear_layer(new_model, 100, relu);
   add_linear_layer(new_model, 3, placeholder);
   compile_model(new_model, mse_loss, adam);
   print_network(new_model);
@@ -79,14 +79,14 @@ void test_run() {
   shuffle_row_wise(t, 0);
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
-  int batch_size = 16;
-  int epoch = 10;
-  double learning_rate = 0.001;
+  int batch_size = 256;
+  int epoch = 100;
+  float learning_rate = 0.001;
   int shuffle = 1;
   fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
   // save_model(m, "test_model.model");
   // model* m_ = load_model("test_model.model");
   // print_network(m_);
-  double loss = eval(m, x, y, min_max);
+  float loss = eval(m, x, y, min_max);
   printf("test run finished with error rate of %f (mse).\n", loss);
 }

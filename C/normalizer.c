@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-normalizer* init_normalizer(int state_dim, double clip_range) {
+normalizer* init_normalizer(int state_dim, float clip_range) {
   normalizer* new_n = malloc(sizeof(normalizer));
   new_n->n = 0;
   new_n->clip_value = clip_range;
@@ -35,14 +35,14 @@ int update_normalizer(normalizer* n, matrix_t** observations, int count) {
   free_matrix(n->mean);
   free_matrix(n->std);
   n->mean = matrix_clone(n->sum);
-  mult_scalar(n->mean, 1/(double)n->n);
+  mult_scalar(n->mean, 1/(float)n->n);
   n->std = matrix_clone(n->sumsq);
-  mult_scalar(n->std, 1/(double)n->n);
+  mult_scalar(n->std, 1/(float)n->n);
   matrix_t* mean = matrix_clone(n->mean);
   elem_wise_mult(mean, mean);
   elem_wise_minus(n->std, mean);
   clip(n->std, 1e-4, 1e4);
-  square_root(n->std);
+  square_root(n->std, n->std);
   free_matrix(mean);
   return 1;
 }
@@ -57,8 +57,8 @@ int normalize_obs(normalizer* n, matrix_t* states) {
   matrix_t* shaped_std = new_matrix(states->rows, states->cols);
   matrix_t* shaped_mean = new_matrix(states->rows, states->cols);
   for (int i = 0; i < states->rows; ++i) {
-    memcpy(shaped_std->data+(i*states->cols), std->data, states->cols*sizeof(double));
-    memcpy(shaped_mean->data+(i*states->cols), mean->data, states->cols*sizeof(double));
+    memcpy(shaped_std->data+(i*states->cols), std->data, states->cols*sizeof(float));
+    memcpy(shaped_mean->data+(i*states->cols), mean->data, states->cols*sizeof(float));
   }
   neg(shaped_mean);
   elem_wise_add(states, shaped_mean);
