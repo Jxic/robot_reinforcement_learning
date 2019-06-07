@@ -318,13 +318,13 @@ int matmul(matrix_t* a, matrix_t* b, matrix_t* ret) {
 }
 
 matrix_t* transpose(matrix_t* a) {
-  #ifdef MKL
-  matrix_t* ret = matrix_clone(a);
-  mkl_dimatcopy('r', 't', a->rows, a->cols, 1, ret->data, a->cols, a->rows);
-  ret->cols = a->rows;
-  ret->rows = a->cols;
-  return ret;
-  #endif
+  // #ifdef MKL
+  // matrix_t* ret = matrix_clone(a);
+  // mkl_dimatcopy('r', 't', a->rows, a->cols, 1, ret->data, a->cols, a->rows);
+  // ret->cols = a->rows;
+  // ret->rows = a->cols;
+  // return ret;
+  // #endif
   matrix_t* new_mat = new_matrix(a->cols, a->rows);
   for (int i = 0; i < new_mat->rows; ++i) {
     for (int j = 0; j < new_mat->cols; ++j) {
