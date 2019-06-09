@@ -170,7 +170,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
     timer_reset(&t_start);
-    printf("\repoch %d: ", epc+1);
+    printf("epoch %d: ", epc+1);
     #else
     // printf("epoch %d: ", epc+1);
     #endif
@@ -220,7 +220,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
       }
 
       update += timer_check(&ep_t_start);
-
+ 
       start = start + curr_batch;
     }
     if (epc == epoch - 1) {
@@ -228,7 +228,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     }
     #ifdef RUN_TEST
     float msec = timer_check(&t_start);
-    printf("%f, time: %.1f ms | prep: %.1f, forward: %.1f, backward: %.1f, update %.1f", loss, msec, prep, forward, backward, update);
+    printf("%f time: %.1f ms | prep: %.1f forward: %.1f backward: %.1f update %.1f\n", loss, msec, prep, forward, backward, update);
     fflush(stdout);
     if (loss > 1000) {
       printf("Anomalous loss %f\n", loss);

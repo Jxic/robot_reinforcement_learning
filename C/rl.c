@@ -55,11 +55,11 @@ void run_rl(rl_type t) {
   }
 }
 
-static model* init_model_0() {
+static model* init_model_0(int size) {
   model* new_model = init_model(3);
   new_model->version = 0;
-  add_linear_layer(new_model, 100, relu);
-  add_linear_layer(new_model, 100, relu);
+  add_linear_layer(new_model, size, relu);
+  add_linear_layer(new_model, size, relu);
   add_linear_layer(new_model, 3, placeholder);
   compile_model(new_model, mse_loss, adam);
   print_network(new_model);
@@ -68,7 +68,7 @@ static model* init_model_0() {
 
 
 void test_run() {
-  model* m = init_model_0();
+  
   matrix_t* t;
   #ifndef C_AS_LIB
   t = load_data("FM_dataset.dat");
@@ -79,11 +79,18 @@ void test_run() {
   shuffle_row_wise(t, 0);
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
-  int batch_size = 256;
+  int batch_size = 32;
   int epoch = 100;
   float learning_rate = 0.001;
   int shuffle = 1;
-  fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
+
+  model* m;
+  for (int i = 100; i < 1000; i+=100) {
+    m = init_model_0(i);
+    fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
+    free_model(m);
+  }
+  
   // save_model(m, "test_model.model");
   // model* m_ = load_model("test_model.model");
   // print_network(m_);

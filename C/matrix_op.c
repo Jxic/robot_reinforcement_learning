@@ -125,7 +125,7 @@ int elem_wise_div(matrix_t* a, matrix_t* b, matrix_t* ret) {
 
   int size = a->rows*a->cols;
   for (int i = 0; i < size; ++i) {
-    a->data[i] /= b->data[i];
+    ret->data[i] = a->data[i] / b->data[i];
   }
   
   return 1;
@@ -199,7 +199,7 @@ int square(matrix_t* a) {
   return 1;
   #endif
   for (int i = 0; i < a->rows*a->cols; ++i) {
-    assert(a->data[i]>=0);
+    //assert(a->data[i]>=0);
     a->data[i] = pow(a->data[i],2);
   } 
   return 1;
