@@ -27,7 +27,7 @@ int mpi_init() {
   return rank;
 }
 
-int mpi_perform_update(model* m, float lr, int scale) {
+int mpi_perform_update(model* m, double lr, int scale) {
   if (DEBUG_MPI) {
     printf("%d Entering mpi perform update\n", rank);
   }
@@ -38,7 +38,7 @@ int mpi_perform_update(model* m, float lr, int scale) {
   matrix_t* g_grads = new_matrix(l_grads->rows, l_grads->cols);
   MPI_Allreduce(l_grads->data, g_grads->data, l_grads->rows*l_grads->cols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   if (scale) {
-    mult_scalar(g_grads, 1/(float)world_size);
+    mult_scalar(g_grads, 1/(double)world_size);
   }
   set_grad(m, g_grads);
   perform_update(m, lr);
@@ -69,8 +69,8 @@ int mpi_update_normalizer(normalizer* norm, matrix_t** data, int count) {
   MPI_Allreduce(l_sumsq->data, g_avg_sumsq->data, l_sumsq->rows*l_sumsq->cols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   g_n /= world_size;
-  mult_scalar(g_avg_sum, 1/(float)world_size);
-  mult_scalar(g_avg_sumsq, 1/(float)world_size);
+  mult_scalar(g_avg_sum, 1/(double)world_size);
+  mult_scalar(g_avg_sumsq, 1/(double)world_size);
 
   free_matrix(norm->sum);
   free_matrix(norm->sumsq);

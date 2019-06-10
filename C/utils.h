@@ -10,12 +10,12 @@ extern "C" {
 
 #define BUFFER_SIZE 256
 
-float rand_uniform(float low, float high);
+double rand_uniform(double low, double high);
 matrix_t* load_data(char* filename);
 matrix_t* rand_normal(int size);
-matrix_t* trunc_normal(int size, float high, float low);
+matrix_t* trunc_normal(int size, double high, double low);
 void timer_reset(struct timeval* t);
-float timer_check(struct timeval* t);
+double timer_check(struct timeval* t);
 #ifdef __cplusplus
 }
 #endif

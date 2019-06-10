@@ -20,3 +20,5 @@ optimization_result
 *.data
 *.old
 prof*
+*.log
+keras_log

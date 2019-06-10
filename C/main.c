@@ -38,13 +38,13 @@ int _main() {
   // matrix_t* a = new_matrix(3,4);
   // matrix_t* b = new_matrix(4,5);
   // for (int i = 0; i < 12; ++i) {
-  //   a->data[i] = (float) i;
+  //   a->data[i] = (double) i;
   // }
   // for (int i = 0; i < 20; ++i) {
-  //   b->data[i] = (float) i;
+  //   b->data[i] = (double) i;
   // }
   // print_matrix(matmul(a, b), 1);
-  // run_rl(her_demo);
+  run_rl(ddpg);
   // init_demo_buffer(100, 34);
   // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
   // init_demo_connection();
@@ -75,7 +75,7 @@ static int simple_test() {
   struct timeval start;
   timer_reset(&start);
   run_rl(test);
-  float diff = timer_check(&start);
+  double diff = timer_check(&start);
   printf("Test training took %.1f s\n", diff/1000);
   printf("\n");
   return 0;

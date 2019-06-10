@@ -9,12 +9,16 @@ load in log file and parse into a dictionary
 def parse_log(path):
   data = {}
   data['rewards'] = []
+  data['q'] = []
   reward_idx = 4
+  q_idx = 11
   with open(path, 'r') as log:
     for line in log:
       strs = line.split()
-      if (len(strs) != 16):
+      # print(len(strs))
+      if (len(strs) != 17):
         continue
+      data['q'].append(float(strs[q_idx]))
       data['rewards'].append(float(strs[reward_idx]))
   return data
 
@@ -22,7 +26,7 @@ def parse_log(path):
 def period_average(rewards):
   length = len(rewards)
   idx = 0
-  batch = 100
+  batch = 10
   avg_rewards = []
   while idx + batch < length:
     nxt_batch = rewards[idx: idx+batch]
@@ -35,17 +39,37 @@ def period_average(rewards):
     avg_rewards.append(mean)
   return avg_rewards
 
+def sample_half(rewards):
+  ret = []
+  for i in range(0, len(rewards), 2):
+    ret.append(rewards[i])
+  return ret
+
 '''
 result is a dictionary with key being the type of data i.e. reward, Q, loss ...
 '''
 def plot_graph(results):
-  fig,ax = plt.subplots()
+  
   rewards = results['rewards']
+  q = results['q']
   rewards = period_average(rewards)
-  x = range(1, len(rewards)+1)
-  ax.plot(x, rewards)
-  plt.xticks(np.arange(min(x)-1, max(x), 10000))
-  ax.set(xlabel='episodes', ylabel='rewards')
+  q = period_average(q)
+  # rewards = sample_half(sample_half(rewards))
+  # q = sample_half(sample_half(q))
+  x_reward = np.linspace(0, len(rewards), len(rewards))
+  x = np.linspace(0, len(q), len(q))
+  plt.subplot(1, 2, 1)
+  plt.plot(x_reward, rewards)
+  plt.title("rewards against episodes")
+  plt.xlabel('episodes')
+  plt.ylabel('rewards')
+  plt.subplot(1, 2, 2)
+  plt.plot(x, q, color='orange')
+  plt.title("Q-value against episodes")
+  plt.xlabel('episodes')
+  plt.ylabel('mean Q-values')
+  # plt.xticks(np.arange(min(x)-1, max(x), 10000))
+  # ax.set(xlabel='episodes', ylabel='rewards')
   plt.show()
 
 

@@ -106,7 +106,7 @@ char* matrix_test_copy_matrix() {
 
 char* matrix_test_mean() {
   matrix_t* test_mat = mat_3_3();
-  float answer = 5;
+  double answer = 5;
   mu_assert("[MATRIX_TEST_MEAN] wrong result averaging",
             mean(test_mat) == answer);
   return 0;
@@ -215,8 +215,8 @@ matrix_t* mat_3_3_self_mult(){
 
 matrix_t* mat_3_3_self_matmul(){
   matrix_t* new_mat = new_matrix(3,3);
-  float answer[] = {30,36,42,66,81,96,102,126,150};
-  memcpy(new_mat->data, answer, 9*sizeof(float));
+  double answer[] = {30,36,42,66,81,96,102,126,150};
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
@@ -228,56 +228,56 @@ matrix_t* mat_3_4(){
 
 matrix_t* mat_4_3(){
   matrix_t* new_mat = new_matrix(4,3);
-  float answer[] = {1,5,9,2,6,10,3,7,11,4,8,12};
-  memcpy(new_mat->data, answer, 12*sizeof(float));
+  double answer[] = {1,5,9,2,6,10,3,7,11,4,8,12};
+  memcpy(new_mat->data, answer, 12*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_1_3(){
   matrix_t* new_mat = new_matrix(1,3);
-  float answer[] = {1,2,3};
-  memcpy(new_mat->data, answer, 3*sizeof(float));
+  double answer[] = {1,2,3};
+  memcpy(new_mat->data, answer, 3*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_wiz_bias(){
   matrix_t* new_mat = new_matrix(3,3);
-  float answer[] = {2,4,6,5,7,9,8,10,12};
-  memcpy(new_mat->data, answer, 9*sizeof(float));
+  double answer[] = {2,4,6,5,7,9,8,10,12};
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_wiz_scalar() {
   matrix_t* new_mat = new_matrix(3,3);
-  float answer[] = {4,5,6,7,8,9,10,11,12};
-  memcpy(new_mat->data, answer, 9*sizeof(float));
+  double answer[] = {4,5,6,7,8,9,10,11,12};
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_neg() {
   matrix_t* new_mat = new_matrix(3,3);
-  float answer[] = {-1,-2,-3,-4,-5,-6,-7,-8,-9};
-  memcpy(new_mat->data, answer, 9*sizeof(float));
+  double answer[] = {-1,-2,-3,-4,-5,-6,-7,-8,-9};
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_3_wiz_factor() {
   matrix_t* new_mat = new_matrix(3,3);
-  float answer[] = {3,6,9,12,15,18,21,24,27};
-  memcpy(new_mat->data, answer, 9*sizeof(float));
+  double answer[] = {3,6,9,12,15,18,21,24,27};
+  memcpy(new_mat->data, answer, 9*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_2_3() {
   matrix_t* new_mat = new_matrix(2,3);
-  float answer[] = {1,2,3,4,5,6};
-  memcpy(new_mat->data, answer, 6*sizeof(float));
+  double answer[] = {1,2,3,4,5,6};
+  memcpy(new_mat->data, answer, 6*sizeof(double));
   return new_mat;
 }
 
 matrix_t* mat_3_2() {
   matrix_t* new_mat = new_matrix(3,2);
-  float answer[] = {2,3,5,6,8,9};
-  memcpy(new_mat->data, answer, 6*sizeof(float));
+  double answer[] = {2,3,5,6,8,9};
+  memcpy(new_mat->data, answer, 6*sizeof(double));
   return new_mat;
 }

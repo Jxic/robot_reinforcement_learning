@@ -11,10 +11,10 @@ typedef struct _normalizer {
   matrix_t* sum;
   matrix_t* std;
   matrix_t* sumsq;
-  float clip_value;
+  double clip_value;
 } normalizer;
 
-normalizer* init_normalizer(int dim, float clip_range);
+normalizer* init_normalizer(int dim, double clip_range);
 int normalize_obs(normalizer* n, matrix_t* states);
 int update_normalizer(normalizer* n, matrix_t** observations, int count);
 

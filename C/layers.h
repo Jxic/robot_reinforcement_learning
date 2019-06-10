@@ -58,11 +58,11 @@ typedef struct _layer {
 
 int forward(layer* l, matrix_t* x);
 int backward(layer* l, matrix_t* grad);
-int update(layer* l, float learning_rate);
+int update(layer* l, double learning_rate);
 
 int init_linear(layer* l, int in, int out);
 
-float loss_forward(layer* l, matrix_t* x, matrix_t* target);
+double loss_forward(layer* l, matrix_t* x, matrix_t* target);
 matrix_t* loss_backward(layer* l);
 int free_layer(layer l);
 

@@ -84,7 +84,7 @@ matrix_t* sample_experience(experience_buffer* exp_buf, int num) {
       }
     }
     assert(exp_buf->experiences[idx]->cols == ret->cols);
-    memcpy(ret->data+(i*ret->cols), exp_buf->experiences[idx]->data, ret->cols*sizeof(float));
+    memcpy(ret->data+(i*ret->cols), exp_buf->experiences[idx]->data, ret->cols*sizeof(double));
   }
 
   return ret;
@@ -94,7 +94,7 @@ void print_experiences(experience_buffer* exp_buf) {
   assert(exp_buf->curr_size > 0);
   matrix_t* all = new_matrix(exp_buf->curr_size, exp_buf->experiences[0]->cols);
   for (int i = 0; i < exp_buf->curr_size; ++i) {
-    memcpy(all->data+(i*all->cols), exp_buf->experiences[i]->data, all->cols*sizeof(float));
+    memcpy(all->data+(i*all->cols), exp_buf->experiences[i]->data, all->cols*sizeof(double));
   }
   print_matrix(all, 1);
 }
@@ -103,7 +103,7 @@ void print_experiences(experience_buffer* exp_buf) {
 
 static matrix_t** go_to_point(matrix_t* obs, matrix_t* pos, int* timestep);
 static matrix_t** fill_up_episode(matrix_t* obs, int curr_time_step, int to_time_step);
-static float distance(matrix_t* a, matrix_t* b);
+static double distance(matrix_t* a, matrix_t* b);
 static matrix_t* normalize_action(matrix_t* action);
 
 static int reward_dim = 1;
@@ -112,11 +112,11 @@ static int act_dim = 4;
 static int g_dim = 3;
 static int obj_pos_offset = 7;
 static int state_dim = 14;
-static float dist_threshold = 0.05;
+static double dist_threshold = 0.05;
 
 static int rand_angle = 0;
 static int rand_dest_pos = 1;
-static float act_clip_range = 0.0872665; // 5 degrees
+static double act_clip_range = 0.0872665; // 5 degrees
 static int env_step_limit = 50;
 
 static experience_buffer* build_sim_demo_buffer(int size, int transition_dim) {
@@ -361,13 +361,13 @@ static matrix_t** fill_up_episode(matrix_t* obs, int curr_time_step, int to_time
   return ret;
 }
 
-static float distance(matrix_t* a, matrix_t* b) {
+static double distance(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(a->rows == 1);
   matrix_t* temp = matrix_clone(a);
   elem_wise_minus(temp, b);
   elem_wise_mult(temp, temp);
-  float sum = 0;
+  double sum = 0;
   for (int i = 0; i < a->cols; ++i) {
     sum += temp->data[i];
   }

@@ -79,21 +79,21 @@ void test_run() {
   shuffle_row_wise(t, 0);
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
-  int batch_size = 32;
+  int batch_size = 16;
   int epoch = 100;
-  float learning_rate = 0.001;
+  double learning_rate = 0.001;
   int shuffle = 1;
 
   model* m;
-  for (int i = 100; i < 1000; i+=100) {
-    m = init_model_0(i);
+  //for (int i = 100; i < 1000; i+=100) {
+    m = init_model_0(100);
     fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
-    free_model(m);
-  }
+    //free_model(m);
+  //}
   
   // save_model(m, "test_model.model");
   // model* m_ = load_model("test_model.model");
   // print_network(m_);
-  float loss = eval(m, x, y, min_max);
+  double loss = eval(m, x, y, min_max);
   printf("test run finished with error rate of %f (mse).\n", loss);
 }

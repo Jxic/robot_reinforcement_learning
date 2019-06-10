@@ -61,18 +61,18 @@ int init_demo_connection(int port) {
 
 experience_buffer* build_demo_buffer(int size, int transition_dim) {
   experience_buffer* ret = init_experience_buffer(size);
-  float signals[DEMO_INFO_DIM];
-  float reply[transition_dim];
+  double signals[DEMO_INFO_DIM];
+  double reply[transition_dim];
   signals[0] = 1;
   for (int i = 0; i < size; ++i) {
-    int w = write(demo_socket_, signals, DEMO_INFO_DIM*sizeof(float));
-    if (w != DEMO_INFO_DIM*sizeof(float)) {
+    int w = write(demo_socket_, signals, DEMO_INFO_DIM*sizeof(double));
+    if (w != DEMO_INFO_DIM*sizeof(double)) {
       printf("[SEND] Failed to send full packet\n");
       exit(1);
     }
     
-    int r = read(demo_socket_, reply, transition_dim*sizeof(float));
-    if (r != transition_dim*sizeof(float)) {
+    int r = read(demo_socket_, reply, transition_dim*sizeof(double));
+    if (r != transition_dim*sizeof(double)) {
       printf("[SEND] Failed to read full response\n");
       exit(1);
     }
@@ -96,22 +96,22 @@ matrix_t* sim_send(matrix_t* t, int* flag, int state_dim, int act_dim) {
   
   int send_size = act_dim  + FLAG_DIM;
   int receive_size = state_dim + INFO_DIM;
-  float server_reply[receive_size];
-  float packet[send_size];
-  packet[0] = (float)flag[0];
-  packet[1] = (float)flag[1];
+  double server_reply[receive_size];
+  double packet[send_size];
+  packet[0] = (double)flag[0];
+  packet[1] = (double)flag[1];
   free(flag);
   for (int i = 2; i < send_size; ++i) {
     packet[i] = t->data[i-2];
   }
-  int w = write(socket_, packet, send_size*sizeof(float));
-  if (w != send_size*sizeof(float)) {
+  int w = write(socket_, packet, send_size*sizeof(double));
+  if (w != send_size*sizeof(double)) {
     printf("[SEND] Failed to send full packet\n");
     exit(1);
   }
   //printf("sent %d", send_size);
-  int r = read(socket_, server_reply, receive_size*sizeof(float));
-  if (r != receive_size*sizeof(float)) {
+  int r = read(socket_, server_reply, receive_size*sizeof(double));
+  if (r != receive_size*sizeof(double)) {
     printf("[SEND] Failed to read full response\n");
     exit(1);
   }

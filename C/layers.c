@@ -26,10 +26,10 @@ static int tanh_backward(layer* l, matrix_t* grad);
 // static int softmax_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
-static int linear_update(layer* l, float learning_rate);
+static int linear_update(layer* l, double learning_rate);
 
 // loss layer forward and backward
-static float mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
+static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
 static matrix_t* mse_loss_backward(layer* l);
 
 int forward(layer* l, matrix_t* x) {
@@ -68,7 +68,7 @@ int backward(layer* l, matrix_t* grad) {
   }
 }
 
-int update(layer* l, float learning_rate) {
+int update(layer* l, double learning_rate) {
   switch (l->type) {
     case linear:
       return linear_update(l, learning_rate);
@@ -78,7 +78,7 @@ int update(layer* l, float learning_rate) {
   return 1;
 }
 
-float loss_forward(layer* l, matrix_t* x, matrix_t* target) {
+double loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   switch (l->type) {
     case mse_loss:
       return mse_loss_forward(l, x, target);
@@ -99,7 +99,7 @@ matrix_t* loss_backward(layer* l) {
   }
 }
 
-int linear_update(layer* l, float learning_rate) {
+int linear_update(layer* l, double learning_rate) {
   assert(l->type == linear);
   linear_layer layer_data = l->data.l;
 
@@ -265,13 +265,13 @@ static int tanh_backward(layer* l, matrix_t* grad) {
 //   return 1;
 // }
 
-static float mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
+static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   mse_loss_layer layer_data = l->data.m;
   copy_matrix(layer_data.cache_pred, x);
   copy_matrix(layer_data.cache_target, target);
   elem_wise_minus(x, target);
   elem_wise_mult(x, x);
-  float loss = mean(x);
+  double loss = mean(x);
   free_matrix(x);
   free_matrix(target);
   return loss;
@@ -284,8 +284,8 @@ static matrix_t* mse_loss_backward(layer* l) {
   matrix_t* grad = new_matrix(rows, cols);
   copy_matrix(grad, layer_data.cache_pred);
   elem_wise_minus(grad, layer_data.cache_target);
-  mult_scalar(grad, 2/(float)rows);
-  //mult_scalar(grad, 1/((float)rows));
+  mult_scalar(grad, 2/(double)rows);
+  //mult_scalar(grad, 1/((double)rows));
   return grad;
 }
 

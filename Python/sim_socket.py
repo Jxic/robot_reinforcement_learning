@@ -7,12 +7,12 @@ class sim_socket:
   # 0 1 step
   # 1 0 reset
   # 1 1 close
-  def __init__(self, game='pendulum'):
+  def __init__(self, game='Pendulum-v0'):
     self.host = '127.0.0.1'
     self.port = 6666
     self.double_size = 8
-    self.action_dim = 4 if game != 'pendulum' else 1
-    self.state_dim = 31#16 if game != 'pendulum' else 3
+    self.action_dim = 4 if game != 'Pendulum-v0' else 1
+    self.state_dim = 31 if game != 'Pendulum-v0' else 3
     self.flag_dim = 2
     self.info_dim = 2
     self.count =0
@@ -45,7 +45,7 @@ class sim_socket:
         if (len(data)!=self.flag_dim+self.action_dim):
           print("Wrong data sent")
           break
-        if self.count < 25000 or self.game != 'pendulum':
+        if self.count < 25000 or self.game != 'Pendulum-v0':
           observation, reward, done, _ = self.t.step(action)#, render=True)
         else:
           observation, reward, done, _ = self.t.step(action)#, render=True)
@@ -53,7 +53,7 @@ class sim_socket:
         #print("From C: a:{} r:{:.2f} d:{:.2f}".format(action,reward,terminate))
         if self.count % 1000 == 0:
           print("Stepped for {} times".format(self.count))
-        if self.game == 'pendulum':
+        if self.game == 'Pendulum-v0':
           flat_observation = list(observation)
         else:
           flat_observation = list(observation['observation']) + list(observation['desired_goal']) + list(observation['achieved_goal'])
@@ -67,7 +67,7 @@ class sim_socket:
         #reset
         observation = self.t.reset()
         #print(observation)
-        if self.game == 'pendulum':
+        if self.game == 'Pendulum-v0':
           flat_observation = list(observation)
         else:
           flat_observation = list(observation['observation']) + list(observation['desired_goal']) + list(observation['achieved_goal'])        #observation = list(observation)
@@ -88,5 +88,5 @@ class sim_socket:
 
 
 if __name__ == "__main__":
-  new_socket = sim_socket(game='FetchPickAndPlace-v1')
+  new_socket = sim_socket()#game='FetchPickAndPlace-v1')
   new_socket.start_listen()

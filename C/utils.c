@@ -17,13 +17,13 @@
 #endif
 
 static int append(matrix_t* m, char* c, int create);
-static float convert_float(char* c);
+static double convert_double(char* c);
 static int remove_char(char* s, char c);
 
-float rand_uniform(float low, float high) {
+double rand_uniform(double low, double high) {
   assert(high >= low);
-  float range = high - low;
-  return low + ((float)rand() / (float)RAND_MAX * range);
+  double range = high - low;
+  return low + ((double)rand() / (double)RAND_MAX * range);
 }
 
 matrix_t* load_data(char* filename) {
@@ -55,36 +55,36 @@ matrix_t* load_data(char* filename) {
 }
 
 static int append(matrix_t* m, char* c, int create) {
-  float array[BUFFER_SIZE];
-  float* w = array;
+  double array[BUFFER_SIZE];
+  double* w = array;
   remove_char(c, '\n');
   char* token = strtok(c, " ");
   int count = 0;
   while (token) {
-    *w++ = convert_float(token);
+    *w++ = convert_double(token);
     token = strtok(NULL, " ");
     count++;
   }
   if (create) {
     augment_space(m, 1, count);
     m->cols = count;
-    memcpy(m->data, array, count*sizeof(float));
+    memcpy(m->data, array, count*sizeof(double));
   } else {
     assert(count == m->cols);
     augment_space(m, m->rows+1, count);
-    memcpy(m->data+(m->rows*m->cols), array, count*sizeof(float));
+    memcpy(m->data+(m->rows*m->cols), array, count*sizeof(double));
     m->rows++;
   }
   return 1;
 }
 
-static float convert_float(char* c) {
+static double convert_double(char* c) {
   if (c == NULL || *c == '\0' || isspace(*c)) {
     printf("[CONVERT_DOUBLE] failed to convert %s", c);
     exit(1);
   }
   char* p;
-  float ret = strtod(c, &p);
+  double ret = strtod(c, &p);
   if ( *p != '\0') {
     printf("[CONVERT_DOUBLE] failed to convert %s", c);
     exit(1);
@@ -107,14 +107,14 @@ matrix_t* rand_normal(int n) {
   int i;
   int m = n + n % 2;
   matrix_t* v = new_matrix(1, m);
-  float* values = v->data;
-  //float average, deviation;
+  double* values = v->data;
+  //double average, deviation;
   if ( values ) {
     for ( i = 0; i < m; i += 2 ) {
-      float x,y,rsq,f;
+      double x,y,rsq,f;
       do {
-        x = 2.0 * rand() / (float)RAND_MAX - 1.0;
-        y = 2.0 * rand() / (float)RAND_MAX - 1.0;
+        x = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        y = 2.0 * rand() / (double)RAND_MAX - 1.0;
         rsq = x * x + y * y;
       }while( rsq >= 1. || rsq == 0. );
       f = sqrt( -2.0 * log(rsq) / rsq );
@@ -127,18 +127,18 @@ matrix_t* rand_normal(int n) {
   return ret;
 }
 
-matrix_t* trunc_normal(int n, float high, float low) {
+matrix_t* trunc_normal(int n, double high, double low) {
   int i = 0;
   int m = n + n % 2;
   matrix_t* v = new_matrix(1, m);
-  float* values = v->data;
-  //float average, deviation;
+  double* values = v->data;
+  //double average, deviation;
   if ( values ) {
     while (i < m) {
-      float x,y,rsq,f;
+      double x,y,rsq,f;
       do {
-        x = 2.0 * rand() / (float)RAND_MAX - 1.0;
-        y = 2.0 * rand() / (float)RAND_MAX - 1.0;
+        x = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        y = 2.0 * rand() / (double)RAND_MAX - 1.0;
         rsq = x * x + y * y;
       }while( rsq >= 1. || rsq == 0. );
       f = sqrt( -2.0 * log(rsq) / rsq );
@@ -159,10 +159,10 @@ void timer_reset(struct timeval* t) {
   gettimeofday(t, NULL); 
 }
 
-float timer_check(struct timeval* t) {
+double timer_check(struct timeval* t) {
   struct timeval end;
   gettimeofday(&end, NULL); 
-  float time_taken;
+  double time_taken;
   time_taken = (end.tv_sec - t->tv_sec) * 1e6;
   time_taken = (time_taken + (end.tv_usec - t->tv_usec)) * 1e-3; 
   timer_reset(t);

@@ -29,7 +29,7 @@ def collect_demos(collect_new=True):
       nxt_transition += list(eps_obs[i+1]['desired_goal'])
       nxt_transition.append(0)
       nxt_transition.append(env.compute_reward(eps_obs[i+1]['achieved_goal'], eps_obs[i+1]['desired_goal'], eps_infos[i]))
-      nxt_transition = [float(i) for i in nxt_transition]
+      nxt_transition = [double(i) for i in nxt_transition]
       transitions.append(nxt_transition)
   
   return transitions
