@@ -168,3 +168,13 @@ double timer_check(struct timeval* t) {
   timer_reset(t);
   return time_taken;
 } 
+
+double timer_observe(struct timeval* t) {
+  struct timeval end;
+  gettimeofday(&end, NULL); 
+  double time_taken;
+  time_taken = (end.tv_sec - t->tv_sec) * 1e6;
+  time_taken = (time_taken + (end.tv_usec - t->tv_usec)) * 1e-3; 
+  return time_taken;
+} 
+

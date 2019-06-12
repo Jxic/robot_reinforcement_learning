@@ -44,7 +44,7 @@ int _main() {
   //   b->data[i] = (double) i;
   // }
   // print_matrix(matmul(a, b), 1);
-  // run_rl(ddpg);
+  run_rl(her_sim);
   // init_demo_buffer(100, 34);
   // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
   // init_demo_connection();

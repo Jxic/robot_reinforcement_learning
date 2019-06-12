@@ -73,6 +73,7 @@ static double* run_epoch();
 static double* train();
 static void save_all_model();
 static int update_target();
+static double test_run();
 
 #ifdef MPI
 static int rank;
@@ -99,7 +100,9 @@ void run_rl_ddpg_her_sim() {
 
   // training
   int epc = 0;
-  clock_t start = clock(), diff;
+  // clock_t start = clock(), diff;
+  struct timeval start;
+  timer_reset(&start);
   while (epc < EPOCH) {
     epc++;
     double* info = run_epoch();
@@ -113,14 +116,15 @@ void run_rl_ddpg_her_sim() {
     }
     update_target();
     // printf("trained\n");
-    diff = clock() - start;
-    int msec = diff * 1000 / CLOCKS_PER_SEC;
+    // diff = clock() - start;
+    int msec = timer_observe(&start);
+    double success_rate = test_run();
     #ifdef MPI
     if (!rank) {
-      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f | success rate: %f | Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1], success_rate,msec/(double)60000);
     }
     #else
-    printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f | success rate: %f | Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1], success_rate, msec/(double)60000);
     #endif
     free(info);
     free(train_info);
@@ -494,5 +498,31 @@ static void save_all_model() {
   }
 }
 
-
+static double test_run() {
+  int success = 0;
+  int num_runs = 10;
+  for (int i = 0; i < num_runs; ++i) {
+    matrix_t* state = resetState(RANDOM_INIT_ANGLE, RANDOM_INIT_DEST, STATE_DIM+AG_DIM, ACTION_DIM);
+    for (int j = 0; j < MAX_EPOCH_LEN; ++j) {
+      matrix_t* new_action = get_action(state, 0);
+      matrix_t* nxt_state = step(new_action, STATE_DIM+AG_DIM, ACTION_DIM);
+      free_matrix(new_action);
+      double new_reward = nxt_state->data[nxt_state->cols-1];
+      if (!new_reward) {
+        free_matrix(nxt_state);
+        success++;
+        break;
+      }
+      if (nxt_state->data[nxt_state->cols-2]) {
+        free_matrix(nxt_state);
+      break;
+      } else {
+        free_matrix(state);
+        state = nxt_state;
+      }
+    }
+    free_matrix(state);
+  }
+  return success / (double)num_runs;
+}
 
