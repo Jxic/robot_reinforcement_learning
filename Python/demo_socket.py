@@ -29,7 +29,7 @@ def collect_demos(collect_new=True):
       nxt_transition += list(eps_obs[i+1]['desired_goal'])
       nxt_transition.append(0)
       nxt_transition.append(env.compute_reward(eps_obs[i+1]['achieved_goal'], eps_obs[i+1]['desired_goal'], eps_infos[i]))
-      nxt_transition = [double(i) for i in nxt_transition]
+      nxt_transition = [float(i) for i in nxt_transition]
       transitions.append(nxt_transition)
   
   return transitions
@@ -49,7 +49,7 @@ def simple_test():
 def transfer_transitions():
   host = '127.0.0.1'
   port = 5555
-  double_size = 8
+  float_size = 8
   transtion_dim = 62
   count = 0
   info_dim = 1
@@ -64,7 +64,7 @@ def transfer_transitions():
   print("Demo collector established connection from {}".format(str(addr)))
   
   for t in transitions:
-    data = conn.recv(info_dim*double_size)
+    data = conn.recv(info_dim*float_size)
     data = struct.unpack('d'*info_dim, data)
     if not data[0]:
       print("Receiver went wrong, aborting ...")

@@ -17,13 +17,13 @@
 #endif
 
 static int append(matrix_t* m, char* c, int create);
-static double convert_double(char* c);
+static float convert_float(char* c);
 static int remove_char(char* s, char c);
 
-double rand_uniform(double low, double high) {
+float rand_uniform(float low, float high) {
   assert(high >= low);
-  double range = high - low;
-  return low + ((double)rand() / (double)RAND_MAX * range);
+  float range = high - low;
+  return low + ((float)rand() / (float)RAND_MAX * range);
 }
 
 matrix_t* load_data(char* filename) {
@@ -55,38 +55,38 @@ matrix_t* load_data(char* filename) {
 }
 
 static int append(matrix_t* m, char* c, int create) {
-  double array[BUFFER_SIZE];
-  double* w = array;
+  float array[BUFFER_SIZE];
+  float* w = array;
   remove_char(c, '\n');
   char* token = strtok(c, " ");
   int count = 0;
   while (token) {
-    *w++ = convert_double(token);
+    *w++ = convert_float(token);
     token = strtok(NULL, " ");
     count++;
   }
   if (create) {
     augment_space(m, 1, count);
     m->cols = count;
-    memcpy(m->data, array, count*sizeof(double));
+    memcpy(m->data, array, count*sizeof(float));
   } else {
     assert(count == m->cols);
     augment_space(m, m->rows+1, count);
-    memcpy(m->data+(m->rows*m->cols), array, count*sizeof(double));
+    memcpy(m->data+(m->rows*m->cols), array, count*sizeof(float));
     m->rows++;
   }
   return 1;
 }
 
-static double convert_double(char* c) {
+static float convert_float(char* c) {
   if (c == NULL || *c == '\0' || isspace(*c)) {
-    printf("[CONVERT_DOUBLE] failed to convert %s", c);
+    printf("[CONVERT_float] failed to convert %s", c);
     exit(1);
   }
   char* p;
-  double ret = strtod(c, &p);
+  float ret = strtod(c, &p);
   if ( *p != '\0') {
-    printf("[CONVERT_DOUBLE] failed to convert %s", c);
+    printf("[CONVERT_float] failed to convert %s", c);
     exit(1);
   }
   return ret;
@@ -107,14 +107,14 @@ matrix_t* rand_normal(int n) {
   int i;
   int m = n + n % 2;
   matrix_t* v = new_matrix(1, m);
-  double* values = v->data;
-  //double average, deviation;
+  float* values = v->data;
+  //float average, deviation;
   if ( values ) {
     for ( i = 0; i < m; i += 2 ) {
-      double x,y,rsq,f;
+      float x,y,rsq,f;
       do {
-        x = 2.0 * rand() / (double)RAND_MAX - 1.0;
-        y = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        x = 2.0 * rand() / (float)RAND_MAX - 1.0;
+        y = 2.0 * rand() / (float)RAND_MAX - 1.0;
         rsq = x * x + y * y;
       }while( rsq >= 1. || rsq == 0. );
       f = sqrt( -2.0 * log(rsq) / rsq );
@@ -127,18 +127,18 @@ matrix_t* rand_normal(int n) {
   return ret;
 }
 
-matrix_t* trunc_normal(int n, double high, double low) {
+matrix_t* trunc_normal(int n, float high, float low) {
   int i = 0;
   int m = n + n % 2;
   matrix_t* v = new_matrix(1, m);
-  double* values = v->data;
-  //double average, deviation;
+  float* values = v->data;
+  //float average, deviation;
   if ( values ) {
     while (i < m) {
-      double x,y,rsq,f;
+      float x,y,rsq,f;
       do {
-        x = 2.0 * rand() / (double)RAND_MAX - 1.0;
-        y = 2.0 * rand() / (double)RAND_MAX - 1.0;
+        x = 2.0 * rand() / (float)RAND_MAX - 1.0;
+        y = 2.0 * rand() / (float)RAND_MAX - 1.0;
         rsq = x * x + y * y;
       }while( rsq >= 1. || rsq == 0. );
       f = sqrt( -2.0 * log(rsq) / rsq );
@@ -159,20 +159,20 @@ void timer_reset(struct timeval* t) {
   gettimeofday(t, NULL); 
 }
 
-double timer_check(struct timeval* t) {
+float timer_check(struct timeval* t) {
   struct timeval end;
   gettimeofday(&end, NULL); 
-  double time_taken;
+  float time_taken;
   time_taken = (end.tv_sec - t->tv_sec) * 1e6;
   time_taken = (time_taken + (end.tv_usec - t->tv_usec)) * 1e-3; 
   timer_reset(t);
   return time_taken;
 } 
 
-double timer_observe(struct timeval* t) {
+float timer_observe(struct timeval* t) {
   struct timeval end;
   gettimeofday(&end, NULL); 
-  double time_taken;
+  float time_taken;
   time_taken = (end.tv_sec - t->tv_sec) * 1e6;
   time_taken = (time_taken + (end.tv_usec - t->tv_usec)) * 1e-3; 
   return time_taken;

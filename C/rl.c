@@ -81,7 +81,7 @@ void test_run() {
   matrix_t* y = slice_col_wise(t, 3, 6);
   int batch_size = 16;
   int epoch = 100;
-  double learning_rate = 0.001;
+  float learning_rate = 0.001;
   int shuffle = 1;
 
   model* m;
@@ -94,6 +94,6 @@ void test_run() {
   // save_model(m, "test_model.model");
   // model* m_ = load_model("test_model.model");
   // print_network(m_);
-  double loss = eval(m, x, y, min_max);
+  float loss = eval(m, x, y, min_max);
   printf("test run finished with error rate of %f (mse).\n", loss);
 }

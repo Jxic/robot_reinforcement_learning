@@ -27,8 +27,8 @@ int init_adam(model* m) {
   initialize(new_opt.first_moment, zeros);
   initialize(new_opt.second_moment, zeros);
 
-  double** trainable_params = calloc(m->param_size, sizeof(*trainable_params));
-  double** trainable_params_g = calloc(m->param_size, sizeof(*trainable_params_g));
+  float** trainable_params = calloc(m->param_size, sizeof(*trainable_params));
+  float** trainable_params_g = calloc(m->param_size, sizeof(*trainable_params_g));
   new_opt.trainable_params = trainable_params;
   new_opt.trainable_params_g = trainable_params_g;
   int end_pos = 0;
@@ -59,7 +59,7 @@ int init_adam(model* m) {
 static int sgd_update(model* m);
 static int adam_update(model* m);
 
-int perform_update(model* m, double learning_rate) {
+int perform_update(model* m, float learning_rate) {
   if (learning_rate > 0) {
     switch (m->optimizer.type) {
       case sgd:
@@ -84,7 +84,7 @@ int perform_update(model* m, double learning_rate) {
 }
 
 static int sgd_update(model* m) {
-  double learning_rate = m->optimizer.cache.s.learning_rate;
+  float learning_rate = m->optimizer.cache.s.learning_rate;
   for(int i = 0; i < m->num_of_layers; i++) {
     if (!update(m->hidden_linears+i, learning_rate)) {
       printf("[MODEL_UPDATE] failed at %dth linear layer\n", i);
@@ -99,7 +99,7 @@ static int adam_update(model* m) {
   // timer_reset(&start);
   m->optimizer.cache.a.timestamp++;
   adam_optimizer optimizer = m->optimizer.cache.a;
-  double learning_rate = optimizer.learning_rate;
+  float learning_rate = optimizer.learning_rate;
 
   matrix_t* grads1 = optimizer.grads_container;
 
@@ -111,7 +111,7 @@ static int adam_update(model* m) {
   for (int i = 0; i < m->param_size; ++i) {
     grads1->data[i] = *optimizer.trainable_params_g[i];
   }
-  // double rt = timer_check(&start);
+  // float rt = timer_check(&start);
 
   // updating cache
   elem_wise_minus(fst_moment, grads1);
@@ -125,29 +125,29 @@ static int adam_update(model* m) {
 
 
   // calculate update
-  double beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
-  double beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
+  float beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
+  float beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
   learning_rate = learning_rate * (sqrt(1-beta2_exp) / (1-beta1_exp));
 
-  // double uct = timer_check(&start);
+  // float uct = timer_check(&start);
 
   // matrix_t* corrected_fst = new_matrix(fst_moment->rows, fst_moment->cols);
   // matrix_t* corrected_snd = new_matrix(snd_moment->rows, snd_moment->cols);
   matrix_t* corrected_fst = optimizer.corrected_fst;
   matrix_t* corrected_snd = optimizer.corrected_snd;
-  // double mct = timer_check(&start);
+  // float mct = timer_check(&start);
   
   square_root(snd_moment, corrected_snd);
   add_scalar(corrected_snd, optimizer.epsilon);
   elem_wise_div(fst_moment, corrected_snd, corrected_fst);
   mult_scalar(corrected_fst, learning_rate);
-  // double calc_ut = timer_check(&start);
+  // float calc_ut = timer_check(&start);
 
   // write back
   for (int j = 0; j < m->param_size; ++j) {
     *optimizer.trainable_params[j] -= corrected_fst->data[j];
   }
-  // double wb = timer_check(&start);
+  // float wb = timer_check(&start);
   // printf("reatrieve %.1f update cache %.1f mct %.1f calculate update %.1f write back %.1f\n", rt, uct, mct, calc_ut, wb);
   // free_matrix(params);
 
@@ -221,7 +221,7 @@ int init_adam(model* m) {
 static int sgd_update(model* m);
 static int adam_update(model* m);
 
-int perform_update(model* m, double learning_rate) {
+int perform_update(model* m, float learning_rate) {
   if (learning_rate > 0) {
     switch (m->optimizer.type) {
       case sgd:
@@ -246,7 +246,7 @@ int perform_update(model* m, double learning_rate) {
 }
 
 static int sgd_update(model* m) {
-  double learning_rate = m->optimizer.cache.s.learning_rate;
+  float learning_rate = m->optimizer.cache.s.learning_rate;
   for(int i = 0; i < m->num_of_layers; i++) {
     if (!update(m->hidden_linears+i, learning_rate)) {
       printf("[MODEL_UPDATE] failed at %dth linear layer\n", i);
@@ -310,7 +310,7 @@ void* update_layer(void* arg) {
   int to = u->to;
 
   adam_optimizer optimizer = m->optimizer.cache.a;
-  double learning_rate = optimizer.learning_rate;
+  float learning_rate = optimizer.learning_rate;
 
   for (int i = from; i < to; ++i) {
     // printf("doing %d\n", i);
@@ -347,8 +347,8 @@ void* update_layer(void* arg) {
 
     // compute bias-corrected first moment
     
-    double beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
-    double beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
+    float beta1_exp = pow(optimizer.beta1, optimizer.timestamp);
+    float beta2_exp = pow(optimizer.beta2, optimizer.timestamp);
     matrix_t* corrected_fst_W = matrix_clone(nxt_fst_moment->data.l.W);
     matrix_t* corrected_fst_b = matrix_clone(nxt_fst_moment->data.l.b);
     matrix_t* corrected_snd_W = matrix_clone(nxt_snd_moment->data.l.W);

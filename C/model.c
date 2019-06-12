@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include "utils.h"
 
-static double model_forward(model* m, matrix_t* x, matrix_t* y);
+static float model_forward(model* m, matrix_t* x, matrix_t* y);
 
 model* init_model(int input_dim) {
   model* new_m = malloc(sizeof(model));
@@ -158,13 +158,13 @@ int print_network(model* m) {
 
 
 
-double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double learning_rate, int shuffle, int auto_update) {
+float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float learning_rate, int shuffle, int auto_update) {
   assert(x->rows == y->rows);
   if (!m->cache_initialized && !init_caches(m, x->rows)) {
     printf("[INIT_CACHES] failed to initialize caches\n");
     exit(1);
   }
-  double final_loss = 0;
+  float final_loss = 0;
 
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
@@ -183,14 +183,14 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     }
     int data_size = x->rows;
     int start = 0;
-    double loss = 0;
+    float loss = 0;
 
     struct timeval ep_t_start;
     timer_reset(&ep_t_start);
-    double prep = 0;
-    double forward = 0;
-    double backward = 0;
-    double update = 0;
+    float prep = 0;
+    float forward = 0;
+    float backward = 0;
+    float update = 0;
 
     while (start < data_size - 1) {
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
@@ -228,7 +228,7 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       final_loss = loss;
     }
     #ifdef RUN_TEST
-    double msec = timer_check(&t_start);
+    float msec = timer_check(&t_start);
     printf("%f time: %.1f ms | prep: %.1f forward: %.1f backward: %.1f update %.1f\n", loss, msec, prep, forward, backward, update);
     fflush(stdout);
     if (loss > 1000) {
@@ -300,12 +300,12 @@ int predict(model* m, matrix_t* x) {
   return 1;
 }
 
-static double model_forward(model* m, matrix_t* x, matrix_t* y) {
+static float model_forward(model* m, matrix_t* x, matrix_t* y) {
   if (!predict(m, x)) {
     exit(1);
   }
 
-  double loss = loss_forward(&m->loss_layer, x, y);
+  float loss = loss_forward(&m->loss_layer, x, y);
   return loss;
 }
 
@@ -325,8 +325,8 @@ int model_backward(model* m, matrix_t* grad) {
 }
 
 
-double eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max) {
-  double sum = 0;
+float eval(model* m, matrix_t* x, matrix_t* y, matrix_t* min_max) {
+  float sum = 0;
   matrix_t* min_max_y = slice_col_wise(min_max, x->cols, min_max->cols);
   augment_space(x, x->rows, m->max_out);
   predict(m, x);

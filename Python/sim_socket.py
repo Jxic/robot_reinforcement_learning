@@ -10,7 +10,7 @@ class sim_socket:
   def __init__(self, game='Pendulum-v0'):
     self.host = '127.0.0.1'
     self.port = 6666
-    self.double_size = 8
+    self.float_size = 8
     self.action_dim = 4 if game != 'Pendulum-v0' else 1
     self.state_dim = 31 if game != 'Pendulum-v0' else 3
     self.flag_dim = 2
@@ -29,7 +29,7 @@ class sim_socket:
     print("Established connection from {}".format(str(addr)))
     still_open = True
     while still_open:
-      data = conn.recv((self.action_dim+self.flag_dim)*self.double_size)
+      data = conn.recv((self.action_dim+self.flag_dim)*self.float_size)
       data = struct.unpack('d'*(self.action_dim+self.flag_dim), data)
       #print("From C: {}".format(data))
       if not data[0] and not data[1]:

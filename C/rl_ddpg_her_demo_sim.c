@@ -71,10 +71,10 @@ static int store_sample_her(experience_buffer* expbuf, matrix_t** episode_s1, ma
 static int init_actor_w_target();
 static int init_critic_w_target();
 static int pre_training();
-//  double reward(matrix_t* last, matrix_t* curr);
-static matrix_t* get_action(matrix_t* state, double act_noise);
-static double* run_epoch();
-static double* train();
+//  float reward(matrix_t* last, matrix_t* curr);
+static matrix_t* get_action(matrix_t* state, float act_noise);
+static float* run_epoch();
+static float* train();
 static void save_all_model();
 static int update_target();
 #ifdef MPI
@@ -117,9 +117,9 @@ void run_ddpg_her_w_demo_sim() {
   clock_t start = clock(), diff;
   while (epc < EPOCH) {
     epc++;
-    double* info = run_epoch();
+    float* info = run_epoch();
     // printf("sampled\n");
-    double* train_info = NULL;
+    float* train_info = NULL;
     for (int i = 0; i < N_BATCHES; ++i) {
       train_info = train();
       if (i != N_BATCHES - 1) {
@@ -132,10 +132,10 @@ void run_ddpg_her_w_demo_sim() {
     int msec = diff * 1000 / CLOCKS_PER_SEC;
     #ifdef MPI
     if (!rank) {
-      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+      printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(float)60000);
     }
     #else
-    printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(double)60000);
+    printf("Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Mean Q: %.1f| Time elapsed: %.1f mins \n", epc, info[0], train_info[0], train_info[1],msec/(float)60000);
     #endif
     free(info);
     free(train_info);
@@ -249,10 +249,10 @@ static int pre_training() {
   return 1;
 }
 
-static double* run_epoch() {
-  double sum = 0;
-  double dones = 0;
-  //double final_loss = 0;
+static float* run_epoch() {
+  float sum = 0;
+  float dones = 0;
+  //float final_loss = 0;
   matrix_t** episode_s1 = calloc(MAX_EPOCH_LEN, sizeof(matrix_t*));
   matrix_t** episode_s2 = calloc(MAX_EPOCH_LEN, sizeof(matrix_t*));
   matrix_t** episode_a = calloc(MAX_EPOCH_LEN, sizeof(matrix_t*));
@@ -268,7 +268,7 @@ static double* run_epoch() {
   for (int i = 0; i < MAX_EPOCH_LEN; ++i) {
     matrix_t* new_action = get_action(state, NOISE_SCALE);
     matrix_t* nxt_state = step(new_action, STATE_DIM+AG_DIM, ACTION_DIM);
-    double new_reward = nxt_state->data[nxt_state->cols-1];
+    float new_reward = nxt_state->data[nxt_state->cols-1];
     sum += new_reward;
   
     episode_s1[i] = matrix_clone(state);
@@ -296,14 +296,14 @@ static double* run_epoch() {
   //update_normalizer(norm, episode_s2, count);
   store_sample_her(exp_buf, episode_s1, episode_s2, episode_a, count);
 
-  double* ret = calloc(2, sizeof(double));
+  float* ret = calloc(2, sizeof(float));
   ret[0] = sum;
   ret[1] = dones;
   return ret;
 }
 
 static int store_sample_her(experience_buffer* exp_buf, matrix_t** episode_s1, matrix_t** episode_s2, matrix_t** episode_a, int count) {
-  double add_replay = PORTION_OF_TRANSITION_WITH_ADDITIONAL_GOAL;
+  float add_replay = PORTION_OF_TRANSITION_WITH_ADDITIONAL_GOAL;
   for (int i = 0; i < count; ++i) {
     // printf("doing %d\n", i);
     matrix_t* nxt_s1 = episode_s1[i];
@@ -326,7 +326,7 @@ static int store_sample_her(experience_buffer* exp_buf, matrix_t** episode_s1, m
         matrix_t* future_ob1 = episode_s1[future_idx];
         matrix_t* future_ob2 = episode_s2[future_idx];
         matrix_t* ag;
-        double new_reward = future_idx-i<=1 ? 0 : -1;
+        float new_reward = future_idx-i<=1 ? 0 : -1;
         if (future_idx == i) {
           ag = slice_col_wise(future_ob2, STATE_DIM, STATE_DIM+AG_DIM);
         } else {
@@ -335,8 +335,8 @@ static int store_sample_her(experience_buffer* exp_buf, matrix_t** episode_s1, m
         matrix_t* s_a_ns_dr_additional = matrix_clone(s_a_ns_dr);
         int goal_offset_1 = STATE_DIM - G_DIM;
         int goal_offset_2 = STATE_DIM + ACTION_DIM + STATE_DIM - G_DIM;
-        memcpy(s_a_ns_dr_additional->data+goal_offset_1, ag->data, G_DIM*sizeof(double));
-        memcpy(s_a_ns_dr_additional->data+goal_offset_2, ag->data, G_DIM*sizeof(double));
+        memcpy(s_a_ns_dr_additional->data+goal_offset_1, ag->data, G_DIM*sizeof(float));
+        memcpy(s_a_ns_dr_additional->data+goal_offset_2, ag->data, G_DIM*sizeof(float));
         s_a_ns_dr_additional->data[STATE_DIM*2+ACTION_DIM+1] = new_reward;
         store_experience(exp_buf, s_a_ns_dr_additional);
         free_matrix(ag);
@@ -358,7 +358,7 @@ static int store_sample_her(experience_buffer* exp_buf, matrix_t** episode_s1, m
   return 1;
 }
 
-static matrix_t* get_action(matrix_t* state, double noise_scale) {
+static matrix_t* get_action(matrix_t* state, float noise_scale) {
   if (rand_uniform(0, 1) < RANDOM_EPS) {
     return random_action(STATE_DIM+AG_DIM, ACTION_DIM);
   }
@@ -378,7 +378,7 @@ static matrix_t* get_action(matrix_t* state, double noise_scale) {
 }
 
 
-static double* train() {
+static float* train() {
   // training on past experiences, demo experiences, BC loss, Q filter (l2 regularize on action)
   matrix_t* policy_batch = sample_experience(exp_buf, BATCH_SIZE-DEMO_BATCH_SIZE);
   matrix_t* demo_batch = sample_experience(demo_buf, DEMO_BATCH_SIZE);
@@ -427,9 +427,9 @@ static double* train() {
   matrix_t* q_n_actions = concatenate(states, n_actions, 1);
   predict(critic, q_n_actions);
   matrix_t* c_grad = matrix_clone(q_n_actions);
-  double mean_q = mean(q_n_actions);
+  float mean_q = mean(q_n_actions);
   for (int i = 0; i < c_grad->rows*c_grad->cols; ++i) {
-    c_grad->data[i] = 1 / (double)c_grad->rows;
+    c_grad->data[i] = 1 / (float)c_grad->rows;
   }
 
   model_backward(critic, c_grad);
@@ -450,8 +450,8 @@ static double* train() {
   matrix_t* policy_act_demo_target = matrix_clone(demo_actions);
   matrix_t* bc_grad = matrix_clone(policy_act_demo);
   elem_wise_minus(bc_grad, policy_act_demo_target);
-  mult_scalar(bc_grad, (double)2);
-  //mult_scalar(bc_grad, 1/(double)bc_grad->rows);
+  mult_scalar(bc_grad, (float)2);
+  //mult_scalar(bc_grad, 1/(float)bc_grad->rows);
   for (int i = 0; i < DEMO_BATCH_SIZE; ++i) {
     if (q_n_actions->data[i+demo_offset] > demo_q->data[i]) {
       for (int j = 0; j < bc_grad->cols; ++j) {
@@ -472,10 +472,10 @@ static double* train() {
 
   // back propagation and update
   #ifdef MPI
-  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 0);
+  float final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 0);
   mpi_perform_update(critic, C_LR, 0);
   #else
-  double final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
+  float final_loss = fit(critic, qs, rewards, BATCH_SIZE, 1, C_LR, 0, 1);
   #endif
   model_backward(actor, a_grad);
   #ifdef MPI
@@ -509,7 +509,7 @@ static double* train() {
   free_matrix(padding);
   free_matrix(bc_grad_padded);
 
-  double* info = calloc(2, sizeof(double));
+  float* info = calloc(2, sizeof(float));
   info[0] = final_loss;
   info[1] = mean_q;
   return info;
