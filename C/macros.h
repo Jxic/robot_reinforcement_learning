@@ -13,6 +13,6 @@
 
 #define C_AS_LIB
 // #define RENDER
-// #define MPI
+#define MPI
 
 #endif
