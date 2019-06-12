@@ -167,10 +167,10 @@ int add_scalar(matrix_t* a, double b) {
 
 int inverse(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
-  #ifdef MKL
-  vdInv(a->rows*a->cols, a->data, a->data);
-  return 1;
-  #endif
+  // #ifdef MKL
+  // vdInv(a->rows*a->cols, a->data, a->data);
+  // return 1;
+  // #endif
   for (int i = 0; i < a->rows*a->cols; ++i) {
     //assert(a->data[i]);
     a->data[i] = 1/a->data[i];
