@@ -16,6 +16,8 @@ matrix_t* rand_normal(int size);
 matrix_t* trunc_normal(int size, double high, double low);
 void timer_reset(struct timeval* t);
 double timer_check(struct timeval* t);
+double timer_observe(struct timeval* t);
+
 #ifdef __cplusplus
 }
 #endif
