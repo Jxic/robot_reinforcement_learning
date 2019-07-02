@@ -22,3 +22,4 @@ optimization_result
 prof*
 *.log
 keras_log
+individual_data

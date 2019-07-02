@@ -66,6 +66,10 @@ static model *actor, *critic, *actor_target, *critic_target;
 static experience_buffer* exp_buf;
 static experience_buffer* demo_buf;
 static normalizer* norm;
+#ifdef MPI
+static int seeds[20] = {0,1,3,8,9,11,12,13,14,15,16,18,20,22,23,25,26,28,30,32};
+#endif
+
 
 static int store_sample_her(experience_buffer* expbuf, matrix_t** episode_s1, matrix_t** episode_s2, matrix_t** episode_a, int count);
 static int init_actor_w_target();
@@ -85,6 +89,7 @@ void run_ddpg_her_w_demo_sim() {
   // preparation phase
   #ifdef MPI
   rank = mpi_init();
+  srand(seeds[rank]);
   #endif
   init_actor_w_target();
   init_critic_w_target();
