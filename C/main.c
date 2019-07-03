@@ -12,6 +12,7 @@
 #include "test_agent.h"
 #include "socket_utils.h"
 #include "sim_api.h"
+#include "layers.h"
 #ifdef MKL
 #include "mkl.h"
 #endif
@@ -31,8 +32,14 @@ int _main() {
   #endif
   #endif
 
-  #ifdef RUN_TEST  
-  return simple_test();
+  #ifdef RUN_TEST 
+  // return simple_test();
+  matrix_t* a = new_matrix(2, 50);
+  initialize(a, xavier);
+  print_matrix(a, 1);
+  matrix_t* recon = conv_reconstruct_input(a, 5, 5, 2, 3, 3, 2, 1, 1);
+  
+  print_matrix(recon, 1);
   #else
   
   // matrix_t* a = new_matrix(3,4);

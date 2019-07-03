@@ -9,6 +9,7 @@
 
 // hidden layer neurons forward
 static int linear_forward(layer* l, matrix_t* x);
+static int conv_forward(layer* l, matrix_t* x);
 // activation layer forward
 static int relu_forward(layer* l, matrix_t* x);
 static int sigmoid_forward(layer* l, matrix_t* x);
@@ -17,6 +18,7 @@ static int tanh_forward(layer* l, matrix_t* x);
 
 // hidden layer neurons backward
 static int linear_backward(layer* l, matrix_t* grad);
+static int conv_backward(layer* l, matrix_t* grad);
 // activation layer backward
 static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
@@ -25,12 +27,16 @@ static int tanh_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
 static int linear_update(layer* l, double learning_rate);
+static int conv_update(layer* l, double learning_rate);
 
 // loss layer forward and backward
 static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
 static matrix_t* mse_loss_backward(layer* l);
 static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target);
 static matrix_t* cross_entropy_backward(layer* l);
+
+// helper
+//  static int conv_reconstruct_output(matrix_t* output, int o_rows, int o_cols, int o_channels, matrix_t* out);
 
 int forward(layer* l, matrix_t* x) {
   switch (l->type) {
@@ -44,6 +50,8 @@ int forward(layer* l, matrix_t* x) {
       return tanh_forward(l, x);
     case placeholder:
       return placeholder_forward(l, x);
+    case conv:
+      return conv_forward(l, x);
     default:
       printf("[HIDDEN FORWARD] Encountered unrecognized layer, %d", l->type);
       exit(1);
@@ -62,6 +70,8 @@ int backward(layer* l, matrix_t* grad) {
       return tanh_backward(l, grad);
     case placeholder:
       return placeholder_backward(l, grad);
+    case conv:
+      return conv_backward(l, grad);
     default:
       printf("[HIDDEN BACKWARD] Encountered unrecognize layer, %d", l->type);
       exit(1);
@@ -72,6 +82,8 @@ int update(layer* l, double learning_rate) {
   switch (l->type) {
     case linear:
       return linear_update(l, learning_rate);
+    case conv:
+      return conv_update(l, learning_rate);
     default:
       break;
   }
@@ -105,6 +117,19 @@ matrix_t* loss_backward(layer* l) {
 
 int linear_update(layer* l, double learning_rate) {
   assert(l->type == linear);
+  linear_layer layer_data = l->data.l;
+
+  mult_scalar(layer_data.grad_b, learning_rate);
+  mult_scalar(layer_data.grad_W, learning_rate);
+
+  elem_wise_minus(layer_data.W, layer_data.grad_W);
+  elem_wise_minus(layer_data.b, layer_data.grad_b);
+
+  return 1;
+}
+
+int conv_update(layer* l, double learning_rate) {
+  assert(l->type == conv);
   linear_layer layer_data = l->data.l;
 
   mult_scalar(layer_data.grad_b, learning_rate);
@@ -160,23 +185,10 @@ static int linear_forward(layer* l, matrix_t* x) {
   return 1;
 }
 
-// static int softmax_forward(layer* l, matrix_t* x) {
-//   //softmax_layer layer_data = l->data.so;
-
-//   return 1;
-// }
-
 static int linear_backward(layer* l, matrix_t* grad) {
-
   // caveat: memory needs to be realloced to hold new data
   linear_layer layer_data = l->data.l;
-  // free_matrix(l->data.l.grad_W);
-  // free_matrix(l->data.l.grad_b);
-
   matrix_t* cache_T = transpose(layer_data.cache);
-
-  
-
   matrix_t* ones = new_matrix(1, grad->rows);
   for (int i = 0; i < grad->rows; ++i) {
     ones->data[i] = 1;
@@ -205,14 +217,9 @@ static int linear_backward(layer* l, matrix_t* grad) {
   #ifdef GPU
   }
   #endif
-
   free_matrix(ones);
-  
   free_matrix(cache_T);
   free_matrix(w_T);
-  // printf("[normal===========================]\n");
-  // print_matrix(l->data.l.grad_W, 1);
-  // printf("[normal============================]\n");
   // if (contains_nan(grad)) {
   //   printf("[LINEAR BACKWARD]");
   //   // print_matrix(grad,1);
@@ -221,6 +228,97 @@ static int linear_backward(layer* l, matrix_t* grad) {
   // }
   return 1;
 }
+
+static int conv_forward(layer* l, matrix_t* x) {
+  linear_layer layer_data = l->data.l;
+  int f_nums = layer_data.W->cols;
+  int f_rows = layer_data.sizes[0];
+  int f_cols = layer_data.sizes[1];
+  int f_channels = layer_data.sizes[2];
+  assert(f_rows*f_cols*f_channels == layer_data.W->rows);
+  int stride = layer_data.stride;
+  int padding = padding;
+  int i_rows = layer_data.input_sizes[0];
+  int i_cols = layer_data.input_sizes[1];
+  int i_channels = layer_data.input_sizes[2];
+  assert(i_rows*i_cols*i_channels == x->cols);
+
+
+
+  return 1;
+}
+
+static int conv_backward(layer* l, matrix_t* grad){
+  return 1;
+}
+
+
+matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int f_rows, int f_cols, int f_channels, int stride, int padding) {
+  assert(i_rows == i_cols); // assuming squared input for now, assuming input shape divisible by f_rows f_cols for now
+  printf("reconstructing batch: %d (ir: %d, ic: %d, ich: %d) (fr: %d, fc: %d, fch: %d) stride: %d padding %d\n", input->rows,i_rows, i_cols, i_channels, f_rows, f_cols, f_channels, stride, padding);
+  matrix_t* ret;
+  int single_channel_size = (i_rows + padding * 2 - f_rows) / stride + 1;
+  printf("single channel size %d\n", single_channel_size);
+  int single_output_size = pow(single_channel_size,2);
+  printf("reconstructed rows %d\n",single_output_size*input->rows);
+  ret = new_matrix(single_output_size*input->rows, f_rows*f_cols*f_channels);
+
+  matrix_t* prep_input = padding ? padded_input(input, i_rows, i_cols, i_channels, padding) : matrix_clone(input);
+  printf("padded dimension %d %d\n", prep_input->rows, prep_input->cols);
+  print_matrix(prep_input, 1);
+  int sub_cube_count = 0;
+  for (int i = 0; i < prep_input->rows; ++i) {
+    for (int r = 0; r < i_rows+padding*2; r += stride) {
+      if (r + f_cols > i_cols+padding*2) continue;
+      for (int c = 0; c < i_cols+padding*2; c += stride) {
+        if (c + f_rows > i_rows+padding*2) continue;
+        for (int j = 0; j < i_channels; ++j) {
+          for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
+            // printf("moving from sample: %d, row: %d, col: %d, channel: %d, subrow: %d\n", i, r, c, j, sub_r);
+            double* from = prep_input->data + i*prep_input->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
+          
+            double* to = ret->data + sub_cube_count*ret->cols + j*f_rows*f_cols + sub_r*f_cols;
+            
+            memcpy(to, from, f_cols*sizeof(double));
+            if (i) {
+              printf("moving %f %f %f to %d row\n", *from, *(from+1), *(from+2), sub_cube_count);
+            }
+          }
+        }
+        sub_cube_count++;
+      }
+    }
+  }
+
+  return ret;
+}
+
+static int conv_reconstruct_output(matrix_t* output, int o_rows, int o_cols, int o_channels, matrix_t* out) {
+  return 1;
+}
+
+matrix_t* padded_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int padding) {
+  matrix_t* ret;
+
+  int single_channel_size = (i_rows + padding*2) * (i_cols+padding*2);
+  int padded_size = single_channel_size * i_channels;
+  
+  ret = new_matrix(input->rows, padded_size);
+  initialize(ret, zeros);
+  for (int i = 0; i < input->rows; ++i) {
+    for (int k = 0; k < i_channels; ++k) {
+      int row_pos = 0;
+      for (int j = (i_cols+padding*2)*padding+padding+k*single_channel_size; j < single_channel_size+k*single_channel_size-((i_cols+padding*2)*padding+padding); j += i_cols+padding*2) {
+        // printf("j %d\n", j);
+        memcpy(ret->data+i*ret->cols+j, input->data+k*single_channel_size+row_pos*i_cols, i_cols*sizeof(double));
+        row_pos++;
+      }
+    }
+  }
+
+  return ret;
+}
+
 
 static int relu_backward(layer* l, matrix_t* grad) {
   elem_wise_mult(grad, l->data.r.cache);
