@@ -12,14 +12,16 @@
 #include "rl_ddpg_her_demo_sim.h"
 #include "multi_agents/rl_ddpg_her_mpi.h"
 
-static void test_run();
+static void test_run_mse();
+static void test_run_cce();
 
 void run_rl(rl_type t) {
   switch (t)
   {
     case test:
       printf("Running test algorithm ... \n");
-      test_run();
+      // test_run_mse();
+      test_run_cce();
       break;
     
     // deep deterministic policy gradient
@@ -66,8 +68,18 @@ static model* init_model_0(int size) {
   return new_model;
 }
 
+static model* init_model_1(int size) {
+  model* new_model = init_model(3);
+  add_linear_layer(new_model, size, relu);
+  add_linear_layer(new_model, size, relu);
+  add_linear_layer(new_model, 4, placeholder);
+  compile_model(new_model, cce_loss, adam);
+  print_network(new_model);
+  return new_model;
+}
 
-void test_run() {
+
+void test_run_mse() {
   
   matrix_t* t;
   #ifndef C_AS_LIB
@@ -96,4 +108,38 @@ void test_run() {
   // print_network(m_);
   double loss = eval(m, x, y, min_max);
   printf("test run finished with error rate of %f (mse).\n", loss);
+}
+
+void test_run_cce() {
+  matrix_t* t;
+  #ifndef C_AS_LIB
+  t = load_data("ROI_dataset.dat");
+  #else
+  t = load_data("../src/robot_reinforcement_learning/C/FM_dataset.dat");
+  #endif
+  // matrix_t* min_max = normalize(t);
+  shuffle_row_wise(t, 0);  
+  matrix_t* x = slice_col_wise(t, 0, 3);
+  normalize(x);
+  matrix_t* y = slice_col_wise(t, 3, 7);
+  
+  int batch_size = 32;
+  int epoch = 100;
+  double learning_rate = 0.001;
+  int shuffle = 1;
+
+  model* m;
+  m = init_model_1(100);
+  fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
+  predict(m, x);
+
+  matrix_t* predicted = matrix_row_argmax(x);
+  matrix_t* truth = matrix_row_argmax(y);
+  int corrected = 0;
+  for (int i = 0; i < y->rows; ++i) {
+    if (predicted->data[i] == truth->data[i]) {
+      corrected++;
+    }
+  }
+  printf("correct %d, accuracy %f\n", corrected, corrected/(double)y->rows);
 }

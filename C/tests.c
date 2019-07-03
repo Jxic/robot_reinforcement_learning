@@ -20,6 +20,9 @@ matrix_t* mat_3_3_neg();
 matrix_t* mat_3_3_wiz_factor();
 matrix_t* mat_2_3();
 matrix_t* mat_3_2();
+matrix_t* mat_4_3_v_sum();
+matrix_t* mat_4_3_h_sum();
+matrix_t* mat_4_3_a_sum();
 
 char* matrix_test_elem_wise_add();
 char* matrix_test_elem_wise_minus();
@@ -36,6 +39,7 @@ char* matrix_test_copy_matrix();
 char* matrix_test_slice_row_wise();
 char* matrix_test_augment_space();
 char* matrix_test_slice_col_wise();
+char* matrix_test_sum();
 
 char* test_all(){
   mu_run_test(matrix_test_equal);
@@ -53,6 +57,7 @@ char* test_all(){
   mu_run_test(matrix_test_slice_row_wise);
   mu_run_test(matrix_test_augment_space);
   mu_run_test(matrix_test_slice_col_wise);
+  mu_run_test(matrix_test_sum);
   //printf("testing break\n");
   return 0;
 }
@@ -68,6 +73,17 @@ void test_results(){
   if(result != 0) {
     exit(0);
   }
+}
+
+char* matrix_test_sum() {
+  matrix_t* test_mat = mat_4_3();
+  matrix_t* v_sum = mat_4_3_v_sum();
+  matrix_t* h_sum = mat_4_3_h_sum();
+  matrix_t* a_sum = mat_4_3_a_sum();
+  mu_assert("[MATRIX_TEST_SUM_VERTICAL] wrong result summing", equal(v_sum, matrix_sum(test_mat, 0)));
+  mu_assert("[MATRIX_TEST_SUM_HORIZONTAL] wrong result summing", equal(h_sum, matrix_sum(test_mat, 1)));
+  mu_assert("[MATRIX_TEST_SUM_ALL] wrong result summing", equal(a_sum, matrix_sum(test_mat, 2)));
+  return 0;
 }
 
 char* matrix_test_slice_row_wise() {
@@ -279,5 +295,28 @@ matrix_t* mat_3_2() {
   matrix_t* new_mat = new_matrix(3,2);
   double answer[] = {2,3,5,6,8,9};
   memcpy(new_mat->data, answer, 6*sizeof(double));
+  return new_mat;
+}
+
+// matrix_t* mat_4_3_v_sum();
+// matrix_t* mat_4_3_h_sum();
+// matrix_t* mat_4_3_a_sum();
+matrix_t* mat_4_3_v_sum() {
+  matrix_t* new_mat = new_matrix(1, 3);
+  double answer[] = {10,26,42};
+  memcpy(new_mat->data, answer, 3*sizeof(double));
+  return new_mat;
+}
+
+matrix_t* mat_4_3_h_sum() {
+  matrix_t* new_mat = new_matrix(4, 1);
+  double answer[] = {15, 18, 21, 24};
+  memcpy(new_mat->data, answer, 4*sizeof(double));
+  return new_mat;
+}
+
+matrix_t* mat_4_3_a_sum() {
+  matrix_t* new_mat = new_matrix(1,1);
+  new_mat->data[0] = 78;
   return new_mat;
 }

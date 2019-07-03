@@ -357,8 +357,8 @@ void* update_layer(void* arg) {
 
     learning_rate = learning_rate * (sqrt(1-beta2_exp) / (1-beta1_exp));
 
-    square_root(corrected_snd_W);
-    square_root(corrected_snd_b);
+    square_root(corrected_snd_W, corrected_snd_W);
+    square_root(corrected_snd_b, corrected_snd_b);
     
     add_scalar(corrected_snd_W, optimizer.epsilon);
     add_scalar(corrected_snd_b, optimizer.epsilon);

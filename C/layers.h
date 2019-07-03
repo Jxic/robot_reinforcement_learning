@@ -36,6 +36,11 @@ typedef struct _mse_loss_layer {
   matrix_t* cache_target;
 } mse_loss_layer;
 
+typedef struct _cce_loss_layer {
+  matrix_t* cache_pred;
+  matrix_t* cache_target;
+} cce_loss_layer;
+
 typedef union _layer_data {
   relu_layer r;
   linear_layer l;
@@ -44,10 +49,11 @@ typedef union _layer_data {
   softmax_layer so;
   mse_loss_layer m;
   tanh_layer t;
+  cce_loss_layer c;
 } layer_data;
 
 typedef enum _layer_type {
-  tanh_, relu, linear, sigmoid, placeholder, mse_loss, no_loss
+  tanh_, relu, linear, sigmoid, placeholder, mse_loss, no_loss, cce_loss
 } layer_type;
 
 typedef struct _layer {

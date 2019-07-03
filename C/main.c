@@ -60,7 +60,7 @@ static int simple_test() {
   printf("TEST MODE\n\n");
   
   printf("Testing matrix operations...\n");
-  // test_results();
+  test_results();
   printf("\n");
   printf("Testing data loading...\n");
   matrix_t* t;

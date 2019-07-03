@@ -14,7 +14,6 @@ static int relu_forward(layer* l, matrix_t* x);
 static int sigmoid_forward(layer* l, matrix_t* x);
 static int placeholder_forward(layer* l, matrix_t* x) {return 1;}
 static int tanh_forward(layer* l, matrix_t* x);
-// static int softmax_forward(layer* l, matrix_t* x);
 
 // hidden layer neurons backward
 static int linear_backward(layer* l, matrix_t* grad);
@@ -23,7 +22,6 @@ static int relu_backward(layer* l, matrix_t* grad);
 static int sigmoid_backward(layer* l, matrix_t* grad);
 static int placeholder_backward(layer* l, matrix_t* x) {return 1;}
 static int tanh_backward(layer* l, matrix_t* grad);
-// static int softmax_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
 static int linear_update(layer* l, double learning_rate);
@@ -31,6 +29,8 @@ static int linear_update(layer* l, double learning_rate);
 // loss layer forward and backward
 static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
 static matrix_t* mse_loss_backward(layer* l);
+static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target);
+static matrix_t* cross_entropy_backward(layer* l);
 
 int forward(layer* l, matrix_t* x) {
   switch (l->type) {
@@ -82,6 +82,8 @@ double loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   switch (l->type) {
     case mse_loss:
       return mse_loss_forward(l, x, target);
+    case cce_loss:
+      return cross_entropy_forward(l, x, target);
     default:
       printf("[LOSS FORWARD] Encountered unrecognized layer, %d", l->type);
       exit(1);
@@ -93,6 +95,8 @@ matrix_t* loss_backward(layer* l) {
   switch (l->type) {
     case mse_loss:
       return mse_loss_backward(l);
+    case cce_loss:
+      return cross_entropy_backward(l);
     default:
       printf("[LOSS BACKWARD] Encountered unrecognized layer, %d", l->type);
       exit(1);
@@ -243,7 +247,8 @@ static int tanh_forward(layer* l, matrix_t* x) {
   // apply activation
   mult_scalar(x, 2);
   neg(x);
-  for (int i = 0; i < x->rows*x->cols; ++i) x->data[i] = exp(x->data[i]);
+  // for (int i = 0; i < x->rows*x->cols; ++i) x->data[i] = exp(x->data[i]);
+  matrix_exp(x);
   add_scalar(x, 1);
   inverse(x);
   mult_scalar(x, 2);
@@ -286,6 +291,51 @@ static matrix_t* mse_loss_backward(layer* l) {
   elem_wise_minus(grad, layer_data.cache_target);
   mult_scalar(grad, 2/(double)rows);
   //mult_scalar(grad, 1/((double)rows));
+  return grad;
+}
+
+static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target) {
+  cce_loss_layer layer_data = l->data.c;
+  // softmax
+  
+  matrix_exp(x);
+  matrix_t* sums = matrix_sum(x, 1);
+  for (int i = 0; i < x->rows; ++i) {
+    for (int j = 0; j < x->cols; ++j) {
+      x->data[i*x->cols+j] /= sums->data[i];
+    }
+  }
+  copy_matrix(layer_data.cache_pred, x);
+  copy_matrix(layer_data.cache_target, target);
+
+  // cross entropy
+
+  matrix_log(x);
+
+
+  elem_wise_mult(x, target);
+  
+  matrix_t* loss_sum = matrix_sum(x,2);
+  double loss = loss_sum->data[0];
+  loss /= -(double)x->rows;
+
+  // printf("loss %f\n", loss);
+
+  free_matrix(x);
+  free_matrix(target);
+  free_matrix(loss_sum);
+
+  return loss;
+}
+
+static matrix_t* cross_entropy_backward(layer* l) {
+  cce_loss_layer layer_data = l->data.c;
+  int rows = layer_data.cache_target->rows;
+  int cols = layer_data.cache_target->cols;
+  matrix_t* grad = new_matrix(rows, cols);
+  copy_matrix(grad, layer_data.cache_target);
+  elem_wise_minus(grad, layer_data.cache_pred);
+  mult_scalar(grad, -1/(double)rows);
   return grad;
 }
 

@@ -41,13 +41,13 @@ int initialize(matrix_t* mat, initializer i) {
 
 int equal(matrix_t* a, matrix_t* b) {
   if (a->rows != b->rows || a->cols != b->cols) {
-    #ifdef RUN_TEST
+    #ifndef RUN_TEST
     printf("[MATRICES NOT EQUAL] size is different\n");
     #endif
     return 0;
   }
   if (memcmp(a->data, b->data, (a->rows*a->cols)*sizeof(double))) {
-    #ifdef RUN_TEST
+    #ifndef RUN_TEST
     printf("[MATRICES NOT EQUAL] data is different\n");
     #endif
     return 0;
@@ -203,6 +203,13 @@ int square(matrix_t* a) {
     a->data[i] = pow(a->data[i],2);
   } 
   return 1;
+}
+
+int matrix_exp(matrix_t* a) {
+  assert(a->rows > 0 && a->cols > 0);
+  for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = exp(a->data[i]);
+  return 1;
+
 }
 
 int neg(matrix_t* a) {
@@ -606,6 +613,60 @@ int scale(matrix_t* x, matrix_t* min_max) {
   free_matrix(diff);
   
   return 1;
+}
+
+int matrix_log(matrix_t* a) {
+  for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = log(a->data[i]);
+  return 1;
+}
+
+matrix_t* matrix_row_argmax(matrix_t* a) {
+  matrix_t* ret = new_matrix(a->rows, 1);
+  for (int i = 0; i < a->rows; ++i) {
+    int max = 0;
+    for (int j = 0; j < a->cols; ++j) {
+      if (a->data[i*a->cols+j] > a->data[i*a->cols+max]) max = j;
+    }
+    ret->data[i] = max;
+  }
+  return ret;
+}
+
+matrix_t* matrix_sum(matrix_t* a, int axis) {
+  // 1 horizontal, 0 vertical, 2 all
+  assert(axis == 0 || axis == 1 || axis == 2);
+  matrix_t* ret;
+  switch (axis) {
+  case 0: {
+    ret = new_matrix(1, a->cols);
+    initialize(ret, zeros);
+    for (int i = 0; i < a->rows*a->cols; ++i) {
+      ret->data[i%ret->cols] += a->data[i];
+    }
+    break;
+  }
+  case 1: {
+    ret = new_matrix(a->rows, 1);
+    initialize(ret, zeros);
+    for (int i = 0; i < a->rows*a->cols; ++i) {
+      ret->data[i/a->cols] += a->data[i];
+    }
+    break;
+  }
+  case 2: {
+    ret = new_matrix(1,1);
+    ret->data[0] = 0;
+    for (int i = 0; i < a->rows*a->cols; ++i) {
+      ret->data[0] += a->data[i];
+    }
+    break;
+  }
+  default:
+    printf("[MATRIX_SUM] wrong axis provided\n");
+    exit(1);
+    break;
+  }
+  return ret;
 }
 
 matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis) {

@@ -102,6 +102,14 @@ int compile_model(model* m, layer_type loss, optimizer_type opt_type) {
       loss_wrapper.data.m = new_mse_loss;
       break;
     }
+    case cce_loss: {
+      cce_loss_layer new_cce_loss;
+      new_cce_loss.cache_pred = NULL;
+      new_cce_loss.cache_target = NULL;
+      loss_wrapper.type = cce_loss;
+      loss_wrapper.data.c = new_cce_loss;
+      break;
+    }
     case no_loss:
       loss_wrapper.type = no_loss;
       break;
@@ -137,7 +145,7 @@ int compile_model(model* m, layer_type loss, optimizer_type opt_type) {
 }
 
 int print_network(model* m) {
-  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss", "no_loss"};
+  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss", "no_loss", "cce_loss"};
   char* opt_names[] = {"sgd", "adam", "no_opt"};
   printf("---------------------------------------\n");
   printf(" input dimension: %d\n", m->input_dim);
@@ -191,8 +199,10 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
     double forward = 0;
     double backward = 0;
     double update = 0;
+    int step_count = 0;
 
     while (start < data_size - 1) {
+      step_count++;
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
       
       // prepare next batch
@@ -204,7 +214,7 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       augment_space(next_batch, batch_size, m->max_out);
 
       // one forward and backward pass
-      loss = model_forward(m, next_batch, next_target);
+      loss += model_forward(m, next_batch, next_target);
 
       forward += timer_check(&ep_t_start);
 
@@ -225,11 +235,11 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       start = start + curr_batch;
     }
     if (epc == epoch - 1) {
-      final_loss = loss;
+      final_loss = loss / (double)step_count;
     }
     #ifdef RUN_TEST
     double msec = timer_check(&t_start);
-    printf("%f time: %.1f ms | prep: %.1f forward: %.1f backward: %.1f update %.1f\n", loss, msec, prep, forward, backward, update);
+    printf("%f time: %.1f ms | prep: %.1f forward: %.1f backward: %.1f update %.1f\n", loss / (double)step_count, msec, prep, forward, backward, update);
     fflush(stdout);
     if (loss > 1000) {
       printf("Anomalous loss %f\n", loss);
@@ -272,7 +282,10 @@ int init_caches(model* m, int batch_size) {
     case mse_loss:
       m->loss_layer.data.m.cache_pred = new_matrix(batch_size, last_layer_out);
       m->loss_layer.data.m.cache_target = new_matrix(batch_size, last_layer_out);
-      break; 
+      break;
+    case cce_loss:
+      m->loss_layer.data.c.cache_pred = new_matrix(batch_size, last_layer_out);
+      m->loss_layer.data.c.cache_target = new_matrix(batch_size, last_layer_out);
     default:
       break;
   }

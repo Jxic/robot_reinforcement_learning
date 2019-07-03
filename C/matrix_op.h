@@ -31,6 +31,10 @@ int neg(matrix_t* a);
 int inverse(matrix_t* a);
 int square_root(matrix_t* a, matrix_t* ret);
 int square(matrix_t* a);
+int matrix_exp(matrix_t* a);
+int matrix_log(matrix_t* a);
+matrix_t* matrix_sum(matrix_t* a, int axis);
+matrix_t* matrix_row_argmax(matrix_t* a);
 
 matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, matrix_t* e, matrix_t* f);
 

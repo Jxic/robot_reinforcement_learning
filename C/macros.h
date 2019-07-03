@@ -11,7 +11,7 @@
 // #define GPU
 #define OPITMIZER_V1
 
-#define C_AS_LIB
+// #define C_AS_LIB
 // #define RENDER
 // #define MPI
 
