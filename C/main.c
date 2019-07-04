@@ -21,6 +21,34 @@
 static int simple_test();
 #endif
 
+int conv_forward_test() {
+  matrix_t* a = new_matrix(2, 8);
+  for (int i = 0; i < 16; ++i) a->data[i] = i;
+  augment_space(a, 1000, 1000);
+  print_matrix(a, 1);
+  layer la;
+  la.type = conv;
+  
+  la.data.l.W = new_matrix(8, 2);
+  la.data.l.b = new_matrix(1, 2);
+  la.data.l.cache = new_matrix(1,1);
+  initialize(la.data.l.b, zeros);
+  for (int i = 0; i < 16; ++i) la.data.l.W->data[i] = i + 1;
+  print_matrix(la.data.l.W, 1);
+  la.data.l.sizes[0] = 2;
+  la.data.l.sizes[1] = 2;
+  la.data.l.sizes[2] = 2;
+
+  la.data.l.input_sizes[0] = 2;
+  la.data.l.input_sizes[1] = 2;
+  la.data.l.input_sizes[2] = 2;
+
+  la.data.l.stride = 1;
+  la.data.l.padding = 1;
+  conv_forward(&la, a);
+  print_matrix(a,1);
+  return 0;
+}
 
 int _main() {
   // preparation phase
@@ -34,12 +62,7 @@ int _main() {
 
   #ifdef RUN_TEST 
   // return simple_test();
-  matrix_t* a = new_matrix(2, 50);
-  initialize(a, xavier);
-  print_matrix(a, 1);
-  matrix_t* recon = conv_reconstruct_input(a, 5, 5, 2, 3, 3, 2, 1, 1);
-  
-  print_matrix(recon, 1);
+  // return conv_forward_test();
   #else
   
   // matrix_t* a = new_matrix(3,4);

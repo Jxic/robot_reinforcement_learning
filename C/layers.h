@@ -92,6 +92,7 @@ int free_layer(layer l);
 
 matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int f_rows, int f_cols, int f_channels, int stride, int padding);
 matrix_t* padded_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int padding);
-
+int conv_forward(layer* l, matrix_t* x);
+int update_grad_x(matrix_t* w, matrix_t* x, layer* l);
 
 #endif
