@@ -50,6 +50,86 @@ int conv_forward_test() {
   return 0;
 }
 
+int recon_test() {
+  matrix_t* a = new_matrix(2,8);
+  for (int i = 0; i < 16; ++i) a->data[i] = i;
+  matrix_t* recon = conv_reconstruct_input(a, 2,2,2,2,2,2,1,1);
+  printf("recon\n");
+  print_matrix(a, 1);
+  print_matrix(recon, 1);
+  printf("reverse\n");
+  layer la;
+  la.type = conv;
+  
+  la.data.l.W = new_matrix(8, 2);
+  la.data.l.b = new_matrix(1, 2);
+  la.data.l.cache = new_matrix(1,1);
+  initialize(la.data.l.b, zeros);
+  for (int i = 0; i < 16; ++i) la.data.l.W->data[i] = i + 1;
+  print_matrix(la.data.l.W, 1);
+  la.data.l.sizes[0] = 2;
+  la.data.l.sizes[1] = 2;
+  la.data.l.sizes[2] = 2;
+
+  la.data.l.input_sizes[0] = 2;
+  la.data.l.input_sizes[1] = 2;
+  la.data.l.input_sizes[2] = 2;
+
+  la.data.l.stride = 1;
+  la.data.l.padding = 1;
+  update_grad_x(recon, a, &la);
+  print_matrix(a, 1);
+  
+  // matrix_t* unpad_a = unpad(a, 2,2,2,1);
+  // print_matrix(unpad_a, 1);
+
+  return 0;
+}
+
+int conv_backward_test() {
+  matrix_t* a = new_matrix(2, 8);
+  for (int i = 0; i < 16; ++i) a->data[i] = i;
+  augment_space(a, 1000, 1000);
+  print_matrix(a, 1);
+  layer la;
+  la.type = conv;
+  
+  la.data.l.W = new_matrix(8, 2);
+  la.data.l.b = new_matrix(1, 2);
+  matrix_t* grad = new_matrix(2, 18);
+  la.data.l.grad_b = new_matrix(1,2);
+  la.data.l.grad_W = new_matrix(8,2);
+  initialize(la.data.l.grad_b, zeros);
+  initialize(la.data.l.grad_W, zeros);
+
+  for (int i = 0; i < 36; ++i) grad->data[i] = 1;
+  augment_space(grad, 1000,1000);
+  la.data.l.cache = new_matrix(1,1);
+  initialize(la.data.l.b, zeros);
+  for (int i = 0; i < 16; ++i) la.data.l.W->data[i] = i + 1;
+  print_matrix(la.data.l.W, 1);
+  la.data.l.sizes[0] = 2;
+  la.data.l.sizes[1] = 2;
+  la.data.l.sizes[2] = 2;
+
+  la.data.l.input_sizes[0] = 2;
+  la.data.l.input_sizes[1] = 2;
+  la.data.l.input_sizes[2] = 2;
+
+  la.data.l.stride = 1;
+  la.data.l.padding = 1;
+  conv_forward(&la, a);
+  conv_backward(&la, grad);
+  printf("grad_x\n");
+  print_matrix(grad, 1);
+  printf("grad_b\n");
+  print_matrix(la.data.l.grad_b,1);
+  print_matrix(la.data.l.grad_W,1);
+  printf("a\n");
+  print_matrix(a,1);
+  return 0;
+}
+
 int _main() {
   // preparation phase
   srand(SEED);
@@ -63,6 +143,8 @@ int _main() {
   #ifdef RUN_TEST 
   // return simple_test();
   // return conv_forward_test();
+  // return recon_test();
+  // return conv_backward_test();
   #else
   
   // matrix_t* a = new_matrix(3,4);

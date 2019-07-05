@@ -94,5 +94,8 @@ matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_
 matrix_t* padded_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int padding);
 int conv_forward(layer* l, matrix_t* x);
 int update_grad_x(matrix_t* w, matrix_t* x, layer* l);
+matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding);
+int conv_backward(layer* l, matrix_t* grad);
+
 
 #endif
