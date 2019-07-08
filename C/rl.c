@@ -21,8 +21,8 @@ void run_rl(rl_type t) {
   {
     case test:
       printf("Running test algorithm ... \n");
-      // test_run_mse();
-      // test_run_cce();
+      test_run_mse();
+      test_run_cce();
       test_run_conv();
       break;
     
@@ -105,7 +105,7 @@ void test_run_mse() {
   shuffle_row_wise(t, 0);
   matrix_t* x = slice_col_wise(t, 0, 3);
   matrix_t* y = slice_col_wise(t, 3, 6);
-  int batch_size = 16;
+  int batch_size = 32;
   int epoch = 100;
   double learning_rate = 0.001;
   int shuffle = 1;
@@ -167,23 +167,26 @@ void test_run_conv() {
   t = load_data("../src/robot_reinforcement_learning/C/FM_dataset.dat");
   #endif
   // matrix_t* min_max = normalize(t);
-  printf("loaded\n");
-  shuffle_row_wise(t, 0);  
+  printf("loaded %d lines\n", t->rows);
+  // shuffle_row_wise(t, 0);  
   matrix_t* x = slice_col_wise(t, 1, t->cols);
   if (contains_nan(x)) {
     printf("loaded data contains nan\n");
     exit(1);
   }
-  normalize(x);
+  matrix_t* temp = normalize(x);
+  free_matrix(temp);
   if (contains_nan(x)) {
     printf("normalized data contains nan\n");
     exit(1);
   }
   matrix_t* y = slice_col_wise(t, 0, 1);
-  y = one_hot_encoding(y, 10);
+  temp = one_hot_encoding(y, 10);
+  free_matrix(y);
+  y = temp;
   
   int batch_size = 4200;
-  int epoch = 40;
+  int epoch = 20;
   double learning_rate = 0.001;
   int shuffle = 1;
 
@@ -193,9 +196,9 @@ void test_run_conv() {
   print_matrix(y,0);
   print_network(m);
 
-  printf("fitting model\n");
   fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
   predict(m, x);
+
 
   matrix_t* predicted = matrix_row_argmax(x);
   matrix_t* truth = matrix_row_argmax(y);
@@ -207,13 +210,17 @@ void test_run_conv() {
   }
   printf("correct %d, accuracy %f\n", corrected, corrected/(double)y->rows);
 
-  matrix_t* test_data = load_data("test.dat");
-  normalize(test_data);
-  predict(m, test_data);
-  matrix_t* result = matrix_row_argmax(test_data);
-  FILE* fp =fopen("submission.csv", "w+");
-  for (int i = 0; i < result->rows; ++i) {
-    fprintf(fp, "%d,%d\n", i+1, (int)result->data[i]);
-  }
+  free_matrix(t);
+  free_matrix(x);
+  free_matrix(y);
+  free_model(m);
+  // matrix_t* test_data = load_data("test.dat");
+  // normalize(test_data);
+  // predict(m, test_data);
+  // matrix_t* result = matrix_row_argmax(test_data);
+  // FILE* fp =fopen("submission.csv", "w+");
+  // for (int i = 0; i < result->rows; ++i) {
+  //   fprintf(fp, "%d,%d\n", i+1, (int)result->data[i]);
+  // }
   
 }

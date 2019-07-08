@@ -9,7 +9,7 @@ EXE = main
 
 # for production
 CC = mpicc
-CFLAGS = -Wall  -pedantic -DMKL_ILP64 -m64 -I${MKLROOT}/include  -O3
+CFLAGS = -Wall -pedantic -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3 
 MKL_FLAGS = ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_intel_thread.a ${MKLROOT}/lib/libmkl_core.a -liomp5 -lpthread -lm -ldl
 #-Rpass=loop-vectorize -Rpass-analysis=loop-vectorize (append this to see which for loop is optimized)
 

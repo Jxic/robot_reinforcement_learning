@@ -168,7 +168,7 @@ int _main() {
 
   #ifdef MKL
   #ifdef MULTI_MKL_THREAD
- mkl_set_num_threads(0);
+  mkl_set_num_threads(0);
   #endif
   #endif
 
@@ -207,15 +207,15 @@ static int simple_test() {
   printf("Testing matrix operations...\n");
   test_results();
   printf("\n");
-  // printf("Testing data loading...\n");
-  // matrix_t* t;
-  // #ifndef C_AS_LIB
-  // t = load_data("FM_dataset.dat");
-  // #else
-  // t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
-  // #endif
-  // print_matrix(t, 0);
-  // printf("\n");
+  printf("Testing data loading...\n");
+  matrix_t* t;
+  #ifndef C_AS_LIB
+  t = load_data("FM_dataset.dat");
+  #else
+  t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
+  #endif
+  print_matrix(t, 0);
+  printf("\n");
   printf("Testing with sample data, timing...\n");
   struct timeval start;
   timer_reset(&start);

@@ -237,7 +237,7 @@ int conv_forward(layer* l, matrix_t* x) {
     exit(1);
   }
   linear_layer layer_data = l->data.l;
-  int f_nums = layer_data.W->cols;
+  // int f_nums = layer_data.W->cols;
   int f_rows = layer_data.sizes[0];
   int f_cols = layer_data.sizes[1];
   int f_channels = layer_data.sizes[2];
@@ -256,39 +256,24 @@ int conv_forward(layer* l, matrix_t* x) {
 
   matrix_t* W = layer_data.W;
   matrix_t* b = layer_data.b;
-  // printf("reconstructing input\n");
   matrix_t* recon = conv_reconstruct_input(x, i_rows, i_cols, i_channels, f_rows, f_cols, f_channels, stride, padding);
-  // printf("multiplication with weighs recon (%d %d) weights (%d %d)\n", recon->rows, recon->cols, W->rows, W->cols);
+
   matmul(recon, W, x);
-  // print_matrix(x, 1);
-  // printf("adding bias x (%d %d)\n", x->rows, x->cols);
   add_bias(x, b);
 
-  // printf("rearranging to result\n");
-  // printf("transposing\n");
   matrix_t* trans_x = transpose(x);
-  // printf("slicing\n");
   matrix_t* fst_row = slice_col_wise(trans_x, 0, single_filter_output_size);
   fst_row->cols *= fst_row->rows;
   fst_row->rows = 1;
-
-  // printf("trans\n");
-  // print_matrix(trans_x, 1);
 
   matrix_t** rows = calloc(batch, sizeof(*rows));
   rows[0] = fst_row;
 
   for (int i = 1; i < batch; ++i) {
-    // printf("%d slicing\n", i);
     matrix_t* nxt_row = slice_col_wise(trans_x, i*single_filter_output_size, (i+1)*single_filter_output_size);
     nxt_row->cols = nxt_row->rows * nxt_row->cols;
     nxt_row->rows = 1;
-    // printf("%d concatenating\n", i);
-    // matrix_t* new = concatenate(fst_row, nxt_row, 0);
-    // free_matrix(fst_row);
-    // free_matrix(nxt_row);
     rows[i] = nxt_row;
-    // fst_row = new;
   }
 
   int row_size = rows[0]->cols;
@@ -300,20 +285,14 @@ int conv_forward(layer* l, matrix_t* x) {
   x->cols = row_size;
   x->rows = batch;
 
-  // print_matrix(x, 0);
-
   free_matrix(trans_x);
-  // copy_matrix(x, fst_row);
-  // add_bias(x, b);
-  // free_matrix(fst_row);
   free_matrix(layer_data.cache);
   free(rows);
   l->data.l.cache = recon;
-  // printf("pooling\n");
   if (layer_data.with_pooling) {
     max_pool_forward((layer*)layer_data.max_pool, x);
   }
-  // printf("done\n");
+
   return 1;
 }
 
@@ -326,25 +305,16 @@ int conv_backward(layer* l, matrix_t* grad){
   matrix_t* grad_W = l->data.l.grad_W;
   matrix_t* W = l->data.l.W;
   int f_num = l->data.l.W->cols;
-
-
-  // initialize(grad_W, zeros);
   int single_filter_output_size = grad->cols / f_num;
-  // printf("single filter out size %d\n", single_filter_output_size);
-  // print_matrix(grad, 1);
+
+
   matrix_t* fst_row = slice_col_wise(grad, 0, single_filter_output_size);
-  // printf("fst row (1)\n");
-  // print_matrix(fst_row, 1);
   matrix_t* sum = matrix_sum(fst_row, 2);
-  // printf("fst sum\n");
-  // print_matrix(sum, 1);
   grad_b->data[0] = sum->data[0];
   free_matrix(sum);
   fst_row->cols *= fst_row->rows;
   fst_row->rows = 1;
 
-  // printf("fst row\n");
-  // print_matrix(fst_row, 1);
   for (int i = 1; i < f_num; ++i) {
     matrix_t* nxt_row = slice_col_wise(grad, i*single_filter_output_size, (i+1)*single_filter_output_size);
     sum = matrix_sum(nxt_row, 2);
@@ -357,8 +327,6 @@ int conv_backward(layer* l, matrix_t* grad){
     free_matrix(nxt_row);
     fst_row = new;
   }
-  // printf("backward reconed\n");
-  // print_matrix(fst_row, 1);
 
   matrix_t* new_grad = new_matrix(f_num, grad_W->rows);
   matmul(fst_row, recon, new_grad);
@@ -367,16 +335,10 @@ int conv_backward(layer* l, matrix_t* grad){
   copy_matrix(grad_W, new_grad_T);
 
   // update grad x
-  // grad->rows *= grad->cols;
-  // grad->cols = 1;
 
   matrix_t* windows_grad_T = new_matrix(grad_W->rows, fst_row->cols);
   matmul(W, fst_row, windows_grad_T);
-  // printf("W\n");
-  // print_matrix(W, 1);
   matrix_t* windows_grad = transpose(windows_grad_T);
-  // printf("windows_grad\n");
-  // print_matrix(windows_grad,1);
   update_grad_x(windows_grad, grad, l);
 
   free_matrix(windows_grad);
@@ -390,19 +352,17 @@ int conv_backward(layer* l, matrix_t* grad){
 
 int update_grad_x(matrix_t* w, matrix_t* x, layer* l) {
   linear_layer layer_data = l->data.l;
-  int f_nums = layer_data.W->cols;
+  // int f_nums = layer_data.W->cols;
   int f_rows = layer_data.sizes[0];
   int f_cols = layer_data.sizes[1];
-  int f_channels = layer_data.sizes[2];
-  // assert(f_rows*f_cols*f_channels == layer_data.W->rows);
+  // int f_channels = layer_data.sizes[2];
   int stride = layer_data.stride;
   int padding = layer_data.padding;
   int i_rows = layer_data.input_sizes[0];
   int i_cols = layer_data.input_sizes[1];
   int i_channels = layer_data.input_sizes[2];
-  // assert(i_rows*i_cols*i_channels == x->cols);
-  int single_filter_output_dim = (i_rows + padding * 2 - f_rows) / stride + 1;
-  int single_filter_output_size = pow(single_filter_output_dim, 2);
+  // int single_filter_output_dim = (i_rows + padding * 2 - f_rows) / stride + 1;
+  // int single_filter_output_size = pow(single_filter_output_dim, 2);
 
   int batch = x->rows;
   x->cols = (i_rows + padding*2) * (i_cols + padding*2) * i_channels;
@@ -416,18 +376,12 @@ int update_grad_x(matrix_t* w, matrix_t* x, layer* l) {
         if (c + f_rows > i_rows+padding*2) continue;
         for (int j = 0; j < i_channels; ++j) {
           for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
-            // printf("moving from sample: %d, row: %d, col: %d, channel: %d, subrow: %d\n", i, r, c, j, sub_r);
             double* to = x->data + i*x->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
-          
             double* from = w->data + sub_cube_count*w->cols + j*f_rows*f_cols + sub_r*f_cols;
             
-            // memcpy(to, from, f_cols*sizeof(double));
             for (int e = 0; e < f_cols; ++e) {
               *(to+e) += *(from+e);
             }
-            // if (i) {
-            //   printf("moving %f %f %f to %d row\n", *from, *(from+1), *(from+2), sub_cube_count);
-            // }
           }
         }
         sub_cube_count++;
@@ -435,11 +389,9 @@ int update_grad_x(matrix_t* w, matrix_t* x, layer* l) {
     }
   }
 
-  // printf("padded grad\n");
-  // print_matrix(x, 1);
   matrix_t* unpad_grad_x = unpad(x, i_rows, i_cols, i_channels, padding);
   copy_matrix(x, unpad_grad_x);
-
+  free_matrix(unpad_grad_x);
   return 1;
 }
 
@@ -447,7 +399,7 @@ matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding
   matrix_t* ret;
 
   int single_channel_size = (i_rows + padding*2) * (i_cols+padding*2);
-  int padded_size = single_channel_size * i_channels;
+  // int padded_size = single_channel_size * i_channels;
   
   ret = new_matrix(x->rows, i_rows*i_cols*i_channels);
   initialize(ret, zeros);
@@ -457,7 +409,6 @@ matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding
       for (int j = (i_cols+padding*2)*padding+padding+k*single_channel_size; j < single_channel_size+k*single_channel_size-((i_cols+padding*2)*padding+padding); j += i_cols+padding*2) {
         double* to = ret->data+i*ret->cols+k*i_cols*i_rows+row_pos*i_cols;
         double* from = x->data+i*x->cols+j;
-        // printf("j %d k %d i %d row_pos %d leading %f\n", j, k, i, row_pos, *(from));
         memcpy(to, from, i_cols*sizeof(double));
         row_pos++;
       }
@@ -471,17 +422,13 @@ matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding
 
 matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int f_rows, int f_cols, int f_channels, int stride, int padding) {
   assert(i_rows == i_cols); // assuming squared input for now, assuming input shape divisible by f_rows f_cols for now
-  // printf("reconstructing batch: %d (ir: %d, ic: %d, ich: %d) (fr: %d, fc: %d, fch: %d) stride: %d padding %d\n", input->rows,i_rows, i_cols, i_channels, f_rows, f_cols, f_channels, stride, padding);
   matrix_t* ret;
   int single_channel_size = (i_rows + padding * 2 - f_rows) / stride + 1;
-  // printf("single channel size %d\n", single_channel_size);
   int single_output_size = pow(single_channel_size,2);
-  // printf("reconstructed rows %d\n",single_output_size*input->rows);
   ret = new_matrix(single_output_size*input->rows, f_rows*f_cols*f_channels);
 
   matrix_t* prep_input = padding ? padded_input(input, i_rows, i_cols, i_channels, padding) : matrix_clone(input);
-  // printf("padded dimension %d %d\n", prep_input->rows, prep_input->cols);
-  // print_matrix(prep_input, 1);
+
   int sub_cube_count = 0;
   for (int i = 0; i < prep_input->rows; ++i) {
     for (int r = 0; r < i_rows+padding*2; r += stride) {
@@ -490,15 +437,9 @@ matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_
         if (c + f_cols > i_cols+padding*2) continue;
         for (int j = 0; j < i_channels; ++j) {
           for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
-            // printf("moving from sample: %d, row: %d, col: %d, channel: %d, subrow: %d\n", i, r, c, j, sub_r);
             double* from = prep_input->data + i*prep_input->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
-          
             double* to = ret->data + sub_cube_count*ret->cols + j*f_rows*f_cols + sub_r*f_cols;
-            
             memcpy(to, from, f_cols*sizeof(double));
-            // if (i) {
-            //   printf("moving %f %f %f to %d row\n", *from, *(from+1), *(from+2), sub_cube_count);
-            // }
           }
         }
         sub_cube_count++;
@@ -506,12 +447,14 @@ matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_
     }
   }
 
+  free_matrix(prep_input);
+
   return ret;
 }
 
-static int conv_reconstruct_output(matrix_t* output, int o_rows, int o_cols, int o_channels, matrix_t* out) {
-  return 1;
-}
+// static int conv_reconstruct_output(matrix_t* output, int o_rows, int o_cols, int o_channels, matrix_t* out) {
+//   return 1;
+// }
 
 matrix_t* padded_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int padding) {
   matrix_t* ret;
@@ -527,7 +470,6 @@ matrix_t* padded_input(matrix_t* input, int i_rows, int i_cols, int i_channels, 
       for (int j = (i_cols+padding*2)*padding+padding+k*single_channel_size; j < single_channel_size+k*single_channel_size-((i_cols+padding*2)*padding+padding); j += i_cols+padding*2) {
         double* from = input->data+i*input->cols+k*i_cols*i_rows+row_pos*i_cols;
         double* to = ret->data+i*ret->cols+j;
-        // printf("j %d k %d i %d row_pos %d leading %f\n", j, k, i, row_pos, *(from));
         memcpy(to, from, i_cols*sizeof(double));
         row_pos++;
       }
@@ -542,19 +484,16 @@ int max_pool_forward(layer* l, matrix_t* x) {
     printf("before max_pool forward contains nan\n");
     exit(1);
   }
-  // printf("pooling\n");
   max_pool_layer layer_data = l->data.max;
   int f_rows = layer_data.sizes[0];
   int f_cols = layer_data.sizes[1];
-  int f_channels = layer_data.sizes[2];
-    // printf("pooling\n");
+  // int f_channels = layer_data.sizes[2];
 
   int i_rows = layer_data.input_sizes[0];
   int i_cols = layer_data.input_sizes[1];
   int i_channels = layer_data.input_sizes[2];
 
   int stride = layer_data.stride;
-  // printf("max pool (i_r: %d, i_c: %d, i_ch: %d) (f_r: %d, f_c: %d, f_ch: %d) stride %d\n", i_rows, i_cols, i_channels, f_rows, f_cols, f_channels, stride);
   matrix_t* cache = new_matrix(x->rows, x->cols);
   initialize(cache, zeros);
   int dim = (i_rows - f_rows) / stride + 1;
@@ -572,8 +511,6 @@ int max_pool_forward(layer* l, matrix_t* x) {
           for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
             for (int sub_c = 0; sub_c < f_cols; ++sub_c) {
               int offset = sub_r*i_cols + sub_c;
-              // printf("base %d checking %d\n", base_idx, base_idx+offset);
-              // printf("max %f\n", max_num);
               if (*(x->data+base_idx+offset) > max_num) {
                 max_idx = base_idx + offset;
                 max_num = *(x->data+max_idx);
@@ -650,10 +587,6 @@ static int tanh_backward(layer* l, matrix_t* grad) {
   return 1;
 }
 
-// static int softmax_backward(layer* l, matrix_t* grad) {
-//   return 1;
-// }
-
 static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   mse_loss_layer layer_data = l->data.m;
   copy_matrix(layer_data.cache_pred, x);
@@ -708,6 +641,7 @@ static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target) {
   free_matrix(x);
   free_matrix(target);
   free_matrix(loss_sum);
+  free_matrix(sums);
 
   return loss;
 }
@@ -756,6 +690,27 @@ int free_layer(layer l) {
       free_matrix(data.l.cache);
       break;
     }
+    case conv: {
+      // printf("freeing convolution layer\n");
+      free_matrix(data.l.W);
+      free_matrix(data.l.b);
+      free_matrix(data.l.grad_W);
+      free_matrix(data.l.grad_b);
+      free_matrix(data.l.cache);
+      if (data.l.with_pooling) {
+        // print_matrix(((layer*)data.l.max_pool)->data.max.cache, 0);
+        // free_layer(*(layer*)data.l.max_pool);
+        // free(data.l.max_pool);
+        free_matrix(((layer*)data.l.max_pool)->data.max.cache);
+        free(data.l.max_pool);
+      }
+      // printf("freed convolution layer\n");
+      break;
+    }
+    case max_pool: {
+      printf("freeing max pooling layer\n");
+      free_matrix(data.max.cache);
+    }
     case sigmoid: {
       free_matrix(data.s.cache);
       break;
@@ -767,6 +722,11 @@ int free_layer(layer l) {
     case mse_loss: {
       free_matrix(data.m.cache_pred);
       free_matrix(data.m.cache_target);
+      break;
+    }
+    case cce_loss: {
+      free_matrix(data.c.cache_pred);
+      free_matrix(data.c.cache_target);
       break;
     }
     default:

@@ -163,6 +163,11 @@ int free_optimizer(optimizer o) {
       // }
       free_matrix(o.cache.a.first_moment);
       free_matrix(o.cache.a.second_moment);
+      free_matrix(o.cache.a.corrected_fst);
+      free_matrix(o.cache.a.corrected_snd);
+      free_matrix(o.cache.a.grads_container);
+      free(o.cache.a.trainable_params);
+      free(o.cache.a.trainable_params_g);
       break;
     }
     default:

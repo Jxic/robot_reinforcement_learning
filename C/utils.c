@@ -41,7 +41,7 @@ matrix_t* load_data(char* filename) {
     }
     exit(1);
   }
-  int count = 1;
+  // int count = 1;
   //construct a matrix
   FILE* line_counter = fopen(filename, "r");
   int line_num = 0;
@@ -51,12 +51,12 @@ matrix_t* load_data(char* filename) {
   fclose(line_counter);
   matrix_t* new_mat = new_matrix(1, 1);
   if (fgets(buff, BUFFER_SIZE, fp)) {
-    printf("line %d\n", count++);
+    // printf("line %d\n", count++);
     append(new_mat, buff, line_num);
   }
   // printf("entering while\n");
   while (fgets(buff, BUFFER_SIZE, fp)) {
-    printf("line %d\n", count++);
+    // printf("line %d\n", count++);
     append(new_mat, buff, 0);
     // if (count > 100) {
     //   break;
@@ -76,7 +76,7 @@ static int append(matrix_t* m, char* c, int create) {
   remove_char(c, '\r');
   char* token = strtok(c, " ,");
   int count = 0;
-  char last_char[64];
+  // char last_char[64];
   while (token) {
     // printf("count %d token %c\n", count, *token);
     // if (!strcmp(token, last_char)) {
