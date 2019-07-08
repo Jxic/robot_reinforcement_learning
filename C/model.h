@@ -21,6 +21,8 @@ typedef struct _model {
 
 model* init_model(int input_dim);
 int add_linear_layer(model* m, int number_of_neurons, layer_type activation);
+int add_conv_layer(model* m, int i_rows, int i_cols, int i_channels, int f_num, int f_size, int stride, int padding, layer_type activation);
+int add_max_pool_layer(model* m, int i_rows, int i_cols, int i_channels, int f_size, int stride);
 int compile_model(model* m, layer_type loss, optimizer_type opt_type);
 int print_network(model* m);
 

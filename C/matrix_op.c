@@ -321,7 +321,10 @@ int matmul_mkl(matrix_t* a, matrix_t* b, matrix_t* ret) {
 #endif
 
 int matmul(matrix_t* a, matrix_t* b, matrix_t* ret) {
-
+  if (a->cols != b->rows) {
+    printf("matmul a (%d %d) b (%d %d)\n", a->rows, a->cols, b->rows, b->cols);
+    exit(1);
+  }
   assert(a->cols == b->rows);
   assert(a->rows * b->cols > 0);
   assert(ret->max_size >= a->rows*b->cols);
@@ -404,6 +407,7 @@ int contains_nan(matrix_t* t) {
 }
 
 int augment_space(matrix_t* t, int rows, int cols) {
+  // printf("augmenting space rows %d cols %d\n", rows, cols);
   assert(rows >= t->rows);
   assert(cols >= t->cols);
   t->max_size = rows * cols;
@@ -429,6 +433,9 @@ int any_larger(matrix_t* t, double thres) {
 }
 
 int copy_matrix(matrix_t* dst, matrix_t* src) {
+  if (dst->max_size < src->rows*src->cols) {
+    printf("from %d to %d\n",src->rows*src->cols,dst->max_size);
+  }
   assert(dst->max_size >= src->rows*src->cols);
   // #ifndef MKL
   memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
@@ -589,11 +596,14 @@ matrix_t* normalize(matrix_t* t) {
         min = curr_num;
       }
     }
+    ret->data[i] = max;
+    ret->data[t->cols+i] = min;
+    if (max == min) {
+      continue;
+    }
     for (int j = 0; j < t->rows; ++j) {
       t->data[j*t->cols+i] = (t->data[j*t->cols+i] - min) / (max - min);
     }
-    ret->data[i] = max;
-    ret->data[t->cols+i] = min;
   }
   return ret;
 }
@@ -699,6 +709,16 @@ matrix_t* matrix_clone(matrix_t* a) {
   assert(a);
   matrix_t* ret = new_matrix(a->rows, a->cols);
   copy_matrix(ret, a);
+  return ret;
+}
+
+matrix_t* one_hot_encoding(matrix_t* a, int size) {
+  assert(a->cols == 1);
+  matrix_t* ret = new_matrix(a->rows, size);
+  initialize(ret, zeros);
+  for (int i = 0; i < a->rows; ++i) {
+    ret->data[i*size+(int)a->data[i]] = 1;
+  }
   return ret;
 }
 

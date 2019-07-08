@@ -8,7 +8,7 @@ extern "C" {
 #include "matrix_op.h"
 #include <sys/time.h>
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 10240
 
 double rand_uniform(double low, double high);
 matrix_t* load_data(char* filename);

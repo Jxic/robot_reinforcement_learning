@@ -37,17 +37,30 @@ matrix_t* load_data(char* filename) {
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
       printf("Current working dir: %s\n", cwd);
     } else {
-      perror("getcwd() error");
+      perror("getcwd() error\n");
     }
     exit(1);
   }
+  int count = 1;
   //construct a matrix
+  FILE* line_counter = fopen(filename, "r");
+  int line_num = 0;
+  while (fgets(buff, BUFFER_SIZE, line_counter)) {
+    line_num++;
+  }
+  fclose(line_counter);
   matrix_t* new_mat = new_matrix(1, 1);
   if (fgets(buff, BUFFER_SIZE, fp)) {
-    append(new_mat, buff, 1);
+    printf("line %d\n", count++);
+    append(new_mat, buff, line_num);
   }
+  // printf("entering while\n");
   while (fgets(buff, BUFFER_SIZE, fp)) {
+    printf("line %d\n", count++);
     append(new_mat, buff, 0);
+    // if (count > 100) {
+    //   break;
+    // }
   }
   fclose(fp);
 
@@ -55,40 +68,58 @@ matrix_t* load_data(char* filename) {
 }
 
 static int append(matrix_t* m, char* c, int create) {
+  // printf("appending %s\n", c);
   double array[BUFFER_SIZE];
+  // double* array = calloc(BUFFER_SIZE, sizeof(double));
   double* w = array;
   remove_char(c, '\n');
-  char* token = strtok(c, " ");
+  remove_char(c, '\r');
+  char* token = strtok(c, " ,");
   int count = 0;
+  char last_char[64];
   while (token) {
-    *w++ = convert_double(token);
-    token = strtok(NULL, " ");
+    // printf("count %d token %c\n", count, *token);
+    // if (!strcmp(token, last_char)) {
+      // *w = *(w-1);
+      // w++;
+    // } else {
+      *w++ = convert_double(token);
+    //}
+    // strcpy(last_char, token);
+    token = strtok(NULL, " ,");
     count++;
+    // printf("done\n");
   }
+  // printf("converted\n");
   if (create) {
-    augment_space(m, 1, count);
+    augment_space(m, create, count);
     m->cols = count;
     memcpy(m->data, array, count*sizeof(double));
   } else {
     assert(count == m->cols);
-    augment_space(m, m->rows+1, count);
+    // augment_space(m, m->rows+1, count);
     memcpy(m->data+(m->rows*m->cols), array, count*sizeof(double));
     m->rows++;
   }
+  // printf("returning\n");
   return 1;
 }
 
 static double convert_double(char* c) {
+  // printf("converting raw %s\n",c);
   if (c == NULL || *c == '\0' || isspace(*c)) {
-    printf("[CONVERT_DOUBLE] failed to convert %s", c);
+    printf("[CONVERT_DOUBLE] failed to convert %s\n", c);
     exit(1);
   }
   char* p;
   double ret = strtod(c, &p);
+  // printf("converted to %f checking result\n",ret);
   if ( *p != '\0') {
-    printf("[CONVERT_DOUBLE] failed to convert %s", c);
+    printf("[CONVERT_DOUBLE] failed to convert %s\n", c);
+    printf("Remaining part %d\n", *p);
     exit(1);
   }
+  // printf("returning converted double\n");
   return ret;
 }
 

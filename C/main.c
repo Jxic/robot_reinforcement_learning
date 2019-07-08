@@ -130,21 +130,54 @@ int conv_backward_test() {
   return 0;
 }
 
+int max_pool_test() {
+  matrix_t* a = new_matrix(2, 32);
+  for (int i = 0; i < 64; ++i) a->data[i] = i;
+  augment_space(a, 1000, 1000);
+  print_matrix(a, 1);
+  layer la;
+  la.type = max_pool;
+  
+  la.data.max.cache = new_matrix(1,1);
+  la.data.max.sizes[0] = 2;
+  la.data.max.sizes[1] = 2;
+  la.data.max.sizes[2] = 2;
+
+  la.data.max.input_sizes[0] = 4;
+  la.data.max.input_sizes[1] = 4;
+  la.data.max.input_sizes[2] = 2;
+
+  la.data.max.stride = 2;
+  printf("pooling\n");
+  max_pool_forward(&la, a);
+  print_matrix(a,1);
+  print_matrix(la.data.max.cache, 1);
+  printf("grad\n");
+  matrix_t* grad = new_matrix(2, 8);
+  for (int i = 0; i < 16; ++i) grad->data[i] = 1;
+  augment_space(grad, 100, 100);
+  max_pool_backward(&la, grad);
+  print_matrix(grad, 1);
+  printf("done\n");
+  return 0;
+}
+
 int _main() {
   // preparation phase
   srand(SEED);
 
   #ifdef MKL
   #ifdef MULTI_MKL_THREAD
-//  mkl_set_num_threads(4);
+ mkl_set_num_threads(0);
   #endif
   #endif
 
   #ifdef RUN_TEST 
-  // return simple_test();
+  return simple_test();
   // return conv_forward_test();
   // return recon_test();
   // return conv_backward_test();
+  // return max_pool_test();
   #else
   
   // matrix_t* a = new_matrix(3,4);
@@ -174,15 +207,15 @@ static int simple_test() {
   printf("Testing matrix operations...\n");
   test_results();
   printf("\n");
-  printf("Testing data loading...\n");
-  matrix_t* t;
-  #ifndef C_AS_LIB
-  t = load_data("FM_dataset.dat");
-  #else
-  t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
-  #endif
-  print_matrix(t, 0);
-  printf("\n");
+  // printf("Testing data loading...\n");
+  // matrix_t* t;
+  // #ifndef C_AS_LIB
+  // t = load_data("FM_dataset.dat");
+  // #else
+  // t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
+  // #endif
+  // print_matrix(t, 0);
+  // printf("\n");
   printf("Testing with sample data, timing...\n");
   struct timeval start;
   timer_reset(&start);

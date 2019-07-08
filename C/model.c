@@ -11,6 +11,7 @@
 #include "utils.h"
 
 static double model_forward(model* m, matrix_t* x, matrix_t* y);
+static int add_activation_layer(model* m, layer_type activation);
 
 model* init_model(int input_dim) {
   model* new_m = malloc(sizeof(model));
@@ -43,7 +44,89 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
   m->output_dim = number_of_neurons;
 
   // add activation layer
-  // cache size is decided at fit time
+  add_activation_layer(m, activation);
+
+  return 1;
+}
+
+int add_conv_layer(model* m, int i_rows, int i_cols, int i_channels, int f_num, int f_size, int stride, int padding, layer_type activation) {
+  // assuming squared input for now
+  assert(i_rows == i_cols);
+  m->num_of_layers++;
+
+  if (((i_rows+padding*2)-f_size) % stride != 0) {
+    printf("Expecting the filter size and stride to convolve every input value\n");
+    exit(1);
+  }
+
+  layer conv_wrapper;
+  init_linear(&conv_wrapper, f_size*f_size*i_channels, f_num);
+  conv_wrapper.data.l.sizes[0] = conv_wrapper.data.l.sizes[1] = f_size;
+  conv_wrapper.data.l.sizes[2] = conv_wrapper.data.l.input_sizes[2] = i_channels;
+  conv_wrapper.data.l.input_sizes[0] = i_rows;
+  conv_wrapper.data.l.input_sizes[1] = i_cols;
+  conv_wrapper.data.l.stride = stride;
+  conv_wrapper.data.l.padding = padding;
+  conv_wrapper.data.l.with_pooling = 0;
+  conv_wrapper.type = conv;
+
+  m->param_size += f_size*f_size*i_channels*f_num;
+  m->param_size += f_num;
+
+  m->hidden_linears = realloc(m->hidden_linears, sizeof(layer)*m->num_of_layers);
+  m->hidden_linears[m->num_of_layers-1] = conv_wrapper;
+
+  int single_filter_output_dim = (i_rows + padding * 2 - f_size) / stride + 1;
+  int single_filter_output_size = pow(single_filter_output_dim, 2);
+  m->output_dim = single_filter_output_size * f_num;
+
+  conv_wrapper.data.l.t_out_size = m->output_dim;
+  
+
+  m->max_out = m->output_dim > m->max_out ? m->output_dim : m->max_out;
+
+  add_activation_layer(m, activation);
+
+  return 1;
+}
+
+int add_max_pool_layer(model* m, int i_rows, int i_cols, int i_channels, int f_size, int stride) {
+  assert(m->hidden_linears[m->num_of_layers-1].type == conv);
+  assert(i_rows*i_cols*i_channels == m->output_dim);
+  assert(stride == f_size);
+
+  if ((i_rows-f_size) % stride != 0) {
+    printf("Expecting the filter size and stride to convolve every input value\n");
+    exit(1);
+  }
+
+  int out_dim = (i_rows-f_size) / stride + 1;
+  m->output_dim = out_dim*out_dim*i_channels;
+
+  m->hidden_linears[m->num_of_layers-1].data.l.with_pooling = 1;
+  layer* max_pool_wrapper = malloc(sizeof(layer));
+  max_pool_layer new_max_pool;
+  m->hidden_linears[m->num_of_layers-1].data.l.max_pool = max_pool_wrapper;
+
+  m->hidden_linears[m->num_of_layers-1].data.l.t_out_size = ((i_rows-f_size)/stride+1)*i_channels;
+
+  new_max_pool.input_sizes[0] = i_rows;
+  new_max_pool.input_sizes[1] = i_cols;
+  new_max_pool.input_sizes[2] = i_channels;
+  new_max_pool.sizes[0] = f_size;
+  new_max_pool.sizes[1] = f_size;
+  new_max_pool.sizes[2] = 1;
+  new_max_pool.stride = stride;
+  new_max_pool.cache = new_matrix(1,1);
+
+  max_pool_wrapper->data.max = new_max_pool;
+  max_pool_wrapper->type = max_pool;
+
+  return 1;
+}
+
+static int add_activation_layer(model* m, layer_type activation) {
+    // cache size is decided at fit time
   layer activation_wrapper;
   switch (activation)
   {
@@ -85,7 +168,6 @@ int add_linear_layer(model* m, int number_of_neurons, layer_type activation) {
   // realloc m->hidden_activations to hold new activation
   m->hidden_activations = realloc(m->hidden_activations, sizeof(layer)*m->num_of_layers);
   m->hidden_activations[m->num_of_layers-1] = activation_wrapper;
-
   return 1;
 }
 
@@ -145,7 +227,7 @@ int compile_model(model* m, layer_type loss, optimizer_type opt_type) {
 }
 
 int print_network(model* m) {
-  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss", "no_loss", "cce_loss"};
+  char* names[] = {"tanh","relu", "linear", "sigmoid", "identity", "mse_loss", "no_loss", "cce_loss", "conv", "max_pool"};
   char* opt_names[] = {"sgd", "adam", "no_opt"};
   printf("---------------------------------------\n");
   printf(" input dimension: %d\n", m->input_dim);
@@ -154,12 +236,16 @@ int print_network(model* m) {
   printf(" max out: %d\n", m->max_out);
   printf("---------------------------------------\n");
   for (int i = 0; i < m->num_of_layers; ++i) {
+    printf("layer %d:\n", i);
     printf(" %s(%d -> %d) -> %s \n", names[m->hidden_linears[i].type],
                                   m->hidden_linears[i].data.l.W->rows,
                                   m->hidden_linears[i].data.l.W->cols,
                                   names[m->hidden_activations[i].type]);
+    if(m->hidden_linears[i].type == conv && m->hidden_linears[i].data.l.with_pooling) {
+      printf(" max pooling (size: %d stride: %d)\n", ((layer*)m->hidden_linears[i].data.l.max_pool)->data.max.sizes[0], ((layer*)m->hidden_linears[i].data.l.max_pool)->data.max.stride);
+    } 
   }
-  printf(" %s %s\n", names[m->loss_layer.type], opt_names[m->optimizer.type]);
+  printf("%s %s\n", names[m->loss_layer.type], opt_names[m->optimizer.type]);
   printf("---------------------------------------\n");
   return 1;
 }
@@ -208,6 +294,13 @@ double fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, double
       // prepare next batch
       matrix_t* next_batch = slice_row_wise(x, start, start+curr_batch);
       matrix_t* next_target = slice_row_wise(y, start, start+curr_batch);
+
+      if (contains_nan(next_batch) || contains_nan(next_target)) {
+        printf("data contains nan\n");
+        print_matrix(next_batch,1);
+        print_matrix(next_target,1);
+        exit(1);
+      }
 
       prep += timer_check(&ep_t_start);
 
@@ -263,7 +356,11 @@ int init_caches(model* m, int batch_size) {
   int last_layer_out = m->input_dim;
   for (int i = 0; i < m->num_of_layers; ++i) {
     m->hidden_linears[i].data.l.cache = new_matrix(batch_size, last_layer_out);
+    // printf("layer %d init with %d\n", i, batch_size*last_layer_out);
     last_layer_out = m->hidden_linears[i].data.l.W->cols;
+    if (m->hidden_linears[i].type == conv) {
+      last_layer_out = m->hidden_linears[i].data.l.t_out_size * batch_size;
+    }
     switch (m->hidden_activations[i].type)
     {
       case sigmoid:

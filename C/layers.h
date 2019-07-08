@@ -7,6 +7,14 @@ typedef struct _relu_layer {
   matrix_t* cache;
 } relu_layer;
 
+typedef struct _max_pool_layer {
+  int sizes[3];
+  int input_sizes[3];
+  int stride;
+  matrix_t* cache;
+} max_pool_layer;
+
+
 typedef struct _linear_layer {
   matrix_t* W;
   matrix_t* b;
@@ -20,7 +28,11 @@ typedef struct _linear_layer {
   int stride;
   int input_sizes[3]; // (row, column, channel)
   int padding;
+  int t_out_size;
+  int with_pooling;
+  void* max_pool;
 } linear_layer;
+
 
 typedef struct _sigmoid_layer {
   matrix_t* cache;
@@ -69,10 +81,11 @@ typedef union _layer_data {
   tanh_layer t;
   cce_loss_layer c;
   // conv_layer conv;
+  max_pool_layer max;
 } layer_data;
 
 typedef enum _layer_type {
-  tanh_, relu, linear, sigmoid, placeholder, mse_loss, no_loss, cce_loss, conv
+  tanh_, relu, linear, sigmoid, placeholder, mse_loss, no_loss, cce_loss, conv, max_pool
 } layer_type;
 
 typedef struct _layer {
@@ -97,5 +110,7 @@ int update_grad_x(matrix_t* w, matrix_t* x, layer* l);
 matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding);
 int conv_backward(layer* l, matrix_t* grad);
 
+int max_pool_forward(layer* l, matrix_t* x);
+int max_pool_backward(layer*l, matrix_t* grad);
 
 #endif
