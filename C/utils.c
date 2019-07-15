@@ -209,3 +209,21 @@ double timer_observe(struct timeval* t) {
   return time_taken;
 } 
 
+int save_image(matrix_t* img, int rows, int cols, char* name) {
+  FILE* pgmimg = fopen(name, "wb");
+  fprintf(pgmimg, "P2\n");
+  fprintf(pgmimg, "%d %d\n", cols, rows);
+  fprintf(pgmimg, "255\n");
+  // int count = 0;
+  // mult_scalar(img, 255);
+  // printf("image mean %f\n", mean(img));
+
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      fprintf(pgmimg, "%d ", (int)img->data[i*cols+j]);
+    }
+    fprintf(pgmimg,"\n");
+  }
+  fclose(pgmimg);
+}
+

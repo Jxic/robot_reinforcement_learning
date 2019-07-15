@@ -232,10 +232,12 @@ static int linear_backward(layer* l, matrix_t* grad) {
 }
 
 int conv_forward(layer* l, matrix_t* x) {
-  if (contains_nan(x)) {
-    printf("before conv_forward contains nan\n");
-    exit(1);
-  }
+  // if (contains_nan(x)) {
+  //   printf("before conv_forward contains nan\n");
+  //   exit(1);
+  // }
+  
+  // gather information
   linear_layer layer_data = l->data.l;
   // int f_nums = layer_data.W->cols;
   int f_rows = layer_data.sizes[0];
@@ -247,6 +249,7 @@ int conv_forward(layer* l, matrix_t* x) {
   int i_rows = layer_data.input_sizes[0];
   int i_cols = layer_data.input_sizes[1];
   int i_channels = layer_data.input_sizes[2];
+  // printf("ir %d ic %d ich %d x->cols %d\n", i_rows, i_cols, i_channels, x->cols);
   assert(i_rows*i_cols*i_channels == x->cols);
   int single_filter_output_dim = (i_rows + padding * 2 - f_rows) / stride + 1;
   int single_filter_output_size = pow(single_filter_output_dim, 2);
@@ -256,11 +259,15 @@ int conv_forward(layer* l, matrix_t* x) {
 
   matrix_t* W = layer_data.W;
   matrix_t* b = layer_data.b;
+
+  //reconstruct input
   matrix_t* recon = conv_reconstruct_input(x, i_rows, i_cols, i_channels, f_rows, f_cols, f_channels, stride, padding);
 
+  // apply weights and bias
   matmul(recon, W, x);
   add_bias(x, b);
 
+  // rearrange the result
   matrix_t* trans_x = transpose(x);
   matrix_t* fst_row = slice_col_wise(trans_x, 0, single_filter_output_size);
   fst_row->cols *= fst_row->rows;
@@ -277,6 +284,7 @@ int conv_forward(layer* l, matrix_t* x) {
   }
 
   int row_size = rows[0]->cols;
+
   // merge rows
   for (int i = 0; i < batch; ++i) {
     memcpy(x->data+i*row_size ,rows[i]->data, row_size*sizeof(double));
@@ -308,6 +316,7 @@ int conv_backward(layer* l, matrix_t* grad){
   int single_filter_output_size = grad->cols / f_num;
 
 
+  // reconstruct input
   matrix_t* fst_row = slice_col_wise(grad, 0, single_filter_output_size);
   matrix_t* sum = matrix_sum(fst_row, 2);
   grad_b->data[0] = sum->data[0];
@@ -335,6 +344,13 @@ int conv_backward(layer* l, matrix_t* grad){
   copy_matrix(grad_W, new_grad_T);
 
   // update grad x
+  // windows_grad
+  // [first window of first sample]
+  // [second window of first sample]
+  // ...
+  // [first window of second sample]
+  // [second window of second sample]
+  // ...
 
   matrix_t* windows_grad_T = new_matrix(grad_W->rows, fst_row->cols);
   matmul(W, fst_row, windows_grad_T);
@@ -366,6 +382,11 @@ int update_grad_x(matrix_t* w, matrix_t* x, layer* l) {
 
   int batch = x->rows;
   x->cols = (i_rows + padding*2) * (i_cols + padding*2) * i_channels;
+  // printf("ir %d ic %d ich %d padding %d\n",i_rows,i_cols,i_channels,padding);
+  // printf("x rows %d cols %d max %d\n", x->rows, x->cols, x->max_size);
+  if (x->max_size < x->rows * x->cols) {
+    augment_space(x, x->rows, x->cols);
+  }
   initialize(x, zeros);
   int sub_cube_count = 0;
 
@@ -418,8 +439,13 @@ matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding
   return ret;
 }
 
-
-
+// to the format
+// [first window of first sample]
+// [second window of first sample]
+// ...
+// [first window of second sample]
+// [second window of second sample]
+// ...
 matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_channels, int f_rows, int f_cols, int f_channels, int stride, int padding) {
   assert(i_rows == i_cols); // assuming squared input for now, assuming input shape divisible by f_rows f_cols for now
   matrix_t* ret;
@@ -559,7 +585,6 @@ static int sigmoid_backward(layer* l, matrix_t* grad) {
 
   elem_wise_mult(grad, temp);
   free_matrix(temp);
-
 
   return 1;
 }

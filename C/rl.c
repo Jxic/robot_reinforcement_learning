@@ -11,6 +11,7 @@
 #include "rl_ddpg_her_demo.h"
 #include "rl_ddpg_her_demo_sim.h"
 #include "multi_agents/rl_ddpg_her_mpi.h"
+#include "rl_ddpg_pixel.h"
 
 static void test_run_mse();
 static void test_run_cce();
@@ -53,6 +54,10 @@ void run_rl(rl_type t) {
     case her_mpi:
       printf("Running ddpg with her in MPI mode ... \n");
       run_ddpg_her_mpi();
+
+    case ddpg_pixel:
+      printf("Running ddpg on pixel input ... \n");
+      run_ddpg_pixel();
     
     default:
       printf("[RUN_MODEL] unrecognized model %d", t);

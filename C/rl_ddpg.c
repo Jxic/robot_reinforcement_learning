@@ -27,7 +27,7 @@
 #define NOISE_SCALE 0.1
 #define RANDOM_INIT_ANGLE 1
 #define RANDOM_INIT_DEST 1
-#define NUM_OF_LAYERS 4
+#define NUM_OF_LAYERS 3
 #define ACTION_BOUND 2
 #define ENV_LIMIT 200
 
@@ -37,10 +37,10 @@
 #define DDPG_CRITIC_T_FILE "DDPG_CRITI_T_PENDULUM.model"
 
 
-static int actor_layers_config[NUM_OF_LAYERS] = {256, 400, 300, ACTION_DIM};
-static int critic_layers_config[NUM_OF_LAYERS] = {256, 400, 300, 1};
-static layer_type actor_layers_acts[NUM_OF_LAYERS] = {relu, relu, relu, tanh_};
-static layer_type critic_layers_acts[NUM_OF_LAYERS] = {relu, relu, relu, placeholder};
+static int actor_layers_config[NUM_OF_LAYERS] = {64, 64, ACTION_DIM};
+static int critic_layers_config[NUM_OF_LAYERS] = {64, 64, 1};
+static layer_type actor_layers_acts[NUM_OF_LAYERS] = {relu, relu, tanh_};
+static layer_type critic_layers_acts[NUM_OF_LAYERS] = {relu, relu, placeholder};
 static model *actor, *critic, *actor_target, *critic_target;
 static experience_buffer* exp_buf;
 

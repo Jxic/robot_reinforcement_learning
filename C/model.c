@@ -58,7 +58,7 @@ int add_conv_layer(model* m, int i_rows, int i_cols, int i_channels, int f_num, 
     printf("Expecting the filter size and stride to convolve every input value\n");
     exit(1);
   }
-
+  assert(i_rows*i_cols*i_channels==m->output_dim);
   layer conv_wrapper;
   init_linear(&conv_wrapper, f_size*f_size*i_channels, f_num);
   conv_wrapper.data.l.sizes[0] = conv_wrapper.data.l.sizes[1] = f_size;
@@ -84,7 +84,7 @@ int add_conv_layer(model* m, int i_rows, int i_cols, int i_channels, int f_num, 
   
 
   m->max_out = m->output_dim > m->max_out ? m->output_dim : m->max_out;
-
+  printf("max %d output dim %d single_filter_out %d\n", m->max_out, m->output_dim, single_filter_output_size);
   add_activation_layer(m, activation);
 
   return 1;

@@ -407,9 +407,10 @@ int contains_nan(matrix_t* t) {
 }
 
 int augment_space(matrix_t* t, int rows, int cols) {
-  // printf("augmenting space rows %d cols %d\n", rows, cols);
+  // printf("augmenting space rows %d cols %d or %d oc %d omax %d\n", rows, cols, t->rows, t->cols, t->max_size);
   assert(rows >= t->rows);
   assert(cols >= t->cols);
+
   t->max_size = rows * cols;
   #ifndef MKL
   t->data = realloc(t->data, rows*cols*sizeof(double));
