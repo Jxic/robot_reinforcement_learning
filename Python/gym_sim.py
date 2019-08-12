@@ -15,26 +15,26 @@ class test_sim():
   
   def reset(self):
     observation = self.env.reset()
-    frame = self.env.render(mode='rgb_array')
-    frame_size = 512
-    start_p = int((frame.shape[0] - frame_size) / 2)
-    frame = frame[start_p:start_p+frame_size, start_p:start_p+frame_size, :].copy()
-    frame = resize(frame, (83, 83, 3))
-    frame = rgb2gray(frame)
-    frame = frame.flatten()
-    observation = np.concatenate((frame, observation))
+    # frame = self.env.render(mode='rgb_array')
+    # frame_size = 512
+    # start_p = int((frame.shape[0] - frame_size) / 2)
+    # frame = frame[start_p:start_p+frame_size, start_p:start_p+frame_size, :].copy()
+    # frame = resize(frame, (83, 83, 3))
+    # frame = rgb2gray(frame)
+    # frame = frame.flatten()
+    # observation = np.concatenate((frame, observation))
     return observation
 
   def step(self, action, render=False):
     observation, reward, done, info = self.env.step(action)
-    frame = self.env.render(mode='rgb_array')
-    frame_size = 512
-    start_p = int((frame.shape[0] - frame_size) / 2)
-    frame = frame[start_p:start_p+frame_size, start_p:start_p+frame_size, :].copy()
-    frame = resize(frame, (83, 83, 3))
-    frame = rgb2gray(frame)
-    frame = frame.flatten()
-    observation = np.concatenate((frame, observation))
+    # frame = self.env.render(mode='rgb_array')
+    # frame_size = 512
+    # start_p = int((frame.shape[0] - frame_size) / 2)
+    # frame = frame[start_p:start_p+frame_size, start_p:start_p+frame_size, :].copy()
+    # frame = resize(frame, (83, 83, 3))
+    # frame = rgb2gray(frame)
+    # frame = frame.flatten()
+    # observation = np.concatenate((frame, observation))
     # print(observation.shape)
     if render:
       self.env.render()

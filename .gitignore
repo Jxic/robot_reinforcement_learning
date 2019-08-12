@@ -24,3 +24,5 @@ prof*
 keras_log
 individual_data
 *.bmp
+OpenCL
+for_ssh

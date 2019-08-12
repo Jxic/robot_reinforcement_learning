@@ -1,4 +1,5 @@
 #include "mpi_utils.h"
+#ifdef MPI
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -200,3 +201,4 @@ static int set_weights(model* m, matrix_t* weights) {
 // static matrix_t* flatten(matrix_t** ms, int count);
 // static matrix_t** rebuild(model* m, matrix_t* flattened);
 
+#endif

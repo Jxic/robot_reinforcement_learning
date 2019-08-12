@@ -225,5 +225,6 @@ int save_image(matrix_t* img, int rows, int cols, char* name) {
     fprintf(pgmimg,"\n");
   }
   fclose(pgmimg);
+  return 1;
 }
 

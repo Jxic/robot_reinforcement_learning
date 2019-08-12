@@ -50,11 +50,11 @@ void run_rl(rl_type t) {
     case her_demo_sim:
       printf("Running ddpg with her & demo on C++ simulation ... \n");
       run_ddpg_her_w_demo_sim();
-
+    #ifdef MPI
     case her_mpi:
       printf("Running ddpg with her in MPI mode ... \n");
       run_ddpg_her_mpi();
-
+    #endif
     case ddpg_pixel:
       printf("Running ddpg on pixel input ... \n");
       run_ddpg_pixel();

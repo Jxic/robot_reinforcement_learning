@@ -44,7 +44,7 @@ void run_agent(char* model_name, int with_normalizer, char* norm_name, int task_
 }
 
 matrix_t** collect_trace(char* model_name, int with_normalizer, char* norm_name, int task_flag) {
-  matrix_t** trace = calloc(TEST_LOOP, sizeof(*trace));
+  matrix_t** trace = (matrix_t**) calloc(TEST_LOOP, sizeof(*trace));
   model* actor;
   normalizer* norm = 0;
   actor = load_model(model_name);

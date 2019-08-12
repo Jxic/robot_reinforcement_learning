@@ -17,6 +17,11 @@
 #include "mkl.h"
 #endif
 
+
+#ifdef OPENCL
+int c_init_opencl();
+#endif
+
 #ifdef RUN_TEST
 static int simple_test();
 #endif
@@ -180,6 +185,15 @@ int _main() {
   // return max_pool_test();
   #else
   
+  
+  #ifdef OPENCL
+  printf("running c++\n");
+  int a = c_init_opencl();
+  if (!a) {
+    printf("failed\n");
+  }
+  printf("ending\n");
+  #endif          
   // matrix_t* a = new_matrix(3,4);
   // matrix_t* b = new_matrix(4,5);
   // for (int i = 0; i < 12; ++i) {
@@ -189,7 +203,7 @@ int _main() {
   //   b->data[i] = (double) i;
   // }
   // print_matrix(matmul(a, b), 1);
-  run_rl(ddpg_pixel);
+  // run_rl(ddpg);
   // init_demo_buffer(100, 34);
   // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
   // init_demo_connection();

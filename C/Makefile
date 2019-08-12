@@ -4,46 +4,69 @@ CFLAGS = -fsanitize=address -g
 
 DEPS = matrix_op.h tests.h utils.h rl.h layers.h data_structures.h macros.h model.h sim_api.h rl_utils.h rl_ddpg.h socket_utils.h optimizer.h model_utils.h rl_ddpg_her.h normalizer.h test_agent.h rl_ddpg_her_sim.h rl_ddpg_her_demo.h rl_ddpg_her_demo_sim.h multi_agents/rl_ddpg_her_mpi.h multi_agents/mpi_utils.h rl_ddpg_pixel.c
 BDIR = OBJ_FILES
-OBJ = main.o matrix_op.o tests.o utils.o rl.o layers.o model.o rl_utils.o rl_ddpg.o socket_utils.o optimizer.o model_utils.o sim_api.o rl_ddpg_her.o normalizer.o test_agent.c rl_ddpg_her_sim.o rl_ddpg_her_demo.o rl_ddpg_her_demo_sim.o multi_agents/rl_ddpg_her_mpi.o multi_agents/mpi_utils.o rl_ddpg_pixel.o
+OBJ = main.o matrix_op.o tests.o utils.o rl.o layers.o model.o rl_utils.o rl_ddpg.o socket_utils.o optimizer.o model_utils.o sim_api.o rl_ddpg_her.o normalizer.o test_agent.o rl_ddpg_her_sim.o rl_ddpg_her_demo.o rl_ddpg_her_demo_sim.o multi_agents/rl_ddpg_her_mpi.o multi_agents/mpi_utils.o rl_ddpg_pixel.o
 EXE = main
 
 # for production
-CC = mpicc
-CFLAGS = -Wall -pedantic -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
+CC = gcc
+CFLAGS = -Wall -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
 MKL_FLAGS = ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_intel_thread.a ${MKLROOT}/lib/libmkl_core.a -liomp5 -lpthread -lm -ldl
-#-Rpass=loop-vectorize -Rpass-analysis=loop-vectorize (append this to see which for loop is optimized)
 
-#
+CXX = g++
+CL_COMPILER = aoc
+ARCH_FLAG = -march=emulator
+BOARD_FLAG = -board=a10gx
+
+INC = -I/opt/intelFPGA_pro/17.1/hld/host/include
+LIB = -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_pro/17.1/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf -lrt -lpthread
+
+CXXFLAGS = -Wall  $(INC)
+CXXDEPS = device/setup.hpp device/tests.hpp device/utils.hpp
+CXXOBJS = device/setup.cxx.o device/main.cxx.o device/tests.cxx.o device/utils.cxx.o
+
+#-Rpass=loop-vectorize -Rpass-analysis=loop-vectorize (append this to see which for loop is optimized)
 CFLAGS_LINUX = -Wall -Werror -pedantic  -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
-MKL_FLAGS_LINUX_DY =   -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl
+MKL_FLAGS_LINUX_DY = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl
+
+LINUX_DY = $(MKL_FLAGS_LINUX_DY) $(LIB)
 
 GPU_DY = -L/usr/local/cuda/lib64 -lcublas -lcudart
 
-ifndef version
-version = macos
-endif
+EXE = main
 
-ifndef compiler
-compiler = clang
+ifeq ($(shell uname), Linux)
+# 1 Linux, 0 macos
+CFLAGS += -D OPENCL
+EXE += rl.aocx
+OBJ += $(CXXOBJS)
+version = 1
+else
+version = 0
 endif
 
 .PHONY: all clean
 
-.all: main
+all: $(EXE)
+	@echo $(EXE)
 
 %.o : %.c $(DEPS)
-	$(CC) -c $< -o $@ -pg
+	$(CC) -c $< -o $@ $(CFLAGS)
 
+%.cxx.o : %.cpp $(CXXDEPS)
+	$(CXX) -c $< -o $@ $(CXXFLAGS) $(INC)
 
 main : $(OBJ)
 	@mkdir -p $(BDIR)
-ifeq ($(version), macos)
-	@$(CC)  $(CFLAGS) $(MKL_FLAGS) $^ -o $@
+ifeq ($(version), 0)
+	@$(CC)  $^ -o $@ $(MKL_FLAGS)
 else
-	@$(CC) $(CFLAGS_LINUX)  $^ -o $@ $(MKL_FLAGS_LINUX_DY) -pg
+	@$(CXX) $^ -o $@ $(LINUX_DY)
 endif
 	@mv *.o $(BDIR)
 	@mv multi_agents/*.o $(BDIR)
 
+rl.aocx: device/rl.cl
+	$(CL_COMPILER) $(ARCH_FLAG) $(BOARD_FLAG) $<
+
 clean :
-	rm -rf *.o multi_agents/*.o main $(BDIR)
+	rm -rf *.o multi_agents/*.o $(BDIR) *.aocx *.aoco rl $(EXE)

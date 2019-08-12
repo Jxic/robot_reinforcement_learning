@@ -26,7 +26,7 @@ struct sockaddr_in server;
 int demo_socket_;
 struct sockaddr_in demo_server;
 
-static int sequential_send(double* data, int size);
+// static int sequential_send(double* data, int size);
 static matrix_t* sequential_read(int size);
 
 int init_connection(int port) {
@@ -101,7 +101,7 @@ matrix_t* sim_send(matrix_t* t, int* flag, int state_dim, int act_dim) {
   
   int send_size = act_dim  + FLAG_DIM;
   int receive_size = state_dim + INFO_DIM;
-  double server_reply[receive_size];
+  // double server_reply[receive_size];
   double packet[send_size];
   packet[0] = (double)flag[0];
   packet[1] = (double)flag[1];

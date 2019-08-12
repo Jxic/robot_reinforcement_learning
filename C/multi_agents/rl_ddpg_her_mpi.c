@@ -1,6 +1,6 @@
 #include "rl_ddpg_her_mpi.h"
 #include "mpi_utils.h"
-
+#ifdef MPI
 #include <stdio.h>
 #include <time.h>
 #include "../rl_utils.h"
@@ -461,4 +461,4 @@ static void save_all_model() {
   }
 }
 
-
+#endif

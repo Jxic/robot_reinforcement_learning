@@ -14,7 +14,7 @@ class sim_socket:
     self.port = 6666
     self.double_size = 8
     self.action_dim = 4 if game != 'Pendulum-v0' else 1
-    self.state_dim = 31 if game != 'Pendulum-v0' else 83*83*1 + 3
+    self.state_dim = 31 if game != 'Pendulum-v0' else 3# + 83*83*1
     self.flag_dim = 2
     self.info_dim = 2
     self.count =0

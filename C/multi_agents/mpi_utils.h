@@ -1,5 +1,7 @@
 #ifndef MPI_UTILS_H
 #define MPI_UTILS_H
+#include "../macros.h"
+#ifdef MPI
 #include "../model.h"
 #include "../normalizer.h"
 #include "../model_utils.h"
@@ -12,4 +14,5 @@ int mpi_sync(model* m);
 int mpi_check_sync(model* m);
 int mpi_finalize();
 
+#endif
 #endif
