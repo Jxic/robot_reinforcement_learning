@@ -10,8 +10,8 @@
 
 typedef struct _adam_optimizer {
   int timestamp;
-  double beta1;
-  double beta2;
+  float beta1;
+  float beta2;
   // layer* first_moment;
   // layer* second_moment;
   matrix_t* first_moment;
@@ -19,15 +19,15 @@ typedef struct _adam_optimizer {
   matrix_t* corrected_fst;
   matrix_t* corrected_snd;
   matrix_t* grads_container;
-  double** trainable_params;
-  double** trainable_params_g;
-  double epsilon;
-  double learning_rate;
+  float** trainable_params;
+  float** trainable_params_g;
+  float epsilon;
+  float learning_rate;
   int num_of_layers;
 } adam_optimizer;
 
 typedef struct _sgd_optimizer {
-  double learning_rate;
+  float learning_rate;
 } sgd_optimizer;
 
 typedef enum _optimizer_type {
@@ -56,17 +56,17 @@ int free_optimizer(optimizer o);
 
 typedef struct _adam_optimizer {
   int timestamp;
-  double beta1;
-  double beta2;
+  float beta1;
+  float beta2;
   layer* first_moment;
   layer* second_moment;
-  double epsilon;
-  double learning_rate;
+  float epsilon;
+  float learning_rate;
   int num_of_layers;
 } adam_optimizer;
 
 typedef struct _sgd_optimizer {
-  double learning_rate;
+  float learning_rate;
 } sgd_optimizer;
 
 typedef enum _optimizer_type {

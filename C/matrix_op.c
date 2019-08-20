@@ -46,7 +46,7 @@ int equal(matrix_t* a, matrix_t* b) {
     #endif
     return 0;
   }
-  if (memcmp(a->data, b->data, (a->rows*a->cols)*sizeof(double))) {
+  if (memcmp(a->data, b->data, (a->rows*a->cols)*sizeof(float))) {
     #ifndef RUN_TEST
     printf("[MATRICES NOT EQUAL] data is different\n");
     #endif
@@ -63,7 +63,7 @@ int elem_wise_add(matrix_t* a, matrix_t* b) {
   int alpha = 1;
   int incx = 1;
   int incy = 1;
-  cblas_daxpy(n, alpha, b->data, incx, a->data, incy);
+  cblas_saxpy(n, alpha, b->data, incx, a->data, incy);
   return 1;
   #endif
   int size = a->rows*a->cols;
@@ -82,7 +82,7 @@ int elem_wise_minus(matrix_t* a, matrix_t* b) {
   int alpha = -1;
   int incx = 1;
   int incy = 1;
-  cblas_daxpy(n, alpha, b->data, incx, a->data, incy);
+  cblas_saxpy(n, alpha, b->data, incx, a->data, incy);
   return 1;
   #endif
   int size = a->rows*a->cols;
@@ -97,7 +97,7 @@ int elem_wise_mult(matrix_t* a, matrix_t* b) {
   assert(a->rows == b->rows);
   assert(b->cols == b->cols);
   #ifdef MKL
-  vdMul(a->rows*a->cols, a->data, b->data, a->data);
+  vsMul(a->rows*a->cols, a->data, b->data, a->data);
   // free(a->data);
   // a->data = ret;
   return 1;
@@ -117,7 +117,7 @@ int elem_wise_div(matrix_t* a, matrix_t* b, matrix_t* ret) {
   assert(ret->cols == b->cols);
   assert(a->rows == ret->rows);
   #ifdef MKL
-  vdDiv(a->rows*a->cols, a->data, b->data, ret->data);
+  vsDiv(a->rows*a->cols, a->data, b->data, ret->data);
   // free(a->data);
   // a->data = ret;
   return 1;
@@ -155,10 +155,10 @@ int mult_bias(matrix_t* a, matrix_t* b) {
   return 1;
 }
 
-int add_scalar(matrix_t* a, double b) {
+int add_scalar(matrix_t* a, float b) {
   assert(a->rows > 0 && a->cols > 0);
   #ifdef MKL
-  vdLinearFrac( a->rows*a->cols, a->data, a->data, 1, b, 0, 1, a->data );
+  vsLinearFrac( a->rows*a->cols, a->data, a->data, 1, b, 0, 1, a->data );
   return 1;
   #endif
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] += b;
@@ -182,7 +182,7 @@ int square_root(matrix_t* a, matrix_t* ret) {
   assert(a->rows > 0 && a->cols > 0);
   assert(ret->rows == a->rows && ret->cols == a->cols);
   #ifdef MKL
-  vdSqrt(a->rows*a->cols, a->data, ret->data);
+  vsSqrt(a->rows*a->cols, a->data, ret->data);
   return 1;
   #endif
   for (int i = 0; i < a->rows*a->cols; ++i) {
@@ -195,7 +195,7 @@ int square_root(matrix_t* a, matrix_t* ret) {
 int square(matrix_t* a) {
   assert(a->rows > 0 && a->cols > 0);
   #ifdef MKL
-  vdSqr(a->rows*a->cols, a->data, a->data);
+  vsSqr(a->rows*a->cols, a->data, a->data);
   return 1;
   #endif
   for (int i = 0; i < a->rows*a->cols; ++i) {
@@ -221,12 +221,12 @@ int neg(matrix_t* a) {
   return 1;
 }
 
-int mult_scalar(matrix_t* a, double b) {
+int mult_scalar(matrix_t* a, float b) {
   assert(a->rows > 0 && a->cols >0);
   #ifdef MKL
   MKL_INT n = a->rows*a->cols;
   MKL_INT inc = 1;
-  cblas_dscal(n, b, a->data, inc);
+  cblas_sscal(n, b, a->data, inc);
   return 1;
   #endif
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] *= b;
@@ -250,15 +250,15 @@ matrix_t** matmul_gpu(matrix_t** ms, int count) {
     int col_c = col_b;
 
     matrix_t* ret = new_matrix(row_c, col_c);
-    double* dev_a, *dev_b, *dev_c;
+    float* dev_a, *dev_b, *dev_c;
 
-    cudaMalloc((void**)&dev_a, row_a * col_a * sizeof(double));
-    cudaMalloc((void**)&dev_b, row_b * col_b * sizeof(double));
-    cudaMalloc((void**)&dev_c, row_c * col_c * sizeof(double));
+    cudaMalloc((void**)&dev_a, row_a * col_a * sizeof(float));
+    cudaMalloc((void**)&dev_b, row_b * col_b * sizeof(float));
+    cudaMalloc((void**)&dev_c, row_c * col_c * sizeof(float));
 
     //int i, j;
-    cublasSetMatrix(row_a, col_a, sizeof(double), a->data, row_a, dev_a, row_a);
-    cublasSetMatrix(row_b, col_b, sizeof(double), b->data, row_b, dev_b, row_b);
+    cublasSetMatrix(row_a, col_a, sizeof(float), a->data, row_a, dev_a, row_a);
+    cublasSetMatrix(row_b, col_b, sizeof(float), b->data, row_b, dev_b, row_b);
 
   
 
@@ -266,8 +266,8 @@ matrix_t** matmul_gpu(matrix_t** ms, int count) {
       printf("Failed to create gpu task handle\n");
     }
 
-    double alpha = 1;
-    double beta = 0;
+    float alpha = 1;
+    float beta = 0;
 
     status = cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, col_b, row_a, col_a, &alpha, dev_b, col_b, dev_a, col_a, &beta, dev_c, col_b);
 
@@ -275,7 +275,7 @@ matrix_t** matmul_gpu(matrix_t** ms, int count) {
       printf("Failed GEMM\n");
     }
 
-    cublasGetMatrix(row_c, col_c, sizeof(double), dev_c, row_c, ret->data, row_c);
+    cublasGetMatrix(row_c, col_c, sizeof(float), dev_c, row_c, ret->data, row_c);
     rets[i] = ret;
     cudaFree(dev_a);
     cudaFree(dev_b);
@@ -308,14 +308,14 @@ matrix_t** mat_mul_series(matrix_t* a, matrix_t* b, matrix_t* c, matrix_t* d, ma
 #ifdef MKL
 int matmul_mkl(matrix_t* a, matrix_t* b, matrix_t* ret) {
   int m, n, p;
-  double alpha, beta;
+  float alpha, beta;
   m = a->rows;
   p = a->cols;
   n = b->cols;
   // printf("m %d, n %d, p %d", m, n, p);
   alpha = 1.0;
   beta = 0.0;
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, p, alpha, a->data, p, b->data, n, beta, ret->data, n);
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, p, alpha, a->data, p, b->data, n, beta, ret->data, n);
   return 1;
 }
 #endif
@@ -378,15 +378,15 @@ matrix_t* transpose(matrix_t* a) {
   return new_mat;
 }
 
-double mean(matrix_t* a) {
+float mean(matrix_t* a) {
   assert(a->rows > 0 && a->cols >0);
-  double sum = 0;
+  float sum = 0;
   // #ifndef MKL
   for (int i = 0; i < a->rows*a->cols; ++i) sum += a->data[i];
   // #else
   // sum = cblas_dasum(a->rows*a->cols, a->data, 1);
   // #endif
-  return sum / (double)(a->rows * a->cols);
+  return sum / (float)(a->rows * a->cols);
 }
 
 int free_matrix(matrix_t* t) {
@@ -413,9 +413,9 @@ int augment_space(matrix_t* t, int rows, int cols) {
 
   t->max_size = rows * cols;
   #ifndef MKL
-  t->data = realloc(t->data, rows*cols*sizeof(double));
+  t->data = realloc(t->data, rows*cols*sizeof(float));
   #else
-  t->data = mkl_realloc(t->data, rows*cols*sizeof(double));
+  t->data = mkl_realloc(t->data, rows*cols*sizeof(float));
   #endif
   if (!t->data) {
     printf("[AUGMENT_SPACE] error reallocating memory");
@@ -424,7 +424,7 @@ int augment_space(matrix_t* t, int rows, int cols) {
   return 1;
 }
 
-int any_larger(matrix_t* t, double thres) {
+int any_larger(matrix_t* t, float thres) {
   for (int i = 0; i < t->rows*t->cols; ++i) {
     if (t->data[i] > thres) {
       return 1;
@@ -439,7 +439,7 @@ int copy_matrix(matrix_t* dst, matrix_t* src) {
   }
   assert(dst->max_size >= src->rows*src->cols);
   // #ifndef MKL
-  memcpy(dst->data, src->data, src->cols*src->rows*sizeof(double));
+  memcpy(dst->data, src->data, src->cols*src->rows*sizeof(float));
   // #else
   // MKL_INT n = src->rows*src->cols;
   // MKL_INT incx = 1;
@@ -474,11 +474,11 @@ int* shuffle_row_wise(matrix_t* t, int* pre_idx) {
     idx = pre_idx;
   }
   #ifndef MKL
-  double* new_data = calloc(t->rows*t->cols, sizeof(double));
+  float* new_data = calloc(t->rows*t->cols, sizeof(float));
   #else
-  double* new_data = MKL_calloc(t->rows*t->cols, sizeof(double), 64);
+  float* new_data = MKL_calloc(t->rows*t->cols, sizeof(float), 64);
   #endif
-  for (int i = 0; i < t->rows; ++i) memcpy(new_data+i*t->cols, t->data+idx[i]*t->cols, t->cols*sizeof(double));
+  for (int i = 0; i < t->rows; ++i) memcpy(new_data+i*t->cols, t->data+idx[i]*t->cols, t->cols*sizeof(float));
   #ifndef MKL
   free(t->data);
   #else
@@ -514,9 +514,9 @@ int print_matrix(matrix_t* t, int all) {
 matrix_t* new_matrix(int rows, int cols) {
   matrix_t* new_m = malloc(sizeof(matrix_t));
   #ifndef MKL
-  new_m->data = calloc(rows*cols, sizeof(double));
+  new_m->data = calloc(rows*cols, sizeof(float));
   #else
-  new_m->data = mkl_calloc(rows*cols, sizeof(double), 64);
+  new_m->data = mkl_calloc(rows*cols, sizeof(float), 64);
   #endif
   assert(new_m && new_m->data);
   new_m->rows = rows;
@@ -538,7 +538,7 @@ matrix_t* slice_row_wise(matrix_t* t, int start, int end) {
   matrix_t* ret = new_matrix(end-start, t->cols);
   int t_start = start * t->cols;
   int t_size = (end - start) * t->cols;
-  memcpy(ret->data, t->data+t_start, t_size*sizeof(double));
+  memcpy(ret->data, t->data+t_start, t_size*sizeof(float));
   return ret;
 }
 
@@ -553,14 +553,14 @@ matrix_t* slice_col_wise(matrix_t* t, int start, int end) {
   }
   int row_size = end - start;
   for (int i = 0; i < t->rows; ++i) {
-    memcpy(ret->data+(i*ret->cols), t->data+(i*t->cols+start), row_size*sizeof(double));
+    memcpy(ret->data+(i*ret->cols), t->data+(i*t->cols+start), row_size*sizeof(float));
   }
   return ret;
 }
 
-int xavier_init(matrix_t* a, double gain) {
-  double low = -gain * sqrt((double)6 / (double)(a->rows+a->cols));
-  double high = gain * sqrt((double)6 / (double)(a->rows+a->cols));
+int xavier_init(matrix_t* a, float gain) {
+  float low = -gain * sqrt((float)6 / (float)(a->rows+a->cols));
+  float high = gain * sqrt((float)6 / (float)(a->rows+a->cols));
   for (int i = 0; i < a->rows*a->cols; ++i) a->data[i] = rand_uniform(low, high);
   return 1;
 }
@@ -586,10 +586,10 @@ int ones_init(matrix_t* a) {
 matrix_t* normalize(matrix_t* t) {
   matrix_t* ret = new_matrix(2, t->cols);
   for (int i = 0; i < t->cols; ++i) {
-    double max = t->data[i];
-    double min = t->data[i];
+    float max = t->data[i];
+    float min = t->data[i];
     for (int j = 0; j < t->rows; ++j) {
-      double curr_num = t->data[j*t->cols+i];
+      float curr_num = t->data[j*t->cols+i];
       if (curr_num > max) {
         max = curr_num;
       }
@@ -690,18 +690,18 @@ matrix_t* concatenate(matrix_t* a, matrix_t* b, int axis) {
     int cols = a->cols + b->cols;
     ret = new_matrix(rows, cols);
     for (int i = 0; i < rows; ++i) {
-      memcpy(ret->data+(i*cols), a->data+(i*a->cols), a->cols*sizeof(double));
-      memcpy(ret->data+(i*cols)+a->cols, b->data+(i*b->cols), b->cols*sizeof(double));
+      memcpy(ret->data+(i*cols), a->data+(i*a->cols), a->cols*sizeof(float));
+      memcpy(ret->data+(i*cols)+a->cols, b->data+(i*b->cols), b->cols*sizeof(float));
     }
   } else {
     assert(a->cols == b->cols);
     int rows = a->rows + b->rows;
     int cols = a->cols;
     ret = new_matrix(rows, cols);
-    //memcpy(ret->data, a->data, a->cols*a->rows*sizeof(double));
-    //memcpy(ret->data+(a->rows*a->cols), b->data, b->cols*b->rows*sizeof(double));
-    for (int i = 0; i < a->rows; ++i) memcpy(ret->data+(i*cols), a->data+(i*cols), cols*sizeof(double));
-    for (int i = 0; i < b->rows; ++i) memcpy(ret->data+((i+a->rows)*cols), b->data+(i*cols), cols*sizeof(double));
+    //memcpy(ret->data, a->data, a->cols*a->rows*sizeof(float));
+    //memcpy(ret->data+(a->rows*a->cols), b->data, b->cols*b->rows*sizeof(float));
+    for (int i = 0; i < a->rows; ++i) memcpy(ret->data+(i*cols), a->data+(i*cols), cols*sizeof(float));
+    for (int i = 0; i < b->rows; ++i) memcpy(ret->data+((i+a->rows)*cols), b->data+(i*cols), cols*sizeof(float));
   }
   return ret;
 }
@@ -723,7 +723,7 @@ matrix_t* one_hot_encoding(matrix_t* a, int size) {
   return ret;
 }
 
-int clip(matrix_t* a, double low, double high) {
+int clip(matrix_t* a, float low, float high) {
   assert(high > low);
   for (int i = 0; i < a->rows*a->cols; ++i) {
     if (a->data[i] < low) {

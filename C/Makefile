@@ -21,8 +21,8 @@ INC = -I/opt/intelFPGA_pro/17.1/hld/host/include
 LIB = -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_pro/17.1/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf -lrt -lpthread
 
 CXXFLAGS = -Wall  $(INC)
-CXXDEPS = device/setup.hpp device/tests.hpp device/utils.hpp
-CXXOBJS = device/setup.cxx.o device/main.cxx.o device/tests.cxx.o device/utils.cxx.o
+CXXDEPS = device/setup.hpp device/tests.hpp device/utils.hpp device/c_interface.hpp
+CXXOBJS = device/setup.cxx.o device/main.cxx.o device/tests.cxx.o device/utils.cxx.o device/c_interface.cxx.o
 
 #-Rpass=loop-vectorize -Rpass-analysis=loop-vectorize (append this to see which for loop is optimized)
 CFLAGS_LINUX = -Wall -Werror -pedantic  -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3

@@ -12,7 +12,7 @@ class sim_socket:
   def __init__(self, game='Pendulum-v0'):
     self.host = '127.0.0.1'
     self.port = 6666
-    self.double_size = 8
+    self.double_size = 4
     self.action_dim = 4 if game != 'Pendulum-v0' else 1
     self.state_dim = 31 if game != 'Pendulum-v0' else 3# + 83*83*1
     self.flag_dim = 2
@@ -33,13 +33,13 @@ class sim_socket:
     while still_open:
       data = conn.recv((self.action_dim+self.flag_dim)*self.double_size)
       # print(len(data))
-      data = struct.unpack('d'*(self.action_dim+self.flag_dim), data)
+      data = struct.unpack('f'*(self.action_dim+self.flag_dim), data)
       #print("From C: {}".format(data))
       if not data[0] and not data[1]:
         #initialize or random action
         rnd_action = self.t.env.action_space.sample()
         reply = list(rnd_action) + [0] * (self.state_dim+self.info_dim-self.action_dim)
-        reply = struct.pack('d'*(self.state_dim+self.info_dim), *reply)
+        reply = struct.pack('f'*(self.state_dim+self.info_dim), *reply)
         #print("Sent back random action: {}".format(rnd_action))
       if not data[0] and data[1]:
         #step
@@ -69,7 +69,7 @@ class sim_socket:
         # print("step sending {}".format(len(flat_observation)))
 
         #print(flat_observation)
-        reply = struct.pack('d'*(self.state_dim+self.info_dim), *flat_observation)
+        reply = struct.pack('f'*(self.state_dim+self.info_dim), *flat_observation)
       if data[0] and not data[1]:
         #reset
         observation = self.t.reset()
@@ -85,11 +85,11 @@ class sim_socket:
         flat_observation.append(done)
         flat_observation.append(reward)
         # print("reset sending {}".format(len(flat_observation)))
-        reply = struct.pack('d'*(self.state_dim+self.info_dim), *flat_observation)
+        reply = struct.pack('f'*(self.state_dim+self.info_dim), *flat_observation)
       if data[0] and data[1]:
         #close
         still_open = False
-        reply = struct.pack('d'*(self.state_dim+self.info_dim), *([0]*(self.state_dim+self.info_dim)))
+        reply = struct.pack('f'*(self.state_dim+self.info_dim), *([0]*(self.state_dim+self.info_dim)))
       # sent = conn.send(reply)
       sent = self.sequential_send(conn, reply, self.state_dim+self.info_dim)
       # print("actually sent {}".format(sent))
@@ -102,12 +102,12 @@ class sim_socket:
     block_size = 512
     sent = 0
     
-    data = struct.unpack('d'*(self.state_dim+self.info_dim), data)
+    data = struct.unpack('f'*(self.state_dim+self.info_dim), data)
     length = len(data)
     while sent < length:
       nxt_block = block_size if sent + block_size < length else length - sent
       # print("sending {} sent {} length {}".format(nxt_block, sent, length))
-      reply = struct.pack('d'*nxt_block, *(data[sent:sent+nxt_block]))
+      reply = struct.pack('f'*nxt_block, *(data[sent:sent+nxt_block]))
       conn.sendall(reply)
       sent += nxt_block
     return sent

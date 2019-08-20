@@ -45,8 +45,8 @@ void gemm_test() {
 
   cl_context context = conf.context;
   cl_command_queue  default_q = conf.command_queues[0];
-  cl_kernel vector_add = conf.kernels[0];
-  cl_kernel gemm = conf.kernels[1];
+  cl_kernel vector_add = conf.kernels[0].k;
+  cl_kernel gemm = conf.kernels[1].k;
 
   cl_event write_event[2];
   cl_event kernel_event[1];
@@ -109,9 +109,9 @@ void gemm_test() {
         }
   }
 
-  for (int i = 0; i < mat_c_size; ++i) {
+  for (size_t i = 0; i < mat_c_size; ++i) {
     if (fabsf(mat_c_prime_host[i] - mat_c_host[i]) > 1.0e-5f) {
-      printf("Failed i: %d | %f %f\n", i, mat_c_prime_host[i], mat_c_host[i]);
+      printf("Failed i: %ld | %f %f\n", i, mat_c_prime_host[i], mat_c_host[i]);
       exit(1);
     }
   }

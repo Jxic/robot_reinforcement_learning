@@ -10,8 +10,8 @@ LIB = -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_p
 
 CXXFLAGS = -Wall  $(INC)
 
-DEPS = setup.hpp tests.hpp utils.hpp
-OBJ = setup.o main.o tests.o utils.o
+DEPS = setup.hpp tests.hpp utils.hpp c_interface.hpp
+OBJ = setup.o main.o tests.o utils.o c_interface.o
 EXE = main
 
 .PHONY: all clean

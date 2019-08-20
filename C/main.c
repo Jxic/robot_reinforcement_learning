@@ -19,7 +19,7 @@
 
 
 #ifdef OPENCL
-int c_init_opencl();
+#include "opencl_interface.h"
 #endif
 
 #ifdef RUN_TEST
@@ -184,26 +184,17 @@ int _main() {
   // return conv_backward_test();
   // return max_pool_test();
   #else
-  
-  
-  #ifdef OPENCL
-  printf("running c++\n");
-  int a = c_init_opencl();
-  if (!a) {
-    printf("failed\n");
-  }
-  printf("ending\n");
-  #endif          
+            
   // matrix_t* a = new_matrix(3,4);
   // matrix_t* b = new_matrix(4,5);
   // for (int i = 0; i < 12; ++i) {
-  //   a->data[i] = (double) i;
+  //   a->data[i] = (float) i;
   // }
   // for (int i = 0; i < 20; ++i) {
-  //   b->data[i] = (double) i;
+  //   b->data[i] = (float) i;
   // }
   // print_matrix(matmul(a, b), 1);
-  // run_rl(ddpg);
+  // run_rl(test);
   // init_demo_buffer(100, 34);
   // run_agent("DDPG_ACTOR_PICKNPLACE_NORM.model", 1, "DDPG_NORM_PICKNPLACE_NORM.norm", ENV_PICK_N_PLACE);
   // init_demo_connection();
@@ -224,7 +215,7 @@ static int simple_test() {
   printf("Testing data loading...\n");
   matrix_t* t;
   #ifndef C_AS_LIB
-  t = load_data("FM_dataset.dat");
+  t = load_data("dat/FM_dataset.dat");
   #else
   t = load_data("./src/robot_reinforcement_learning/C/FM_dataset.dat");
   #endif
@@ -234,7 +225,7 @@ static int simple_test() {
   struct timeval start;
   timer_reset(&start);
   run_rl(test);
-  double diff = timer_check(&start);
+  float diff = timer_check(&start);
   printf("Test training took %.1f s\n", diff/1000);
   printf("\n");
   return 0;

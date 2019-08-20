@@ -4,6 +4,7 @@
 #include "model.h"
 #include "utils.h"
 #include "macros.h"
+#include "layers.h"
 #include "model_utils.h"
 #include "rl_ddpg.h"
 #include "rl_ddpg_her.h"
@@ -13,18 +14,21 @@
 #include "multi_agents/rl_ddpg_her_mpi.h"
 #include "rl_ddpg_pixel.h"
 
+
 static void test_run_mse();
 static void test_run_cce();
 static void test_run_conv();
+static void test_device();
 
 void run_rl(rl_type t) {
   switch (t)
   {
     case test:
       printf("Running test algorithm ... \n");
-      test_run_mse();
-      test_run_cce();
-      test_run_conv();
+      // test_run_mse();
+      // test_run_cce();
+      // test_run_conv();
+      test_device();
       break;
     
     // deep deterministic policy gradient
@@ -102,7 +106,7 @@ void test_run_mse() {
   
   matrix_t* t;
   #ifndef C_AS_LIB
-  t = load_data("FM_dataset.dat");
+  t = load_data("dat/FM_dataset.dat");
   #else
   t = load_data("../src/robot_reinforcement_learning/C/FM_dataset.dat");
   #endif
@@ -112,7 +116,7 @@ void test_run_mse() {
   matrix_t* y = slice_col_wise(t, 3, 6);
   int batch_size = 32;
   int epoch = 100;
-  double learning_rate = 0.001;
+  float learning_rate = 0.001;
   int shuffle = 1;
 
   model* m;
@@ -125,14 +129,14 @@ void test_run_mse() {
   // save_model(m, "test_model.model");
   // model* m_ = load_model("test_model.model");
   // print_network(m_);
-  double loss = eval(m, x, y, min_max);
+  float loss = eval(m, x, y, min_max);
   printf("test run finished with error rate of %f (mse).\n", loss);
 }
 
 void test_run_cce() {
   matrix_t* t;
   #ifndef C_AS_LIB
-  t = load_data("ROI_dataset.dat");
+  t = load_data("dat/ROI_dataset.dat");
   #else
   t = load_data("../src/robot_reinforcement_learning/C/FM_dataset.dat");
   #endif
@@ -144,7 +148,7 @@ void test_run_cce() {
   
   int batch_size = 32;
   int epoch = 100;
-  double learning_rate = 0.001;
+  float learning_rate = 0.001;
   int shuffle = 1;
 
   model* m;
@@ -160,14 +164,14 @@ void test_run_cce() {
       corrected++;
     }
   }
-  printf("correct %d, accuracy %f\n", corrected, corrected/(double)y->rows);
+  printf("correct %d, accuracy %f\n", corrected, corrected/(float)y->rows);
 }
 
 void test_run_conv() {
   matrix_t* t;
   printf("preparing data and model\n");
   #ifndef C_AS_LIB
-  t = load_data("train.dat");
+  t = load_data("dat/train.dat");
   #else
   t = load_data("../src/robot_reinforcement_learning/C/FM_dataset.dat");
   #endif
@@ -191,14 +195,14 @@ void test_run_conv() {
   y = temp;
   
   int batch_size = 4200;
-  int epoch = 20;
-  double learning_rate = 0.001;
+  int epoch = 30;
+  float learning_rate = 0.001;
   int shuffle = 1;
 
   model* m;
   m = init_model_2();
-  print_matrix(t,0);
-  print_matrix(y,0);
+  // print_matrix(t,0);
+  // print_matrix(y,0);
   print_network(m);
 
   fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
@@ -213,7 +217,7 @@ void test_run_conv() {
       corrected++;
     }
   }
-  printf("correct %d, accuracy %f\n", corrected, corrected/(double)y->rows);
+  printf("correct %d, accuracy %f\n", corrected, corrected/(float)y->rows);
 
   free_matrix(t);
   free_matrix(x);
@@ -229,3 +233,61 @@ void test_run_conv() {
   // }
   
 }
+
+#ifdef OPENCL
+#include "opencl_interface.h"
+static void test_device() {
+  matrix_t* t;
+  #ifndef C_AS_LIB
+  t = load_data("dat/FM_dataset.dat");
+  #else
+  t = load_data("../src/robot_reinforcement_learning/C/FM_dataset.dat");
+  #endif
+  matrix_t* min_max = normalize(t);
+  shuffle_row_wise(t, 0);
+  matrix_t* x = slice_col_wise(t, 0, 3);
+  matrix_t* y = slice_col_wise(t, 3, 6);
+  int batch_size = 32;
+  int epoch = 100;
+  float learning_rate = 0.001;
+  int shuffle = 1;
+
+  model* m;
+  m = init_model_0(100);
+  const char * names[] = {
+    "vector_add",
+    "gemm",
+    "linear_forward_prop",
+    "relu_forward_prop",
+    "mse",
+    "relu_backward_prop",
+    "transpose_params_n_cache",
+    "linear_backward_prop",
+    "generate_update_adam",
+    "examine_int_array",
+    "examine_float_array",
+  };
+  c_init_opencl(11, names);
+  initialize_training_env(m, batch_size);
+  initialize_values_on_device(m);
+  printf("done preparing device\n");
+
+  matrix_t* ex = slice_row_wise(x, 0, 32);
+  matrix_t* ey = slice_row_wise(y, 0, 32);
+  matrix_t* d_ex = matrix_clone(ex);
+  matrix_t* d_ey = matrix_clone(ey);
+  float loss_device = fpga_forward(m, d_ex, d_ey);
+  printf("done device side\n");
+  predict(m, ex);
+  print_matrix(ex,1);
+  float loss_host = loss_forward(&m->loss_layer, ex, ey);
+  printf("done host side\n");
+
+  //fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
+  printf("loss host: %f loss device: %f\n", loss_host, loss_device);
+  
+  // float loss = eval(m, x, y, min_max);
+  // printf("test run finished with error rate of %f (mse).\n", loss);
+
+}
+#endif

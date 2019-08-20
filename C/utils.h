@@ -10,13 +10,13 @@ extern "C" {
 
 #define BUFFER_SIZE 10240
 
-double rand_uniform(double low, double high);
+float rand_uniform(float low, float high);
 matrix_t* load_data(char* filename);
 matrix_t* rand_normal(int size);
-matrix_t* trunc_normal(int size, double high, double low);
+matrix_t* trunc_normal(int size, float high, float low);
 void timer_reset(struct timeval* t);
-double timer_check(struct timeval* t);
-double timer_observe(struct timeval* t);
+float timer_check(struct timeval* t);
+float timer_observe(struct timeval* t);
 int save_image(matrix_t* img, int rows, int cols, char* name);
 
 #ifdef __cplusplus

@@ -24,13 +24,13 @@ static int placeholder_backward(layer* l, matrix_t* x) {return 1;}
 static int tanh_backward(layer* l, matrix_t* grad);
 
 // hidden layer weights update
-static int linear_update(layer* l, double learning_rate);
-static int conv_update(layer* l, double learning_rate);
+static int linear_update(layer* l, float learning_rate);
+static int conv_update(layer* l, float learning_rate);
 
 // loss layer forward and backward
-static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
+static float mse_loss_forward(layer* l, matrix_t* x, matrix_t* target);
 static matrix_t* mse_loss_backward(layer* l);
-static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target);
+static float cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target);
 static matrix_t* cross_entropy_backward(layer* l);
 
 // helper
@@ -80,7 +80,7 @@ int backward(layer* l, matrix_t* grad) {
   }
 }
 
-int update(layer* l, double learning_rate) {
+int update(layer* l, float learning_rate) {
   switch (l->type) {
     case linear:
       return linear_update(l, learning_rate);
@@ -92,7 +92,7 @@ int update(layer* l, double learning_rate) {
   return 1;
 }
 
-double loss_forward(layer* l, matrix_t* x, matrix_t* target) {
+float loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   switch (l->type) {
     case mse_loss:
       return mse_loss_forward(l, x, target);
@@ -117,7 +117,7 @@ matrix_t* loss_backward(layer* l) {
   }
 }
 
-int linear_update(layer* l, double learning_rate) {
+int linear_update(layer* l, float learning_rate) {
   assert(l->type == linear);
   linear_layer layer_data = l->data.l;
 
@@ -130,7 +130,7 @@ int linear_update(layer* l, double learning_rate) {
   return 1;
 }
 
-int conv_update(layer* l, double learning_rate) {
+int conv_update(layer* l, float learning_rate) {
   assert(l->type == conv);
   linear_layer layer_data = l->data.l;
 
@@ -173,7 +173,26 @@ static int linear_forward(layer* l, matrix_t* x) {
 
   matrix_t* wx = new_matrix(x->rows, layer_data.W->cols);
   matmul(x, layer_data.W, wx);
+  
+  printf("host wx\n");
+  int xc = wx->cols;
+  int xr = wx->rows;
+  wx->cols = 30;
+  wx->rows = 1;
+  print_matrix(wx, 1);
+  wx->cols = xc;
+  wx->rows = xr;
+  
   add_bias(wx, layer_data.b);
+
+  printf("host wx+b\n");
+  xc = wx->cols;
+  xr = wx->rows;
+  wx->cols = 30;
+  wx->rows = 1;
+  print_matrix(wx, 1);
+  wx->cols = xc;
+  wx->rows = xr;
   
   //update the data flowing through the network
   copy_matrix(x, wx);
@@ -287,7 +306,7 @@ int conv_forward(layer* l, matrix_t* x) {
 
   // merge rows
   for (int i = 0; i < batch; ++i) {
-    memcpy(x->data+i*row_size ,rows[i]->data, row_size*sizeof(double));
+    memcpy(x->data+i*row_size ,rows[i]->data, row_size*sizeof(float));
     free_matrix(rows[i]);
   }
   x->cols = row_size;
@@ -397,8 +416,8 @@ int update_grad_x(matrix_t* w, matrix_t* x, layer* l) {
         if (c + f_rows > i_rows+padding*2) continue;
         for (int j = 0; j < i_channels; ++j) {
           for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
-            double* to = x->data + i*x->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
-            double* from = w->data + sub_cube_count*w->cols + j*f_rows*f_cols + sub_r*f_cols;
+            float* to = x->data + i*x->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
+            float* from = w->data + sub_cube_count*w->cols + j*f_rows*f_cols + sub_r*f_cols;
             
             for (int e = 0; e < f_cols; ++e) {
               *(to+e) += *(from+e);
@@ -428,9 +447,9 @@ matrix_t* unpad(matrix_t* x, int i_rows, int i_cols, int i_channels, int padding
     for (int k = 0; k < i_channels; ++k) {
       int row_pos = 0;
       for (int j = (i_cols+padding*2)*padding+padding+k*single_channel_size; j < single_channel_size+k*single_channel_size-((i_cols+padding*2)*padding+padding); j += i_cols+padding*2) {
-        double* to = ret->data+i*ret->cols+k*i_cols*i_rows+row_pos*i_cols;
-        double* from = x->data+i*x->cols+j;
-        memcpy(to, from, i_cols*sizeof(double));
+        float* to = ret->data+i*ret->cols+k*i_cols*i_rows+row_pos*i_cols;
+        float* from = x->data+i*x->cols+j;
+        memcpy(to, from, i_cols*sizeof(float));
         row_pos++;
       }
     }
@@ -463,9 +482,9 @@ matrix_t* conv_reconstruct_input(matrix_t* input, int i_rows, int i_cols, int i_
         if (c + f_cols > i_cols+padding*2) continue;
         for (int j = 0; j < i_channels; ++j) {
           for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
-            double* from = prep_input->data + i*prep_input->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
-            double* to = ret->data + sub_cube_count*ret->cols + j*f_rows*f_cols + sub_r*f_cols;
-            memcpy(to, from, f_cols*sizeof(double));
+            float* from = prep_input->data + i*prep_input->cols + j*(i_cols+padding*2)*(i_rows+padding*2) + r*(i_cols+padding*2) + c + sub_r*(i_cols+padding*2);
+            float* to = ret->data + sub_cube_count*ret->cols + j*f_rows*f_cols + sub_r*f_cols;
+            memcpy(to, from, f_cols*sizeof(float));
           }
         }
         sub_cube_count++;
@@ -494,9 +513,9 @@ matrix_t* padded_input(matrix_t* input, int i_rows, int i_cols, int i_channels, 
     for (int k = 0; k < i_channels; ++k) {
       int row_pos = 0;
       for (int j = (i_cols+padding*2)*padding+padding+k*single_channel_size; j < single_channel_size+k*single_channel_size-((i_cols+padding*2)*padding+padding); j += i_cols+padding*2) {
-        double* from = input->data+i*input->cols+k*i_cols*i_rows+row_pos*i_cols;
-        double* to = ret->data+i*ret->cols+j;
-        memcpy(to, from, i_cols*sizeof(double));
+        float* from = input->data+i*input->cols+k*i_cols*i_rows+row_pos*i_cols;
+        float* to = ret->data+i*ret->cols+j;
+        memcpy(to, from, i_cols*sizeof(float));
         row_pos++;
       }
     }
@@ -533,7 +552,7 @@ int max_pool_forward(layer* l, matrix_t* x) {
           if (c + f_cols > i_cols) continue;
           int max_idx, base_idx; 
           max_idx = base_idx = i*x->cols + k*i_rows*i_cols + r*i_cols + c;
-          double max_num = *(x->data+max_idx);
+          float max_num = *(x->data+max_idx);
           for (int sub_r = 0; sub_r < f_rows; ++sub_r) {
             for (int sub_c = 0; sub_c < f_cols; ++sub_c) {
               int offset = sub_r*i_cols + sub_c;
@@ -612,13 +631,13 @@ static int tanh_backward(layer* l, matrix_t* grad) {
   return 1;
 }
 
-static double mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
+static float mse_loss_forward(layer* l, matrix_t* x, matrix_t* target) {
   mse_loss_layer layer_data = l->data.m;
   copy_matrix(layer_data.cache_pred, x);
   copy_matrix(layer_data.cache_target, target);
   elem_wise_minus(x, target);
   elem_wise_mult(x, x);
-  double loss = mean(x);
+  float loss = mean(x);
   free_matrix(x);
   free_matrix(target);
   return loss;
@@ -631,12 +650,12 @@ static matrix_t* mse_loss_backward(layer* l) {
   matrix_t* grad = new_matrix(rows, cols);
   copy_matrix(grad, layer_data.cache_pred);
   elem_wise_minus(grad, layer_data.cache_target);
-  mult_scalar(grad, 2/(double)rows);
-  //mult_scalar(grad, 1/((double)rows));
+  mult_scalar(grad, 2/(float)rows);
+  //mult_scalar(grad, 1/((float)rows));
   return grad;
 }
 
-static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target) {
+static float cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target) {
   cce_loss_layer layer_data = l->data.c;
   // softmax
   
@@ -658,8 +677,8 @@ static double cross_entropy_forward(layer* l, matrix_t* x, matrix_t* target) {
   elem_wise_mult(x, target);
   
   matrix_t* loss_sum = matrix_sum(x,2);
-  double loss = loss_sum->data[0];
-  loss /= -(double)x->rows;
+  float loss = loss_sum->data[0];
+  loss /= -(float)x->rows;
 
   // printf("loss %f\n", loss);
 
@@ -678,7 +697,7 @@ static matrix_t* cross_entropy_backward(layer* l) {
   matrix_t* grad = new_matrix(rows, cols);
   copy_matrix(grad, layer_data.cache_target);
   elem_wise_minus(grad, layer_data.cache_pred);
-  mult_scalar(grad, -1/(double)rows);
+  mult_scalar(grad, -1/(float)rows);
   return grad;
 }
 

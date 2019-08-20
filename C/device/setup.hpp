@@ -5,6 +5,7 @@
 #include <iostream>
 #include "CL/opencl.h"
 #include <vector>
+#include "utils.hpp"
 
 
 using namespace std;
@@ -22,13 +23,15 @@ class Config {
     cl_program program; //
     vector<cl_command_queue> command_queues;//
     vector<string> kernel_names;
-    vector<cl_kernel> kernels;
+    vector<Named_kernel> kernels;
+
+    vector<Named_buffer> mem_objs;
 
     void show();
 };
 
 Config init_opencl(vector<string> kernel_names);
-extern "C" int c_init_opencl();
+extern "C" int c_init_opencl(int, const char* const*);
 int free_opencl();
 // int test_kernels();
 

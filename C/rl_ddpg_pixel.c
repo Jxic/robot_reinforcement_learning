@@ -48,10 +48,10 @@ static experience_buffer* exp_buf;
 static int init_actor_w_target();
 static int init_critic_w_target();
 static int pre_training();
-// static double reward(matrix_t* last, matrix_t* curr);
-static matrix_t* get_action(matrix_t* state, double act_noise);
-static double* run_epoch();
-static double train();
+// static float reward(matrix_t* last, matrix_t* curr);
+static matrix_t* get_action(matrix_t* state, float act_noise);
+static float* run_epoch();
+static float train();
 static void save_all_model();
 static int modified_predict(model* m, matrix_t* input);
 
@@ -86,9 +86,9 @@ matrix_t* stack_new_frame(matrix_t* new_frame, int is_new_episode) {
   }
 
   for (int i = 0; i < STACK_NUM; ++i) {
-    memcpy(ret->data+i*BASE_STATE_DIM, stacked_frame[i]->data, BASE_STATE_DIM*sizeof(double));
+    memcpy(ret->data+i*BASE_STATE_DIM, stacked_frame[i]->data, BASE_STATE_DIM*sizeof(float));
   }
-  memcpy(ret->data+STACKED_BASE_STATE_DIM, last_full_state->data, last_full_state->cols*sizeof(double));
+  memcpy(ret->data+STACKED_BASE_STATE_DIM, last_full_state->data, last_full_state->cols*sizeof(float));
 
   return ret;
 }
@@ -118,10 +118,10 @@ void run_ddpg_pixel() {
   clock_t start = clock(), diff;
   while (epc < EPOCH) {
     epc++;
-    double* info = run_epoch();
+    float* info = run_epoch();
     diff = clock() - start;
     int msec = diff * 1000 / CLOCKS_PER_SEC;
-    printf("Dones: %.1f | Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Time elapsed: %.1f mins \n", info[1], epc, info[0], info[2], msec/(double)60000);
+    printf("Dones: %.1f | Episode: %d | Rewards: %.3f | Critic_loss: %.1f | Time elapsed: %.1f mins \n", info[1], epc, info[0], info[2], msec/(float)60000);
     free(info);
     if (epc % 50 == 0) {
       save_all_model();
@@ -260,10 +260,10 @@ static int pre_training() {
   return 1;
 }
 
-static double* run_epoch() {
-  double sum = 0;
-  double dones = 0;
-  double final_loss = 0;
+static float* run_epoch() {
+  float sum = 0;
+  float dones = 0;
+  float final_loss = 0;
   matrix_t* state = resetState(RANDOM_INIT_ANGLE, RANDOM_INIT_DEST, RECV_STATE_DIM, ACTION_DIM);
   int i;
   
@@ -276,7 +276,7 @@ static double* run_epoch() {
 
     matrix_t* nxt_tmp = matrix_clone(nxt_state);
     matrix_t* nxt_stored_state = stack_new_frame(nxt_tmp, 0);
-    double new_reward = nxt_state->data[nxt_state->cols-1];
+    float new_reward = nxt_state->data[nxt_state->cols-1];
     sum += new_reward;
     matrix_t* s = slice_col_wise(state, 0, STATE_DIM);
     matrix_t* s_a = concatenate(s, new_action, 1);
@@ -299,7 +299,7 @@ static double* run_epoch() {
   free_matrix(state);
   if (i < ENV_LIMIT - 1) dones += 1;
   
-  double* ret = calloc(3, sizeof(double));
+  float* ret = calloc(3, sizeof(float));
   ret[0] = sum;
   ret[1] = dones;
   ret[2] = final_loss;
@@ -308,7 +308,7 @@ static double* run_epoch() {
 
 
 
-static matrix_t* get_action(matrix_t* state, double noise_scale) {
+static matrix_t* get_action(matrix_t* state, float noise_scale) {
   matrix_t* action = slice_col_wise(state, 0, STATE_DIM);
   // augment_space(action, action->rows, actor->max_out);
   // predict(actor, action);
@@ -329,7 +329,7 @@ static int modified_predict(model* m, matrix_t* input) {
   assert(input->cols == STATE_DIM);
   matrix_t* x = slice_col_wise(input, 0, input->cols-AUX_STATE_DIM);
 
-  // double angular = input->data[input->cols-1];
+  // float angular = input->data[input->cols-1];
   // matrix_t* obs = slice_col_wise(input, input->cols-AUX_STATE_DIM, input->cols);
   // augment_space(x, x->rows, m->max_out);
   // augment_space(input, input->rows, m->max_out);
@@ -343,7 +343,7 @@ static int modified_predict(model* m, matrix_t* input) {
   // forward(m->)
   // // x->cols++;
   // // x->data[x->cols-1] = angular;
-  // // memcpy(x->data+x->cols, obs->data, obs->cols*sizeof(double));
+  // // memcpy(x->data+x->cols, obs->data, obs->cols*sizeof(float));
   // // x->cols++;
   // // print_matrix(x,1);
 
@@ -360,7 +360,7 @@ static int modified_predict(model* m, matrix_t* input) {
 }
 
 
-static double train() {
+static float train() {
   // training on past experiences
   matrix_t* batch = sample_experience(exp_buf, BATCH_SIZE);
   matrix_t* states = slice_col_wise(batch, 0, STATE_DIM);
@@ -424,18 +424,18 @@ static double train() {
   // predict(actor, n_actions);
   matrix_t* q_n_actions = concatenate(full_state, n_actions, 1);
   predict(critic, q_n_actions);
-  double final_loss = mean(q_n_actions);
+  float final_loss = mean(q_n_actions);
   matrix_t* c_grad = matrix_clone(q_n_actions);
   for (int i = 0; i < c_grad->rows*c_grad->cols; ++i) {
-    c_grad->data[i] = 1 / (double)c_grad->rows;
+    c_grad->data[i] = 1 / (float)c_grad->rows;
   }
 
-  // mult_scalar(c_grad, 1/(double)c_grad->rows);
+  // mult_scalar(c_grad, 1/(float)c_grad->rows);
   model_backward(critic, c_grad);
   assert(c_grad->cols == AUX_STATE_DIM + ACTION_DIM);
   matrix_t* a_grad = slice_col_wise(c_grad, AUX_STATE_DIM, AUX_STATE_DIM+ACTION_DIM);
   mult_scalar(a_grad, ACTION_BOUND);
-  // mult_scalar(a_grad, 1/(double) a_grad->rows);
+  // mult_scalar(a_grad, 1/(float) a_grad->rows);
   neg(a_grad);
 
   // back propagation and update

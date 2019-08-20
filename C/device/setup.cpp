@@ -4,18 +4,21 @@
 #include <stdlib.h>
 #include "utils.hpp"
 #include <algorithm>
+#include "tests.hpp"
 
 #define PLATFORM_NAME "Intel(R) FPGA SDK for OpenCL(TM)"
 #define BIN_NAME "rl.aocx"
 
+Config global_config;
 
-int c_init_opencl() {
-  printf("called from c\n");
+int c_init_opencl(int num_of_kernels, const char* const* names) {
   vector<string> kns;
-  kns.push_back("vector_add");
-  kns.push_back("gemm");
-  Config c = init_opencl(kns);
-  c.show();
+  for (int i = 0; i < num_of_kernels; ++i) {
+    kns.push_back(names[i]);
+  }
+  global_config = init_opencl(kns);
+  global_config.show();
+  // kernel_tests(kns);
   return 1;
 }
 
@@ -119,7 +122,7 @@ Config init_opencl(vector<string> kernel_names) {
   //initialize kernels
   for (size_t i = 0; i < kernel_names.size(); i++) {
     new_conf.kernel_names.push_back(kernel_names[i]);
-    new_conf.kernels.push_back(clCreateKernel(new_conf.program, kernel_names[i].c_str(), &status));
+    new_conf.kernels.push_back(Named_kernel(kernel_names[i].c_str(), clCreateKernel(new_conf.program, kernel_names[i].c_str(), &status)));
     check_status(status, "Failed initializing kernel");
   }
 
