@@ -719,7 +719,7 @@ int fpga_backward(model* m, matrix_t* grad) {
   return 1;
 }
 
-int fpga_adam(model* m, float lr) {
+matrix_t* fpga_adam(model* m, float lr) {
   assert(m->opt.type == adam);
   // matrix_t* params_host = new_matrix(1, m->param_size);
   // context, kernels, queues ...
@@ -752,13 +752,14 @@ int fpga_adam(model* m, float lr) {
   clWaitForEvents(1, &update_event);
 
   // read out updated params
-  float params_host[m->param_size];
+  matrix_t* updated_p = new_matrix(1, m->param_size);
+  float* params_host = updated_p->data;
   int status;
   status = clEnqueueReadBuffer(queue, params, CL_TRUE, 0, sizeof(float)*m->param_size, params_host, 0, NULL, NULL);
   check_status(status, "Failed reading updated parameters");
-  for (int i = 0; i < m->param_size; ++i) *(m->opt.cache.a.trainable_params[i]) = params_host[i];
-
-  return 1;
+  // for (int i = 0; i < m->param_size; ++i) *(m->opt.cache.a.trainable_params[i]) = params_host[i];
+  // print_buffer("params", 40, 1);
+  return updated_p;
 }
 
 int free_all_memory_objs() {

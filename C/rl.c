@@ -13,6 +13,7 @@
 #include "rl_ddpg_her_demo_sim.h"
 #include "multi_agents/rl_ddpg_her_mpi.h"
 #include "rl_ddpg_pixel.h"
+#include <math.h>
 
 
 static void test_run_mse();
@@ -300,6 +301,22 @@ static void test_device() {
 
   printf("====================================\n");
 
+  matrix_t* pd = fpga_adam(m, learning_rate);
+  perform_update(m, learning_rate);
+  matrix_t* ph = new_matrix(1, m->param_size);
+  for (int i = 0; i < m->param_size; ++i) ph->data[i] = *(m->opt.cache.a.trainable_params[i]);
+  float sum = 0;
+  float ld = 0;
+  for (int i = 0; i < m->param_size; ++i) {
+    float difference = fabs(pd->data[i]-ph->data[i]);
+    if (difference > ld) {
+      ld = difference;
+    }
+    sum += difference;
+  }
+  printf("largest difference %e\n", ld);
+  printf("total difference on updated parameter: %e\n", sum);
+  
 
   // // float loss = eval(m, x, y, min_max);
   // // printf("test run finished with error rate of %f (mse).\n", loss);
