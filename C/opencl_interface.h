@@ -10,6 +10,7 @@ int fpga_backward(model*, matrix_t*);
 int fpga_adam(model*, float);
 void initialize_values_on_device(model* );
 int initialize_training_env(model*, int);
+int fpga_prepare_backward(model* m, int batch_size);
 
 
 #endif

@@ -63,10 +63,11 @@ else
 	@$(CXX) $^ -o $@ $(LINUX_DY)
 endif
 	@mv *.o $(BDIR)
+	@mv device/*.cxx.o $(BDIR)
 	@mv multi_agents/*.o $(BDIR)
 
 rl.aocx: device/rl.cl
 	$(CL_COMPILER) $(ARCH_FLAG) $(BOARD_FLAG) $<
 
 clean :
-	rm -rf *.o multi_agents/*.o $(BDIR) *.aocx *.aoco rl $(EXE)
+	rm -rf *.o multi_agents/*.o $(BDIR) *.aocx *.aoco rl $(EXE) *.cxx.o

@@ -266,8 +266,9 @@ static void test_device() {
     "generate_update_adam",
     "examine_int_array",
     "examine_float_array",
+    "transpose_params_n_cache",
   };
-  c_init_opencl(11, names);
+  c_init_opencl(12, names);
   initialize_training_env(m, batch_size);
   initialize_values_on_device(m);
   printf("done preparing device\n");
@@ -276,18 +277,35 @@ static void test_device() {
   matrix_t* ey = slice_row_wise(y, 0, 32);
   matrix_t* d_ex = matrix_clone(ex);
   matrix_t* d_ey = matrix_clone(ey);
+
   float loss_device = fpga_forward(m, d_ex, d_ey);
-  printf("done device side\n");
+  printf("done device side forward\n");
   predict(m, ex);
-  print_matrix(ex,1);
   float loss_host = loss_forward(&m->loss_layer, ex, ey);
-  printf("done host side\n");
-
-  //fit(m, x, y, batch_size, epoch, learning_rate, shuffle, 1);
+  printf("done host side forward\n");
   printf("loss host: %f loss device: %f\n", loss_host, loss_device);
-  
-  // float loss = eval(m, x, y, min_max);
-  // printf("test run finished with error rate of %f (mse).\n", loss);
 
+  printf("===================================\n");
+
+  // fpga_backward(m, 0.01);
+  fpga_prepare_backward(m, batch_size);
+  fpga_backward(m, new_matrix(1,1));
+
+  matrix_t* grad_host = loss_backward(&m->loss_layer );
+  model_backward(m, grad_host);
+  matrix_t* gh = new_matrix(1, m->param_size);
+  for (int i = 0; i < m->param_size; ++i) gh->data[i] = *(m->opt.cache.a.trainable_params_g[i]);
+  gh->cols = 30;
+  print_matrix(gh, 1);
+
+  printf("====================================\n");
+
+
+  // // float loss = eval(m, x, y, min_max);
+  // // printf("test run finished with error rate of %f (mse).\n", loss);
+  // matrix_t* cache_T = transpose(m->hidden_linears[0].data.l.cache);
+  // cache_T->rows = 1;
+  // cache_T->cols = 50;
+  // print_matrix(cache_T,1);
 }
 #endif

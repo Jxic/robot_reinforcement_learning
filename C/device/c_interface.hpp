@@ -12,5 +12,5 @@ extern "C" int fpga_backward(model* m, matrix_t* grad);
 extern "C" int fpga_adam(model* m, float learning_rate);
 extern "C" void initialize_values_on_device(model* m);
 extern "C" void print_buffer(const char* buffer_name, int last_n_digit, int type);
-
+extern "C" int fpga_prepare_backward(model* m, int batch_size);
 #endif

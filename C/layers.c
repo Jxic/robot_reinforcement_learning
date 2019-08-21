@@ -174,25 +174,25 @@ static int linear_forward(layer* l, matrix_t* x) {
   matrix_t* wx = new_matrix(x->rows, layer_data.W->cols);
   matmul(x, layer_data.W, wx);
   
-  printf("host wx\n");
-  int xc = wx->cols;
-  int xr = wx->rows;
-  wx->cols = 30;
-  wx->rows = 1;
-  print_matrix(wx, 1);
-  wx->cols = xc;
-  wx->rows = xr;
+  // printf("host wx\n");
+  // int xc = wx->cols;
+  // int xr = wx->rows;
+  // wx->cols = 30;
+  // wx->rows = 1;
+  // print_matrix(wx, 1);
+  // wx->cols = xc;
+  // wx->rows = xr;
   
   add_bias(wx, layer_data.b);
 
-  printf("host wx+b\n");
-  xc = wx->cols;
-  xr = wx->rows;
-  wx->cols = 30;
-  wx->rows = 1;
-  print_matrix(wx, 1);
-  wx->cols = xc;
-  wx->rows = xr;
+  // printf("host wx+b\n");
+  // xc = wx->cols;
+  // xr = wx->rows;
+  // wx->cols = 30;
+  // wx->rows = 1;
+  // print_matrix(wx, 1);
+  // wx->cols = xc;
+  // wx->rows = xr;
   
   //update the data flowing through the network
   copy_matrix(x, wx);
@@ -208,6 +208,23 @@ static int linear_forward(layer* l, matrix_t* x) {
 
 static int linear_backward(layer* l, matrix_t* grad) {
   // caveat: memory needs to be realloced to hold new data
+  
+  // int tmp_r = grad->rows;
+  // int tmp_c = grad->cols;
+  // grad->rows = 1;
+  // grad->cols = 30;
+  // matrix_t* wtmp = transpose(l->data.l.W);
+  // wtmp->rows = 1;
+  // wtmp->cols = 30;
+  // printf("host grad\n");
+  // printf("In\n");
+  // print_matrix(grad, 1);
+  // printf("param_t\n");
+  // print_matrix(wtmp, 1);
+  // printf("host grad end\n");
+  // grad->rows = tmp_r;
+  // grad->cols = tmp_c;
+
   linear_layer layer_data = l->data.l;
   matrix_t* cache_T = transpose(layer_data.cache);
   matrix_t* ones = new_matrix(1, grad->rows);
