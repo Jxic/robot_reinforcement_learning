@@ -26,10 +26,10 @@ void run_rl(rl_type t) {
   {
     case test:
       printf("Running test algorithm ... \n");
-      // test_run_mse();
+      test_run_mse();
       // test_run_cce();
       // test_run_conv();
-      test_device();
+      // test_device();
       break;
     
     // deep deterministic policy gradient
@@ -250,7 +250,7 @@ static void test_device() {
   matrix_t* y = slice_col_wise(t, 3, 6);
   int batch_size = 32;
   int epoch = 100;
-  float learning_rate = 0.001;
+  float learning_rate = 0.0001;
   int shuffle = 1;
 
   model* m;
@@ -317,6 +317,53 @@ static void test_device() {
   printf("largest difference %e\n", ld);
   printf("total difference on updated parameter: %e\n", sum);
   
+  printf("====================================\n");
+  printf("Second round\n");
+
+  matrix_t* ex_2 = slice_row_wise(x, 32, 64);
+  matrix_t* ey_2 = slice_row_wise(y, 32, 64);
+  matrix_t* d_ex_2 = matrix_clone(ex_2);
+  matrix_t* d_ey_2 = matrix_clone(ey_2);
+
+  loss_device = fpga_forward(m, d_ex_2, d_ey_2);
+  printf("done device side forward\n");
+  predict(m, ex_2);
+  loss_host = loss_forward(&m->loss_layer, ex_2, ey_2);
+  printf("done host side forward\n");
+  printf("loss host: %f loss device: %f\n", loss_host, loss_device);
+
+  printf("===================================\n");
+
+  // fpga_backward(m, 0.01);
+  fpga_prepare_backward(m, batch_size);
+  fpga_backward(m, new_matrix(1,1));
+
+  matrix_t* grad_host_2 = loss_backward(&m->loss_layer );
+  model_backward(m, grad_host_2);
+  matrix_t* gh_2 = new_matrix(1, m->param_size);
+  for (int i = 0; i < m->param_size; ++i) gh_2->data[i] = *(m->opt.cache.a.trainable_params_g[i]);
+  gh_2->cols = 30;
+  print_matrix(gh, 1);
+
+  printf("====================================\n");
+
+  matrix_t* pd_2 = fpga_adam(m, learning_rate);
+  perform_update(m, learning_rate);
+  matrix_t* ph_2 = new_matrix(1, m->param_size);
+  for (int i = 0; i < m->param_size; ++i) ph_2->data[i] = *(m->opt.cache.a.trainable_params[i]);
+  float sum_2 = 0;
+  float ld_2 = 0;
+  for (int i = 0; i < m->param_size; ++i) {
+    float difference = fabs(pd_2->data[i]-ph_2->data[i]);
+    if (difference > ld_2) {
+      ld_2 = difference;
+    }
+    sum_2 += difference;
+  }
+  printf("largest difference %e\n", ld_2);
+  printf("total difference on updated parameter: %e\n", sum_2);
+  
+  printf("====================================\n");
 
   // // float loss = eval(m, x, y, min_max);
   // // printf("test run finished with error rate of %f (mse).\n", loss);

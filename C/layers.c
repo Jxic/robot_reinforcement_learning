@@ -174,9 +174,27 @@ static int linear_forward(layer* l, matrix_t* x) {
   matrix_t* wx = new_matrix(x->rows, layer_data.W->cols);
   matmul(x, layer_data.W, wx);
   
+  // printf("host layer_data.W\n");
+  // int xc = layer_data.W->cols;
+  // int xr = layer_data.W->rows;
+  // layer_data.W->cols = 30;
+  // layer_data.W->rows = 1;
+  // print_matrix(layer_data.W, 1);
+  // layer_data.W->cols = xc;
+  // layer_data.W->rows = xr;
+
+  // printf("host x\n");
+  //  xc = x->cols;
+  //  xr = x->rows;
+  // x->cols = 30;
+  // x->rows = 1;
+  // print_matrix(x, 1);
+  // x->cols = xc;
+  // x->rows = xr;
+
   // printf("host wx\n");
-  // int xc = wx->cols;
-  // int xr = wx->rows;
+  // xc = wx->cols;
+  // xr = wx->rows;
   // wx->cols = 30;
   // wx->rows = 1;
   // print_matrix(wx, 1);
@@ -208,7 +226,7 @@ static int linear_forward(layer* l, matrix_t* x) {
 
 static int linear_backward(layer* l, matrix_t* grad) {
   // caveat: memory needs to be realloced to hold new data
-  
+
   // int tmp_r = grad->rows;
   // int tmp_c = grad->cols;
   // grad->rows = 1;

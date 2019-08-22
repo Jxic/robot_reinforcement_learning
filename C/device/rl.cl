@@ -114,7 +114,7 @@ __kernel void linear_forward_prop(__global const float* restrict params,
 
   // save cache
   for (int i = 0; i < *input_r*(*input_c); ++i) cache[cache_offset+i] = input_data[i];
-  printf("cache offset from %d to %d\n", *cache_offset_, *cache_offset_+(*input_c)*(*input_r));
+  // printf("cache offset from %d to %d\n", *cache_offset_, *cache_offset_+(*input_c)*(*input_r));
   *cache_offset_ += *input_r * *(input_c);
 
   // linear
@@ -194,7 +194,7 @@ __kernel void relu_backward_prop(__global float* restrict input_grad,
                                  __global float* restrict cache,
                                  __global int* restrict cache_offset,
                                  __global int* restrict err_code) {
-  printf("[relu in] offset at %d, changing to %d\n", *cache_offset, *cache_offset-*input_grad_r*(*input_grad_c));
+  // printf("[relu in] offset at %d, changing to %d\n", *cache_offset, *cache_offset-*input_grad_r*(*input_grad_c));
   local int c_offset;
   *cache_offset -= *input_grad_r * (*input_grad_c);
   c_offset = *cache_offset;
@@ -329,11 +329,16 @@ __kernel void generate_update_adam(__global float* restrict params,
   float lr = *learning_rate * (sqrt(1-beta2_exp)/(1-beta1_exp));
   for (int i = 0; i < *grad_size; ++i) {
     first_moment[i] = *beta1 * (first_moment[i] - grads[i]) + grads[i];
-    second_moment[i] = *beta2 * (second_moment[i] - grads[i]) + pow(grads[i], 2);
+    float grad_squared = pow(grads[i], 2);
+    second_moment[i] = *beta2 * (second_moment[i] - grad_squared) + grad_squared;
     corrected_snd = sqrt(second_moment[i]) + *epsilon;
     corrected_fst = (first_moment[i] / corrected_snd) * lr;
     params[i] -= corrected_fst;
   }
+  // printf("grad size %d\n", *grad_size);
+  // for (int i = 0; i < *grad_size; ++i) {
+  //   params[i] += 100;
+  // }
 }
 
 __kernel void examine_float_array(__global float* restrict params,

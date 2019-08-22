@@ -111,10 +111,11 @@ void set_single_int_value(const char* buffer_name, int value) {
 }
 
 void initialize_values_on_device(model* m) {
+  printf("Initializing buffer values on device\n");
   cl_int status;
   // cl_context context = global_config.context;
   cl_command_queue fp_queue = global_config.command_queues[0];
-  cl_event write_event[7];
+  cl_event write_event[6];
   // transfer params
   Named_buffer params = find_buffer_by_name(global_config.mem_objs, "params");
   float params_host[m->param_size];
@@ -155,15 +156,14 @@ void initialize_values_on_device(model* m) {
   check_status(status, "Failed to initialize value for first moment");
   status = clEnqueueWriteBuffer(fp_queue, snd_moment.buffer, CL_FALSE, 0, snd_moment.size, moments_host, 0, NULL, write_event+5);
   check_status(status, "Failed to initialize value for second moment");
-  status = clEnqueueWriteBuffer(fp_queue, param_grads.buffer, CL_FALSE, 0, param_grads.size, moments_host, 0, NULL, write_event+6);
-  check_status(status, "Failed to initialize value for parameter gradients");
   set_single_float_value("beta1", 0.9);
   set_single_float_value("beta2", 0.999);
   set_single_float_value("epsilon", 1e-8);
   set_single_int_value("timestamp", 0);
-  clWaitForEvents(7, write_event);
+  set_single_int_value("grad_size", m->param_size);
+  clWaitForEvents(6, write_event);
   // printf("dim information\n");
-  print_buffer("param_grads", 40, 1);
+  // print_buffer("param_grads", 40, 1);
   // printf("params\n");
   // matrix_t* p = new_matrix(1, m->param_size);
   // p->data = params_host;
@@ -512,6 +512,16 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   cl_mem err_code = find_buffer_by_name(global_config.mem_objs, "err_code").buffer; 
   cl_mem aux_buffer = find_buffer_by_name(global_config.mem_objs, "aux_buffer").buffer;
   cl_mem loss = find_buffer_by_name(global_config.mem_objs, "ret_loss").buffer;
+  Named_buffer param_grads = find_buffer_by_name(global_config.mem_objs, "param_grads");
+
+  // clean up buffers
+  // print_buffer("param_offset", -1, 0);
+  // print_buffer("cache_offset", -1, 0);
+  // print_buffer("dims", -1, 0);
+  float moments_host[m->param_size];
+  for (int i = 0; i < m->param_size; ++i) moments_host[i] = 0;
+  status = clEnqueueWriteBuffer(fp_queue, param_grads.buffer, CL_TRUE, 0, param_grads.size, moments_host, 0, NULL, NULL);
+  check_status(status, "Failed to initialize value for parameter gradients");
 
   // transfer input batch and target batch
   status = clEnqueueWriteBuffer(fp_queue, layer_io_buffer1, CL_TRUE, 0, x->rows*x->cols*sizeof(float), x->data, 0, NULL, NULL);
@@ -703,7 +713,7 @@ int fpga_backward(model* m, matrix_t* grad) {
     clWaitForEvents(1, &linear_bp_event);
   }
 
-  print_buffer("param_grads", 30, 1);
+  // print_buffer("param_grads", 30, 1);
   float params_g_device[m->param_size];
   float params_g_host[m->param_size];
   int status;
@@ -750,6 +760,7 @@ matrix_t* fpga_adam(model* m, float lr) {
   // invoke kernel
   enqueue_generate_update_adam(generate_update_adam, queue, &params, &fst_moment, &snd_moment, &param_grads, &grad_size, &timestamp, &beta1, &beta2, &epsilon, &learning_rate, &err_code, &update_event);
   clWaitForEvents(1, &update_event);
+  // print_buffer("params", 20, 1);
 
   // read out updated params
   matrix_t* updated_p = new_matrix(1, m->param_size);
@@ -757,7 +768,7 @@ matrix_t* fpga_adam(model* m, float lr) {
   int status;
   status = clEnqueueReadBuffer(queue, params, CL_TRUE, 0, sizeof(float)*m->param_size, params_host, 0, NULL, NULL);
   check_status(status, "Failed reading updated parameters");
-  // for (int i = 0; i < m->param_size; ++i) *(m->opt.cache.a.trainable_params[i]) = params_host[i];
+  for (int i = 0; i < m->param_size; ++i) *(m->opt.cache.a.trainable_params[i]) = params_host[i];
   // print_buffer("params", 40, 1);
   return updated_p;
 }

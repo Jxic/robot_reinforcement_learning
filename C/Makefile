@@ -63,7 +63,7 @@ else
 	@$(CXX) $^ -o $@ $(LINUX_DY)
 endif
 	@mv *.o $(BDIR)
-	@mv device/*.cxx.o $(BDIR)
+	# @mv device/*.cxx.o $(BDIR)
 	@mv multi_agents/*.o $(BDIR)
 
 rl.aocx: device/rl.cl

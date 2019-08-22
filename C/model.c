@@ -9,6 +9,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "utils.h"
+#include "opencl_interface.h"
 
 static float model_forward(model* m, matrix_t* x, matrix_t* y);
 static int add_activation_layer(model* m, layer_type activation);
@@ -260,6 +261,26 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
   }
   float final_loss = 0;
 
+  #ifdef OPENCL
+  const char * names[] = {
+    "vector_add",
+    "gemm",
+    "linear_forward_prop",
+    "relu_forward_prop",
+    "mse",
+    "relu_backward_prop",
+    "transpose_params_n_cache",
+    "linear_backward_prop",
+    "generate_update_adam",
+    "examine_int_array",
+    "examine_float_array",
+    "transpose_params_n_cache",
+  };
+  c_init_opencl(12, names);
+  initialize_training_env(m, batch_size);
+  initialize_values_on_device(m);
+  #endif
+
   for (int epc = 0; epc < epoch; ++epc) {
     #ifdef RUN_TEST
     struct timeval t_start;
@@ -290,7 +311,10 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     while (start < data_size - 1) {
       step_count++;
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
-      
+      if (curr_batch < batch_size) {
+        step_count--;
+        break;
+      }
       // prepare next batch
       matrix_t* next_batch = slice_row_wise(x, start, start+curr_batch);
       matrix_t* next_target = slice_row_wise(y, start, start+curr_batch);
@@ -307,21 +331,49 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
       augment_space(next_batch, batch_size, m->max_out);
 
       // one forward and backward pass
-      loss += model_forward(m, next_batch, next_target);
+      #ifndef OPENCL
+      float step_loss_h = model_forward(m, next_batch, next_target);
+      loss += step_loss_h;
+      #else
+      float step_loss_d = fpga_forward(m, next_batch, next_target);
+      loss += step_loss_d;
+      // printf("step loss h %f d %f\n", step_loss_h, step_loss_d);
+      #endif
 
       forward += timer_check(&ep_t_start);
-
+      #ifndef OPENCL
       matrix_t* grad = loss_backward(&m->loss_layer);
       model_backward(m, grad);
-
+      #else
+      fpga_prepare_backward(m, batch_size);
+      fpga_backward(m, new_matrix(1,1));
+      #endif
       backward += timer_check(&ep_t_start);
 
+      #ifndef OPENCL
       free_matrix(grad);
       if (auto_update) {
         perform_update(m, learning_rate);
+        // matrix_t* ph = new_matrix(1, m->param_size);
+        // for (int i = 0; i < m->param_size; ++i) ph->data[i] = *(m->opt.cache.a.trainable_params[i]);
+        // float sum = 0;
+        // float ld = 0;
+        // for (int i = 0; i < m->param_size; ++i) {
+        //   float difference = fabs(pd->data[i]-ph->data[i]);
+        //   if (difference > ld) {
+        //     ld = difference;
+        //   }
+        //   sum += difference;
+        // }
+        // printf("largest difference %e\n", ld);
+        // printf("total difference on updated parameter: %e\n", sum);
       } else if (batch_size < x->rows || epoch != 1) {
         printf("[Warning] Model is not updating, entering next loop ... batch size: %d, x_size: %d, epoch: %d\n", batch_size, x->rows, epoch);
       }
+      #else
+      matrix_t* pd = fpga_adam(m, learning_rate);
+      free_matrix(pd);
+      #endif
 
       update += timer_check(&ep_t_start);
  
