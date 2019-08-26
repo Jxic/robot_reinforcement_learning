@@ -2,6 +2,8 @@
 #include "setup.hpp"
 #include "utils.hpp"
 #include <assert.h>
+// #include <cstdarg>
+#include <stdarg.h>
 
 extern Config global_config;
 
@@ -162,295 +164,36 @@ void initialize_values_on_device(model* m) {
   set_single_int_value("timestamp", 0);
   set_single_int_value("grad_size", m->param_size);
   clWaitForEvents(6, write_event);
-  // printf("dim information\n");
-  // print_buffer("param_grads", 40, 1);
-  // printf("params\n");
-  // matrix_t* p = new_matrix(1, m->param_size);
-  // p->data = params_host;
-  // print_matrix(p, 1);
-  // print_buffer("params", 20, 1);
-  // print_buffer("fst_moment", 10, 1);
-  // print_buffer("snd_moment", 10, 1);
-  print_buffer("cache_T", 50, 1);
 }
 
-void enqueue_linear_forward_prop(cl_kernel linear_forward_prop,
-                                 cl_command_queue fp_queue,
-                                 cl_mem* params,
-                                 cl_mem* param_offset,
-                                 cl_mem* dims,
-                                 cl_mem* input_buffer,
-                                 cl_mem* input_r,
-                                 cl_mem* input_c,
-                                 cl_mem* cache,
-                                 cl_mem* cache_offset,
-                                 cl_mem* output,
-                                 cl_mem* output_r,
-                                 cl_mem* output_c,
-                                 cl_mem* err_code,
-                                 int* layer_idx,
-                                 cl_event* event) {
+void enqueue_NDRangeKernel(const char* kernel_name, cl_command_queue queue, cl_event* event, const char* fmt...) {
+  va_list args;
+  va_start(args, fmt);
+
+  cl_kernel kernel = find_kernel_by_name(global_config.kernels, kernel_name).k;
+  size_t idx = 0;
   cl_int status;
-  size_t linear_arg_idx = 0;
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), params);
-  check_status(status, "[linear_forward_prop] Failed setting arg 1");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), param_offset);
-  check_status(status, "[linear_forward_prop] Failed setting arg 2");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), dims);
-  check_status(status, "[linear_forward_prop] Failed setting arg 3");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), input_buffer);
-  check_status(status, "[linear_forward_prop] Failed setting arg 4");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), input_r);
-  check_status(status, "[linear_forward_prop] Failed setting arg 5");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), input_c);
-  check_status(status, "[linear_forward_prop] Failed setting arg 6");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), cache);
-  check_status(status, "[linear_forward_prop] Failed setting arg 7");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), cache_offset);
-  check_status(status, "[linear_forward_prop] Failed setting arg 8");   
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), output);
-  check_status(status, "[linear_forward_prop] Failed setting arg 9");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), output_r);
-  check_status(status, "[linear_forward_prop] Failed setting arg 10");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), output_c);
-  check_status(status, "[linear_forward_prop] Failed setting arg 11");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(int), layer_idx);
-  check_status(status, "[linear_forward_prop] Failed setting arg 12");
-  status = clSetKernelArg(linear_forward_prop, linear_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[linear_forward_prop] Failed setting arg 13");
+  while (*fmt != '\0') {
+    if (*fmt == 'm') {
+      cl_mem* m = va_arg(args, cl_mem*);
+      status = clSetKernelArg(kernel, idx++, sizeof(cl_mem), m);
+    } else if (*fmt == 'd') {
+      int* i = va_arg(args, int*);
+      status = clSetKernelArg(kernel, idx++, sizeof(int), i);
+    } else if (*fmt == 'f') {
+      float* f = va_arg(args, float*);
+      status = clSetKernelArg(kernel, idx++, sizeof(float), f);
+    } else {
+      printf("Could not recognize the format %c, aborting ...\n", *fmt);
+      exit(1);
+    }
+    check_status(status, "[%s] Failed to set argument %d", kernel_name, idx-1);
+    ++fmt;
+  }
+  va_end(args);
   const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(fp_queue, linear_forward_prop, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[linear_forward_prop] Failed enqueue linear forward propagation kernel");
-}
-
-void enqueue_relu_forward_prop(cl_kernel relu_forward_prop,
-                               cl_command_queue fp_queue,
-                               cl_mem* input_data,
-                               cl_mem* input_r,
-                               cl_mem* input_c,
-                               cl_mem* cache,
-                               cl_mem* cache_offset,
-                               cl_mem* err_code,
-                               cl_event* event) {
-  cl_int status;
-  size_t relu_arg_idx = 0;
-  status = clSetKernelArg(relu_forward_prop, relu_arg_idx++, sizeof(cl_mem), input_data);
-  check_status(status, "[relu_forward_prop] Failed setting arg 1");
-  status = clSetKernelArg(relu_forward_prop, relu_arg_idx++, sizeof(cl_mem), input_r);
-  check_status(status, "[relu_forward_prop] Failed setting arg 2");
-  status = clSetKernelArg(relu_forward_prop, relu_arg_idx++, sizeof(cl_mem), input_c);
-  check_status(status, "[relu_forward_prop] Failed setting arg 3");
-  status = clSetKernelArg(relu_forward_prop, relu_arg_idx++, sizeof(cl_mem), cache);
-  check_status(status, "[relu_forward_prop] Failed setting arg 4");
-  status = clSetKernelArg(relu_forward_prop, relu_arg_idx++, sizeof(cl_mem), cache_offset);
-  check_status(status, "[relu_forward_prop] Failed setting arg 5");
-  status = clSetKernelArg(relu_forward_prop, relu_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[relu_forward_prop] Failed setting arg 6");
-  const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(fp_queue, relu_forward_prop, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[relu_forward_prop] Failed enqueue relu forward propagation kernel");
-}
-
-void enqueue_mse(cl_kernel mse,
-                 cl_command_queue fp_queue, 
-                 cl_mem* input_data,
-                 cl_mem* input_r,
-                 cl_mem* input_c,
-                 cl_mem* target_data,
-                 cl_mem* tmp_buffer,
-                 cl_mem* loss,
-                 cl_mem* err_code,
-                 cl_event* event) {
-  cl_int status;
-  size_t mse_arg_idx = 0;
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), input_data);
-  check_status(status, "[mse] Failed setting arg 1");
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), input_r);
-  check_status(status, "[mse] Failed setting arg 2");
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), input_c);
-  check_status(status, "[mse] Failed setting arg 3");
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), target_data);
-  check_status(status, "[mse] Failed setting arg 4");
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), tmp_buffer);
-  check_status(status, "[mse] Failed setting arg 5");
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), loss);
-  check_status(status, "[mse] Failed setting arg 6");
-  status = clSetKernelArg(mse, mse_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[mse] Failed setting arg 7");
-  const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(fp_queue, mse, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[mse] Failed enqueue mse kernel");
-}
-
-void enqueue_linear_backward_prop(cl_kernel linear_backward_prop,
-                                  cl_command_queue bp_queue,
-                                  cl_mem* params_T,
-                                  cl_mem* params_T_offset,
-                                  cl_mem* param_offset,
-                                  cl_mem* dims,
-                                  cl_mem* input_grad,
-                                  cl_mem* input_grad_r,
-                                  cl_mem* input_grad_c,
-                                  cl_mem* cache_T,
-                                  cl_mem* cache_offset,
-                                  cl_mem* output_grad,
-                                  cl_mem* output_grad_r,
-                                  cl_mem* output_grad_c,
-                                  cl_mem* param_grads,
-                                  int* layer_idx,
-                                  cl_mem* err_code,
-                                  cl_event* event) {
-  cl_int status;
-  size_t linear_bp_arg_idx = 0;
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), params_T);
-  check_status(status, "[linear_backward_prop] Failed setting arg 1");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), params_T_offset);
-  check_status(status, "[linear_backward_prop] Failed setting arg 2");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), param_offset);
-  check_status(status, "[linear_backward_prop] Failed setting arg 3");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), dims);
-  check_status(status, "[linear_backward_prop] Failed setting arg 4");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), input_grad);
-  check_status(status, "[linear_backward_prop] Failed setting arg 5");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), input_grad_r);
-  check_status(status, "[linear_backward_prop] Failed setting arg 6");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), input_grad_c);
-  check_status(status, "[linear_backward_prop] Failed setting arg 7");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), cache_T);
-  check_status(status, "[linear_backward_prop] Failed setting arg 8");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), cache_offset);
-  check_status(status, "[linear_backward_prop] Failed setting arg 9");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), output_grad);
-  check_status(status, "[linear_backward_prop] Failed setting arg 10");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), output_grad_r);
-  check_status(status, "[linear_backward_prop] Failed setting arg 11");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), output_grad_c);
-  check_status(status, "[linear_backward_prop] Failed setting arg 12");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), param_grads);
-  check_status(status, "[linear_backward_prop] Failed setting arg 13");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(int), layer_idx);
-  check_status(status, "[linear_backward_prop] Failed setting arg 14");
-  status = clSetKernelArg(linear_backward_prop, linear_bp_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[linear_backward_prop] Failed setting arg 15");
-
-  const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(bp_queue, linear_backward_prop, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[linear_backward_prop] Failed enqueue linear backward propagation kernel");
-}
-
-void enqueue_relu_backward_prop(cl_kernel relu_backward_prop,
-                                cl_command_queue bp_queue,
-                                cl_mem* input_grad,
-                                cl_mem* input_grad_r,
-                                cl_mem* input_grad_c,
-                                cl_mem* cache,
-                                cl_mem* cache_offset,
-                                cl_mem* err_code,
-                                cl_event* event) {
-  cl_int status;
-  size_t relu_bp_arg_idx = 0;                               
-  status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), input_grad);
-  check_status(status, "[linear_backward_prop] Failed setting arg 1");
-  status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), input_grad_r);
-  check_status(status, "[linear_backward_prop] Failed setting arg 2");
-  status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), input_grad_c);
-  check_status(status, "[linear_backward_prop] Failed setting arg 3");
-  status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), cache);
-  check_status(status, "[linear_backward_prop] Failed setting arg 4");
-  status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), cache_offset);
-  check_status(status, "[linear_backward_prop] Failed setting arg 5");
-  // status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), output_grad);
-  // check_status(status, "[linear_backward_prop] Failed setting arg 6");
-  status = clSetKernelArg(relu_backward_prop, relu_bp_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[linear_backward_prop] Failed setting arg 6");
-
-  const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(bp_queue, relu_backward_prop, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[relu_backward_prop] Failed enqueue relu backward propagation kernel");
-}
-
-void enqueue_generate_update_adam(cl_kernel generate_update_adam,
-                                  cl_command_queue queue,
-                                  cl_mem* params,
-                                  cl_mem* first_moment,
-                                  cl_mem* second_moment,
-                                  cl_mem* grads,
-                                  cl_mem* grad_size,
-                                  cl_mem* time_stamp,
-                                  cl_mem* beta1,
-                                  cl_mem* beta2,
-                                  cl_mem* epsilon,
-                                  cl_mem* learning_rate,
-                                  cl_mem* err_code,
-                                  cl_event* event) {
-  cl_int status;
-  size_t adam_arg_idx = 0;
-  
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), params);
-  check_status(status, "[generate_update_adam] Failed setting arg 1");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), first_moment);
-  check_status(status, "[generate_update_adam] Failed setting arg 2");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), second_moment);
-  check_status(status, "[generate_update_adam] Failed setting arg 3");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), grads);
-  check_status(status, "[generate_update_adam] Failed setting arg 4");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), grad_size);
-  check_status(status, "[generate_update_adam] Failed setting arg 5");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), time_stamp);
-  check_status(status, "[generate_update_adam] Failed setting arg 6");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), beta1);
-  check_status(status, "[generate_update_adam] Failed setting arg 7");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), beta2);
-  check_status(status, "[generate_update_adam] Failed setting arg 8");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), epsilon);
-  check_status(status, "[generate_update_adam] Failed setting arg 9");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), learning_rate);
-  check_status(status, "[generate_update_adam] Failed setting arg 10");
-  status = clSetKernelArg(generate_update_adam, adam_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[generate_update_adam] Failed setting arg 11");
-
-  const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(queue, generate_update_adam, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[generate_update_adam] Failed enqueue generate update adam kernel");
-}
-
-void enqueue_transpose_params_n_cache(cl_kernel tpnc,
-                                      cl_command_queue queue,
-                                      cl_mem* params,
-                                      cl_mem* cache,
-                                      int* num_layers,
-                                      int* batch_size,
-                                      cl_mem* dims,
-                                      cl_mem* params_T,
-                                      cl_mem* cache_T,
-                                      cl_mem* param_offset,
-                                      cl_mem* err_code,
-                                      cl_event* event) {
-  cl_int status;
-  size_t adam_arg_idx = 0;
-  
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), params);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 1");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), cache);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 2");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(int), num_layers);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 3");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(int), batch_size);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 4");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), dims);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 5");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), params_T);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 6");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), cache_T);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 7");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), param_offset);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 8");
-  status = clSetKernelArg(tpnc, adam_arg_idx++, sizeof(cl_mem), err_code);
-  check_status(status, "[transpose_params_n_cache] Failed setting arg 9");
-
-  const size_t gws = 1;
-  status = clEnqueueNDRangeKernel(queue, tpnc, 1, NULL, &gws, NULL, 0, NULL, event);
-  check_status(status, "[transpose_params_n_cache] Failed enqueue transpose_params_n_cache kernel");
+  status = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &gws, NULL, 0, NULL, event);
+  check_status(status, "[%s] Failed enqueue %s kernel", kernel_name, kernel_name);
 }
 
 void check_buffer(model* m, cl_command_queue fp_queue) {
@@ -486,7 +229,6 @@ void check_buffer(model* m, cl_command_queue fp_queue) {
 float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   // context, queue, kernels ...
   cl_int status;
-  // cl_context context = global_config.context;
   cl_command_queue fp_queue = global_config.command_queues[0];
   cl_kernel linear_forward_prop = find_kernel_by_name(global_config.kernels, "linear_forward_prop").k;
   cl_kernel relu_forward_prop = find_kernel_by_name(global_config.kernels, "relu_forward_prop").k;
@@ -515,9 +257,6 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   Named_buffer param_grads = find_buffer_by_name(global_config.mem_objs, "param_grads");
 
   // clean up buffers
-  // print_buffer("param_offset", -1, 0);
-  // print_buffer("cache_offset", -1, 0);
-  // print_buffer("dims", -1, 0);
   float moments_host[m->param_size];
   for (int i = 0; i < m->param_size; ++i) moments_host[i] = 0;
   status = clEnqueueWriteBuffer(fp_queue, param_grads.buffer, CL_TRUE, 0, param_grads.size, moments_host, 0, NULL, NULL);
@@ -543,13 +282,12 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   for (int n = 0; n < m->num_of_layers-1; ++n) {
     // enqueue linear forward
     layer_idx = n;
-    enqueue_linear_forward_prop(linear_forward_prop, fp_queue, &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &err_code, &layer_idx, &linear_fp_event);
+    enqueue_NDRangeKernel("linear_forward_prop", fp_queue, &linear_fp_event, "mmmmmmmmmmmdm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &err_code);
     clWaitForEvents(1, &linear_fp_event);
-    // if (n == 1) {
-    //   check_buffer(m, fp_queue);
-    // }
+
     // enqueue activation forward
-    enqueue_relu_forward_prop(relu_forward_prop, fp_queue, output_buffer, output_r, output_c, &cache, &cache_offset, &err_code, &activation_fp_event);
+    enqueue_NDRangeKernel("relu_forward_prop", fp_queue, &activation_fp_event, "mmmmmm", output_buffer, output_r, output_c, &cache, &cache_offset, &err_code);
+
     // swap input output buffer
     tmp = input_buffer;
     input_buffer = output_buffer;
@@ -564,32 +302,17 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
     clWaitForEvents(1, &activation_fp_event);
   }
   layer_idx = m->num_of_layers - 1;
-  enqueue_linear_forward_prop(linear_forward_prop, fp_queue, &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &err_code, &layer_idx, &linear_fp_event);
+  enqueue_NDRangeKernel("linear_forward_prop", fp_queue, &linear_fp_event, "mmmmmmmmmmmdm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &err_code);
   clWaitForEvents(1, &linear_fp_event);
-
-  // print_matrix(y, 1);
 
   // transfer target
   status = clEnqueueWriteBuffer(fp_queue, *input_buffer, CL_TRUE, 0, y->rows*y->cols*sizeof(float), y->data, 0, NULL, NULL);
-  enqueue_mse(mse, fp_queue, output_buffer, output_r, output_c, input_buffer, &aux_buffer, &loss, &err_code, &mse_event);
+  enqueue_NDRangeKernel("mse", fp_queue, &mse_event, "mmmmmmm", output_buffer, output_r, output_c, input_buffer, &aux_buffer, &loss, &err_code);
   clWaitForEvents(1, &mse_event);
+
   // read loss
   float loss_host[1];
   status = clEnqueueReadBuffer(fp_queue, loss, CL_TRUE, 0, sizeof(float), loss_host, 1, &mse_event, NULL);
-
-
-
-  // float params_host[m->param_size];
-  // assert(m->opt.type == adam);
-  // for (int i = 0; i < m->param_size; ++i) params_host[i] = *(m->opt.cache.a.trainable_params[i]);
-  // matrix_t* p = new_matrix(1, m->param_size);
-  // p->data = params_host;
-  // p->cols = 20;
-  // print_matrix(p, 1);
-  // print_buffer("params", 20, 1);
-
-  // print_buffer("layer_io_buffer1", 32*3, 1);
-  // print_buffer("layer_io_buffer2", 32*3, 1);
 
   return loss_host[0];
 }
@@ -615,20 +338,12 @@ int fpga_prepare_backward(model* m, int batch_size) {
   int num_layers = m->num_of_layers;
   int b_s = batch_size;
 
-  // print_buffer("params", 500 ,1);
-  // print_buffer("cache", 500 ,1);
-  enqueue_transpose_params_n_cache(tpnc, queue, &params, &cache, &num_layers, &batch_size, &dims, &params_T, &cache_T, &param_T_offset, &err_code, &tpnc_event);
+  enqueue_NDRangeKernel("transpose_params_n_cache", queue, &tpnc_event, "mmddmmmmm", &params, &cache, &num_layers, &batch_size, &dims, &params_T, &cache_T, &param_T_offset, &err_code);
   clWaitForEvents(1, &tpnc_event);
-  
-  // print_buffer("layer_io_buffer1", 500, 1);
-  // print_buffer("cache_T", 500 ,1);
-  // print_buffer("cache_T", 50, 1);
 }
 
 int fpga_backward(model* m, matrix_t* grad) {
   // context, kernels, queue ...
-  // cl_int status;
-  // cl_context context = global_config.context;
   cl_command_queue bp_queue = global_config.command_queues[0];
   cl_kernel linear_backward_prop = find_kernel_by_name(global_config.kernels, "linear_backward_prop").k;
   cl_kernel relu_backward_prop = find_kernel_by_name(global_config.kernels, "relu_backward_prop").k;
@@ -644,7 +359,6 @@ int fpga_backward(model* m, matrix_t* grad) {
   cl_mem dims = find_buffer_by_name(global_config.mem_objs, "dims").buffer;
   cl_mem layer_io_buffer1 = find_buffer_by_name(global_config.mem_objs, "layer_io_buffer1").buffer;
   cl_mem layer_io_buffer2 = find_buffer_by_name(global_config.mem_objs, "layer_io_buffer2").buffer;
-  // cl_mem cache = find_buffer_by_name(global_config.mem_objs, "cache").buffer;
   cl_mem cache_offset = find_buffer_by_name(global_config.mem_objs, "cache_offset").buffer;
   cl_mem r1 = find_buffer_by_name(global_config.mem_objs, "r1").buffer;
   cl_mem c1 = find_buffer_by_name(global_config.mem_objs, "c1").buffer;
@@ -654,12 +368,6 @@ int fpga_backward(model* m, matrix_t* grad) {
   cl_mem err_code = find_buffer_by_name(global_config.mem_objs, "err_code").buffer; 
   cl_mem cache_T = find_buffer_by_name(global_config.mem_objs, "cache_T").buffer;
   
-  // read gradients dimension
-  // int g_dim_host[2];
-  // status = clEnqueueReadBuffer(bp_queue, output_r, CL_TRUE, 0, sizeof(float), g_dim_host, 0, NULL, NULL);
-  // status = clEnqueueReadBuffer(bp_queue, output_c, CL_TRUE, 0, sizeof(float), g_dim_host+1, 0, NULL, NULL);
-  // check_status(status, "Failed reading final output dimension");
-
   // other variable
   cl_mem input_buffer;
   cl_mem output_buffer;
@@ -669,8 +377,6 @@ int fpga_backward(model* m, matrix_t* grad) {
   cl_mem output_c;
 
   // reset offset
-
-
   if (m->num_of_layers%2==0) {
     input_buffer = layer_io_buffer2;
     output_buffer = layer_io_buffer1;
@@ -690,12 +396,12 @@ int fpga_backward(model* m, matrix_t* grad) {
 
   int layer_idx = m->num_of_layers-1;
   cl_mem tmp;
-  enqueue_linear_backward_prop(linear_backward_prop, bp_queue, &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &err_code, &linear_bp_event);
+  enqueue_NDRangeKernel("linear_backward_prop", bp_queue, &linear_bp_event, "mmmmmmmmmmmmmdm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &err_code);
   clWaitForEvents(1, &linear_bp_event);
 
   for (int i = m->num_of_layers-2; i >= 0; --i) {
     layer_idx = i;
-    enqueue_relu_backward_prop(relu_backward_prop, bp_queue, &output_buffer, &output_r, &output_c, &cache_T, &cache_offset, &err_code, &activation_bp_event);
+    enqueue_NDRangeKernel("relu_backward_prop", bp_queue, &activation_bp_event, "mmmmmm", &output_buffer, &output_r, &output_c, &cache_T, &cache_offset, &err_code);
     // swap input ouput buffer
     tmp = input_buffer;
     input_buffer = output_buffer;
@@ -709,32 +415,27 @@ int fpga_backward(model* m, matrix_t* grad) {
     output_c = tmp;
     clWaitForEvents(1, &activation_bp_event);
 
-    enqueue_linear_backward_prop(linear_backward_prop, bp_queue, &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &err_code, &linear_bp_event);
+    enqueue_NDRangeKernel("linear_backward_prop", bp_queue, &linear_bp_event, "mmmmmmmmmmmmmdm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &err_code);
     clWaitForEvents(1, &linear_bp_event);
   }
 
-  // print_buffer("param_grads", 30, 1);
-  float params_g_device[m->param_size];
-  float params_g_host[m->param_size];
-  int status;
-  status = clEnqueueReadBuffer(bp_queue, param_grads, CL_TRUE, 0, sizeof(float)*m->param_size, params_g_device, 0, NULL, NULL);
-  check_status(status, "Failed reading grads");
-  for (int i = 0; i < m->param_size; ++i) params_g_host[i] = *(m->opt.cache.a.trainable_params_g[i]);
-  matrix_t* gd = new_matrix(1, 30);
-  matrix_t* gh = new_matrix(1, 30);
-  gd->data = params_g_device;
-  gh->data = params_g_host;
-  // print_matrix(gd);
-  // print_matrix(gh, 1);
+  // float params_g_device[m->param_size];
+  // float params_g_host[m->param_size];
+  // int status;
+  // status = clEnqueueReadBuffer(bp_queue, param_grads, CL_TRUE, 0, sizeof(float)*m->param_size, params_g_device, 0, NULL, NULL);
+  // check_status(status, "Failed reading grads");
+  // for (int i = 0; i < m->param_size; ++i) params_g_host[i] = *(m->opt.cache.a.trainable_params_g[i]);
+  // matrix_t* gd = new_matrix(1, 30);
+  // matrix_t* gh = new_matrix(1, 30);
+  // gd->data = params_g_device;
+  // gh->data = params_g_host;
   return 1;
 }
 
 matrix_t* fpga_adam(model* m, float lr) {
   assert(m->opt.type == adam);
-  // matrix_t* params_host = new_matrix(1, m->param_size);
   // context, kernels, queues ...
-  // cl_int status;
-  // cl_context context = global_config.context;
+
   cl_command_queue queue = global_config.command_queues[0];
   cl_kernel generate_update_adam = find_kernel_by_name(global_config.kernels, "generate_update_adam").k;
   set_single_float_value("lr", lr);
@@ -754,13 +455,10 @@ matrix_t* fpga_adam(model* m, float lr) {
   cl_mem learning_rate = find_buffer_by_name(global_config.mem_objs, "lr").buffer;
   cl_mem grad_size = find_buffer_by_name(global_config.mem_objs, "grad_size").buffer;
 
-  // other variable
-  // int grad_size = m->param_size;
 
   // invoke kernel
-  enqueue_generate_update_adam(generate_update_adam, queue, &params, &fst_moment, &snd_moment, &param_grads, &grad_size, &timestamp, &beta1, &beta2, &epsilon, &learning_rate, &err_code, &update_event);
+  enqueue_NDRangeKernel("generate_update_adam", queue, &update_event, "mmmmmmmmmmm", &params, &fst_moment, &snd_moment, &param_grads, &grad_size, &timestamp, &beta1, &beta2, &epsilon, &learning_rate, &err_code);
   clWaitForEvents(1, &update_event);
-  // print_buffer("params", 20, 1);
 
   // read out updated params
   matrix_t* updated_p = new_matrix(1, m->param_size);
@@ -769,7 +467,7 @@ matrix_t* fpga_adam(model* m, float lr) {
   status = clEnqueueReadBuffer(queue, params, CL_TRUE, 0, sizeof(float)*m->param_size, params_host, 0, NULL, NULL);
   check_status(status, "Failed reading updated parameters");
   for (int i = 0; i < m->param_size; ++i) *(m->opt.cache.a.trainable_params[i]) = params_host[i];
-  // print_buffer("params", 40, 1);
+
   return updated_p;
 }
 

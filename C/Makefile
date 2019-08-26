@@ -17,8 +17,10 @@ CL_COMPILER = aoc
 ARCH_FLAG = -march=emulator
 BOARD_FLAG = -board=a10gx
 
-INC = -I/opt/intelFPGA_pro/17.1/hld/host/include
-LIB = -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_pro/17.1/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf -lrt -lpthread
+# -I/opt/intelFPGA_pro/17.1/hld/host/include
+INC = $(shell aocl compile-config )
+# -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_pro/17.1/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf -lrt -lpthread
+LIB = $(shell aocl link-config )
 
 CXXFLAGS = -Wall  $(INC)
 CXXDEPS = device/setup.hpp device/tests.hpp device/utils.hpp device/c_interface.hpp

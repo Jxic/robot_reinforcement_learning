@@ -9,7 +9,7 @@
 
 using namespace std;
   
-void check_status(cl_int status, const char* msg);
+void check_status(cl_int status, const char* msg...);
 class Named_buffer {
   public:
   //clCreateBuffer(context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), NULL, &status);

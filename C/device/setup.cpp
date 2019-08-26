@@ -40,7 +40,7 @@ Config init_opencl(vector<string> kernel_names) {
   // Get platform
   cl_uint num_platforms;
   status = clGetPlatformIDs(0, NULL, &num_platforms);
-  assert(num_platforms == 1);
+  // assert(num_platforms == 1);
   check_status(status ,"Failed finding number of platforms");
 
   cl_platform_id* ids = new cl_platform_id[num_platforms];
@@ -65,7 +65,7 @@ Config init_opencl(vector<string> kernel_names) {
   cl_uint num_devices;
   status = clGetDeviceIDs(pid, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
   printf("Number of devices %d\n", num_devices);
-  assert(num_devices == 1);
+  // assert(num_devices == 1);
   check_status(status, "Failed finding number of devices");
 
   cl_device_id* dids = new cl_device_id[num_devices];
@@ -76,6 +76,12 @@ Config init_opencl(vector<string> kernel_names) {
   new_conf.device_id = did;
   
   size_t sz;
+  // for (size_t i = 0; i < num_devices; ++i) {
+  //   status = clGetDeviceInfo(dids[i], CL_DEVICE_NAME, 0, NULL, &sz);
+  //   if (!status) {
+  //     printf("%ld, %ld", i, sz);
+  //   }
+  // }
   status = clGetDeviceInfo(did, CL_DEVICE_NAME, 0, NULL, &sz);
   check_status(status, "Failed finding device name size");
 

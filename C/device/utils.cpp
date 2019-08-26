@@ -1,10 +1,19 @@
 #include "utils.hpp"
 #include <stdio.h>
+#include <stdarg.h>
 
+void check_status(cl_int status, const char* msg...) {
+    if(status != CL_SUCCESS) {
+    // Print line and file
+    printf("ERROR[%d]: ", status);
+    printf("\nLocation: %s:%d\n", __FILE__, __LINE__);
 
-void check_status(cl_int status, const char* msg) {
-  if (status != CL_SUCCESS) {
-    printf("Error[%d]: %s\n", status, msg);
+    va_list vl;
+    va_start(vl, msg);
+    vprintf(msg, vl);
+    printf("\n");
+    va_end(vl);
+
     exit(1);
   }
 } 

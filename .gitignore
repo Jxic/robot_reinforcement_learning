@@ -26,3 +26,5 @@ individual_data
 *.bmp
 OpenCL
 for_ssh
+full_comp
+*.tgz
