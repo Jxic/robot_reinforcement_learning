@@ -1,48 +1,14 @@
-__kernel void vector_add(__global const float* restrict x, 
-                         __global const float* restrict y, 
-                         __global float * restrict z)
-{
-  // get index of the work item
-  int index = get_global_id(0);
+#include "../macros.h"
 
-  // add the vector elements
-  z[index] = x[index] + y[index];
-}
+#ifdef USING_CHANNEL
+#pragma OPENCL EXTENSION cl_intel_channels : enable
+channel int l_token[10];// __attribute__ ((depth(10)));
+channel int l_ack[10];// __attribute__ ((depth(10)));
+channel int a_token[10];// __attribute__ ((depth(10)));
 
-__kernel void gemm(__global const float* restrict x, const int x_row_, const int x_col_,
-                    __global const float* restrict  y, const int y_row_, const int y_col_,
-                    __global float* restrict r)
-{
-    
-
-  __local int x_row; x_row = 100;
-  __local int x_col; x_col = 100;
-  __local int y_row; y_row = 100;
-  __local int y_col; y_col = 100;
-  __local int r_row; r_row = 100;
-  __local int r_col; r_col = 100;
-  
-  __local int x_size; x_size = x_row*x_col;
-  __local int y_size; y_size = y_row*y_col;
-  __local int r_size; r_size = x_row*y_col;
-  __local float cache_x[10000];
-  __local float cache_y[10000];
-  __local float cache_r[10000];
-
-  for (size_t i = 0; i < x_row*x_col; ++i) cache_x[i] = x[i];
-  for (size_t i = 0; i < y_row*y_col; ++i) cache_y[i] = y[i];
-
-  // #pragma unroll 10
-  for (size_t i = 0; i < r_row; ++i) {
-    for (size_t k = 0; k < x_col; ++k) {
-      // #pragma unroll
-      for (size_t j = 0; j < r_col; ++j) {
-        cache_r[i*r_col+j] += cache_x[i*x_col+k] * cache_y[k*y_col+j];
-      }
-    }
-  }
-  for (size_t i = 0; i < r_row*r_col; ++i) r[i] = cache_r[i]; 
-}
+channel float c_li[10];// __attribute__ ((depth(10)));
+channel float c_ri[10];// __attribute__ ((depth(10)));
+#endif
 
 void matmul(__global const float* restrict x,
             const int x_row,
@@ -69,6 +35,50 @@ void matmul(__global const float* restrict x,
   *r_row = l_r_row;
   *r_col = l_r_col;
 }
+#ifdef USING_CHANNEL
+void matmul_w_bias_from_channel( const int x_row,
+            const int x_col,
+            const int x_offset,
+            __global const float* restrict y,
+            const int y_row,
+            const int y_col,
+            const int y_offset,
+            __global float* restrict r,
+            __global int* restrict r_row,
+            __global int* restrict r_col,
+            const int r_offset,
+            const int bias_offset,
+            const int layer_idx) {
+  int l_r_row; l_r_row = x_row;
+  int l_r_col; l_r_col = y_col;
+  *r_row = l_r_row;
+  *r_col = l_r_col;
+  write_channel_intel(a_token[layer_idx], 1);
+
+  
+  // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
+  int x[1024];
+  float r_[1024];
+  for (int i = 0; i < 1024; ++i) {
+    r_[i] = 0;
+  }
+  for (int i = 0; i < l_r_row; ++i) {
+    for (int vi = 0; vi < l_r_col; ++vi) {
+      x[vi] = read_channel_intel(c_li[layer_idx]);
+    }
+    for (int k = 0; k < x_col; ++k) {
+      for (int j = 0; j < l_r_col; ++j) {
+        r_[j] += x[k] * y[k*y_col+j+y_offset];
+      }
+    }
+    // add bias and write to channel
+    for (int b = 0; b < l_r_col; ++b) {
+      r_[b] += y[bias_offset+b];
+      write_channel_intel(c_ri[layer_idx], r_[b]);
+    }
+  }
+}
+#endif
 
 void add_bias(__global float* restrict x,
               const int x_row,
@@ -81,7 +91,38 @@ void add_bias(__global float* restrict x,
     }
   }
 }
+#ifdef USING_CHANNEL
+__kernel void channel_start(__global const float* restrict input_data,
+                            __global int* restrict input_r,
+                            __global int* restrict input_c) {
+  // printf("[kernel] channel_start starts\n");
+  for (int i = 0; i < *input_r*(*input_c); ++i) {
+    printf("trasferring data at %d: %f\n", i, input_data[i]);
+    write_channel_intel(c_li[0], input_data[i]);
+  }
+  // printf("[kernel] channle_start ends\n");
+}
 
+__kernel void channel_end(__global float* restrict buffer,
+                          __global int* restrict output_r,
+                          __global int* restrict output_c,
+                          const int offset,
+                          const int idx) {
+  for (int i = 0; i < *output_r*(*output_c); ++i) {
+    printf("writing back value at %d\n", i);
+    buffer[offset+i] = read_channel_intel(c_ri[idx]);
+  }
+}
+__kernel void channel_manager(const int num_of_layers) {
+  for (int i = 0; i < num_of_layers-1; ++i) {
+    printf("allowing for forward propagation of layer %d\n", i);
+    write_channel_intel(l_token[i], 1);
+    read_channel_intel(l_ack[i]);
+    printf("got acknowledgement from layer %d\n", i);
+  }
+  printf("channel_start ends\n");
+}
+#endif
 __kernel void linear_forward_prop(__global const float* restrict params,
                                   __global int* restrict layer_param_offset,
                                   __global const int* restrict dims,
@@ -95,7 +136,11 @@ __kernel void linear_forward_prop(__global const float* restrict params,
                                   __global int* restrict output_c,
                                   const int layer_idx,
                                   __global int* restrict err_code) {
-
+  #ifdef USING_CHANNEL
+  printf("layer %d trying to acquire token\n", layer_idx);
+  read_channel_intel(l_token[layer_idx]);
+  printf("layer %d got token starting\n", layer_idx);
+  #endif
   // local int layer_param_offset = 0;
   int cache_offset = *cache_offset_;
   // for (int i = 0; i < num_layers; i++) {
@@ -117,39 +162,21 @@ __kernel void linear_forward_prop(__global const float* restrict params,
   // printf("cache offset from %d to %d\n", *cache_offset_, *cache_offset_+(*input_c)*(*input_r));
   *cache_offset_ += *input_r * *(input_c);
 
+  #ifdef USING_CHANNEL
+  int layer_param_offset_ = *layer_param_offset;
+  *layer_param_offset += W_r * W_c + b_r * b_c;
+  matmul_w_bias_from_channel(*output_r, * output_c, 0, params, W_r, W_c, layer_param_offset_, output_r, output_r, output_c, 0, layer_param_offset_ + W_r * W_c, layer_idx);
+  #endif
   // linear
+  #ifndef USING_CHANNEL
   matmul(input_data, *input_r, *input_c, 0, params, W_r, W_c, *layer_param_offset, output, output_r, output_c, 0);
-  // printf("------W------\n");
-  // printf("starting from %d\n", *layer_param_offset);
-  // for (int i = 0; i < 30; ++i) {
-  //   printf("%e  ", params[i+*layer_param_offset]);
-  // }
-  // printf("\n");
-  // printf("=============\n");
-  // printf("------In-----\n");
-  // for(int i = 0; i < 30; ++i) {
-  //   printf("%e  ", input_data[i]);
-  // }
-  // printf("\n");
-  // printf("=============\n");
-  // printf("------O------\n");
-  // for (int i = 0; i < 30; ++i) {
-  //   printf("%e  ",  output[i]);
-  // }
-  // printf("\n");
-  // printf("======O======\n");
   *layer_param_offset += W_r * W_c;
+  #endif
+  #ifndef USING_CHANNEL
   add_bias(output, *output_r, *output_c, params, *layer_param_offset);
-  // printf("------Ob------\n");
-  // for (int i = 0; i < 30; ++i) {
-  //   printf("%e  ",  output[i]);
-  // }
-  // printf("\n");
-  // printf("======Ob======\n");
   *layer_param_offset += b_r * b_c;
-  
-  // printf("[linear out] or %d oc %d p_offset %d c_offset %d\n", *output_r, *output_c, *layer_param_offset, *cache_offset_);
-  // }
+  #endif
+  printf("layer %d finished\n", layer_idx);
 }
 
 __kernel void relu_forward_prop(__global float* restrict input_data,
@@ -157,13 +184,31 @@ __kernel void relu_forward_prop(__global float* restrict input_data,
                                 __global int* restrict input_c,
                                 __global float* restrict cache,
                                 __global int* restrict cache_offset,
+                                const int layer_idx,
                                 __global int* restrict err_code) {
   // printf("[relu] ir %d ic %d c_offset %d\n", *input_r, *input_c, *cache_offset);
-  for (int i = 0; i < *input_c*(*input_r); ++i) {
-    cache[*cache_offset+i] = input_data[i] > 0 ? 1 : 0;
-    input_data[i] = input_data[i] > 0 ? input_data[i] : 0;
-  }
+  #ifdef USING_CHANNEL
+  printf("relu layer %d trying to acquire token\n", layer_idx);
+  read_channel_intel(a_token[layer_idx]);
+  printf("relu layer %d got token starting...\n", layer_idx);
+  #endif
+  int cache_offset_ = *cache_offset;
   *cache_offset += *input_r * *input_c;
+  #ifdef USING_CHANNEL
+  write_channel_intel(l_ack[layer_idx], 1);
+  #endif
+  for (int i = 0; i < *input_c*(*input_r); ++i) {
+    #ifdef USING_CHANNEL
+    float nxt_num = read_channel_intel(c_ri[layer_idx]);
+    cache[cache_offset_+i] = nxt_num > 0 ? 1 : 0;
+    float out = nxt_num > 0 ? nxt_num : 0;
+    write_channel_intel(c_li[layer_idx+1], out);
+    #else
+    cache[cache_offset_+i] = input_data[i] > 0 ? 1 : 0;
+    input_data[i] = input_data[i] > 0 ? input_data[i] : 0;
+    #endif
+  }
+  
 }
 
 __kernel void mse(__global   const float* restrict input_data,

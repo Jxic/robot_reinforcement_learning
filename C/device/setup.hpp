@@ -21,7 +21,7 @@ class Config {
     cl_context context; //
     string bin_file; //
     cl_program program; //
-    vector<cl_command_queue> command_queues;//
+    vector<Named_command_queue> command_queues;//
     vector<string> kernel_names;
     vector<Named_kernel> kernels;
 

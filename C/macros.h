@@ -1,7 +1,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 
-#include <time.h>
+// #include <time.h>
 
 #define RUN_TEST
 // #define MKL
@@ -15,5 +15,8 @@
 // #define C_AS_LIB
 // #define RENDER
 // #define MPI
+
+#define USING_CHANNEL
+
 
 #endif

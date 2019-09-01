@@ -263,8 +263,8 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
 
   #ifdef OPENCL
   const char * names[] = {
-    "vector_add",
-    "gemm",
+    // "vector_add",
+    // "gemm",
     "linear_forward_prop",
     "relu_forward_prop",
     "mse",
@@ -275,8 +275,17 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     "examine_int_array",
     "examine_float_array",
     "transpose_params_n_cache",
+    #ifdef USING_CHANNEL
+    "channel_start",
+    "channel_end",
+    "channel_manager",
+    #endif
   };
-  c_init_opencl(12, names);
+  int num_of_kernels = 10;
+  #ifdef USING_CHANNEL
+  num_of_kernels = 13;
+  #endif
+  c_init_opencl(15, names);
   initialize_training_env(m, batch_size);
   initialize_values_on_device(m);
   #endif

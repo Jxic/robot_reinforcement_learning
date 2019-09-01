@@ -26,10 +26,10 @@ void run_rl(rl_type t) {
   {
     case test:
       printf("Running test algorithm ... \n");
-      test_run_mse();
+      // test_run_mse();
       // test_run_cce();
       // test_run_conv();
-      // test_device();
+      test_device();
       break;
     
     // deep deterministic policy gradient
@@ -256,8 +256,8 @@ static void test_device() {
   model* m;
   m = init_model_0(100);
   const char * names[] = {
-    "vector_add",
-    "gemm",
+    // "vector_add",
+    // "gemm",
     "linear_forward_prop",
     "relu_forward_prop",
     "mse",
@@ -268,8 +268,17 @@ static void test_device() {
     "examine_int_array",
     "examine_float_array",
     "transpose_params_n_cache",
+    #ifdef USING_CHANNEL
+    "channel_start",
+    "channel_end",
+    "channel_manager",
+    #endif
   };
-  c_init_opencl(12, names);
+  int num_of_kernels = 10;
+  #ifdef USING_CHANNEL
+  num_of_kernels = 13;
+  #endif
+  c_init_opencl(num_of_kernels, names);
   initialize_training_env(m, batch_size);
   initialize_values_on_device(m);
   printf("done preparing device\n");
@@ -365,6 +374,7 @@ static void test_device() {
   
   printf("====================================\n");
 
+  free_all_memory_objs();
   // // float loss = eval(m, x, y, min_max);
   // // printf("test run finished with error rate of %f (mse).\n", loss);
   // matrix_t* cache_T = transpose(m->hidden_linears[0].data.l.cache);

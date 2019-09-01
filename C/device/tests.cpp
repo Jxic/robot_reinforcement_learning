@@ -44,7 +44,7 @@ void gemm_test() {
   float mat_c_host[mat_c_size];
 
   cl_context context = conf.context;
-  cl_command_queue  default_q = conf.command_queues[0];
+  cl_command_queue  default_q = conf.command_queues[0].q;
   cl_kernel vector_add = conf.kernels[0].k;
   cl_kernel gemm = conf.kernels[1].k;
 

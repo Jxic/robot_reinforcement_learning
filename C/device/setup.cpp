@@ -65,7 +65,7 @@ Config init_opencl(vector<string> kernel_names) {
   cl_uint num_devices;
   status = clGetDeviceIDs(pid, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
   printf("Number of devices %d\n", num_devices);
-  // assert(num_devices == 1);
+  assert(num_devices == 1);
   check_status(status, "Failed finding number of devices");
 
   cl_device_id* dids = new cl_device_id[num_devices];
@@ -121,9 +121,10 @@ Config init_opencl(vector<string> kernel_names) {
   check_status(status, "Failed building program");
 
   //create command queue, default to 1
-  cl_command_queue default_queue = clCreateCommandQueue(new_conf.context, did, CL_QUEUE_PROFILING_ENABLE, &status);
-  check_status(status, "Failed creating command queue");
-  new_conf.command_queues.push_back(default_queue);
+  // cl_command_queue default_queue = clCreateCommandQueue(new_conf.context, did, CL_QUEUE_PROFILING_ENABLE, &status);
+  // check_status(status, "Failed creating command queue");
+
+  new_conf.command_queues.push_back(Named_command_queue("dq", new_conf.context, did, CL_QUEUE_PROFILING_ENABLE));
 
   //initialize kernels
   for (size_t i = 0; i < kernel_names.size(); i++) {

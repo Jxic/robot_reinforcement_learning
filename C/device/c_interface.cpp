@@ -2,6 +2,7 @@
 #include "setup.hpp"
 #include "utils.hpp"
 #include <assert.h>
+#include "../macros.h"
 // #include <cstdarg>
 #include <stdarg.h>
 
@@ -54,33 +55,32 @@ int initialize_training_env(model* m, int batch_size) {
   // cl_int status;
   cl_context context = global_config.context;
 
-  global_config.mem_objs.push_back(Named_buffer("params", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("param_offset", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("param_T_offset", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("dims", context, CL_MEM_READ_WRITE, m->num_of_layers*4*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("layer_io_buffer1", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("layer_io_buffer2", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("cache", context, CL_MEM_READ_WRITE, cache_size_in_byte(m, batch_size), NULL));
-  global_config.mem_objs.push_back(Named_buffer("cache_offset", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("r1", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("c1", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("r2", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("c2", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("err_code", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("aux_buffer", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("ret_loss", context, CL_MEM_READ_WRITE, sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("fst_moment", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("snd_moment", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("params_T", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float)+m->num_of_layers*batch_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("cache_T", context, CL_MEM_READ_WRITE, cache_size_in_byte(m, batch_size), NULL));
-  global_config.mem_objs.push_back(Named_buffer("param_grads", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), NULL));
-  global_config.mem_objs.push_back(Named_buffer("timestamp", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("beta1", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("beta2", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("epsilon", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("lr", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-  global_config.mem_objs.push_back(Named_buffer("grad_size", context, CL_MEM_READ_WRITE, sizeof(int), NULL));
-
+  global_config.mem_objs.emplace_back("params", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("param_offset", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("param_T_offset", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("dims", context, CL_MEM_READ_WRITE, m->num_of_layers*4*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("layer_io_buffer1", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("layer_io_buffer2", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("cache", context, CL_MEM_READ_WRITE, cache_size_in_byte(m, batch_size), (void*)NULL);
+  global_config.mem_objs.emplace_back("cache_offset", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("r1", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("c1", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("r2", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("c2", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("err_code", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("aux_buffer", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("ret_loss", context, CL_MEM_READ_WRITE, sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("fst_moment", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("snd_moment", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("params_T", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float)+m->num_of_layers*batch_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("cache_T", context, CL_MEM_READ_WRITE, cache_size_in_byte(m, batch_size), (void*)NULL);
+  global_config.mem_objs.emplace_back("param_grads", context, CL_MEM_READ_WRITE, m->param_size*sizeof(float), (void*)NULL);
+  global_config.mem_objs.emplace_back("timestamp", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("beta1", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("beta2", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("epsilon", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("lr", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("grad_size", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
 
   size_t t_size = 0;
   for (size_t i = 0; i < global_config.mem_objs.size(); ++i) t_size += global_config.mem_objs[i].size;
@@ -90,7 +90,7 @@ int initialize_training_env(model* m, int batch_size) {
 
 void set_single_float_value(const char* buffer_name, float value) {
   int status;
-  cl_command_queue fp_queue = global_config.command_queues[0];
+  cl_command_queue fp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
   Named_buffer b = find_buffer_by_name(global_config.mem_objs, buffer_name);
   assert(b.size == sizeof(float));
   float host[1];
@@ -102,7 +102,7 @@ void set_single_float_value(const char* buffer_name, float value) {
 
 void set_single_int_value(const char* buffer_name, int value) {
   int status;
-  cl_command_queue fp_queue = global_config.command_queues[0];
+  cl_command_queue fp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
   Named_buffer b = find_buffer_by_name(global_config.mem_objs, buffer_name);
   assert(b.size == sizeof(int));
   int host[1];
@@ -116,7 +116,7 @@ void initialize_values_on_device(model* m) {
   printf("Initializing buffer values on device\n");
   cl_int status;
   // cl_context context = global_config.context;
-  cl_command_queue fp_queue = global_config.command_queues[0];
+  cl_command_queue fp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
   cl_event write_event[6];
   // transfer params
   Named_buffer params = find_buffer_by_name(global_config.mem_objs, "params");
@@ -163,10 +163,24 @@ void initialize_values_on_device(model* m) {
   set_single_float_value("epsilon", 1e-8);
   set_single_int_value("timestamp", 0);
   set_single_int_value("grad_size", m->param_size);
+
+  // create enough command queues
+  #ifdef USING_CHANNEL
+  for (int i = 0; i < m->num_of_layers; ++i) {
+    string linear = string("linear_") + to_string(i);
+    global_config.command_queues.emplace_back(linear.c_str(), global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
+    if (i < m->num_of_layers-1) {
+      string relu = string("relu_") + to_string(i);
+      global_config.command_queues.emplace_back(relu.c_str(), global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
+    }
+  }
+  global_config.command_queues.emplace_back("cm", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
+  #endif
   clWaitForEvents(6, write_event);
 }
 
 void enqueue_NDRangeKernel(const char* kernel_name, cl_command_queue queue, cl_event* event, const char* fmt...) {
+  printf("launching %s\n", kernel_name);
   va_list args;
   va_start(args, fmt);
 
@@ -175,9 +189,11 @@ void enqueue_NDRangeKernel(const char* kernel_name, cl_command_queue queue, cl_e
   cl_int status;
   while (*fmt != '\0') {
     if (*fmt == 'm') {
+      // printf("setting memory object at %ld\n", idx);
       cl_mem* m = va_arg(args, cl_mem*);
       status = clSetKernelArg(kernel, idx++, sizeof(cl_mem), m);
     } else if (*fmt == 'd') {
+      // printf("setting integer object at %ld\n", idx);
       int* i = va_arg(args, int*);
       status = clSetKernelArg(kernel, idx++, sizeof(int), i);
     } else if (*fmt == 'f') {
@@ -229,7 +245,7 @@ void check_buffer(model* m, cl_command_queue fp_queue) {
 float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   // context, queue, kernels ...
   cl_int status;
-  cl_command_queue fp_queue = global_config.command_queues[0];
+  cl_command_queue fp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
   cl_kernel linear_forward_prop = find_kernel_by_name(global_config.kernels, "linear_forward_prop").k;
   cl_kernel relu_forward_prop = find_kernel_by_name(global_config.kernels, "relu_forward_prop").k;
   cl_kernel mse = find_kernel_by_name(global_config.kernels, "mse").k;
@@ -279,14 +295,32 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   cl_mem* output_c = &c2;
   int layer_idx;
   cl_mem* tmp;
+
+  #ifdef USING_CHANNEL
+  // start channel
+  enqueue_NDRangeKernel("channel_start", fp_queue, NULL, "mmm", input_buffer, input_r, input_c);
+  enqueue_NDRangeKernel("channel_manager", find_queue_by_name(global_config.command_queues, "cm").q, NULL, "d", &m->num_of_layers);
+  string layer_name;
+  #endif
+
   for (int n = 0; n < m->num_of_layers-1; ++n) {
     // enqueue linear forward
     layer_idx = n;
+    #ifndef USING_CHANNEL
     enqueue_NDRangeKernel("linear_forward_prop", fp_queue, &linear_fp_event, "mmmmmmmmmmmdm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &err_code);
     clWaitForEvents(1, &linear_fp_event);
-
+    #else
+    layer_name = string("linear_") + to_string(layer_idx);
+    enqueue_NDRangeKernel("linear_forward_prop", find_queue_by_name(global_config.command_queues, layer_name.c_str()).q, NULL, "mmmmmmmmmmmdm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &err_code);
+    #endif
     // enqueue activation forward
-    enqueue_NDRangeKernel("relu_forward_prop", fp_queue, &activation_fp_event, "mmmmmm", output_buffer, output_r, output_c, &cache, &cache_offset, &err_code);
+    #ifndef USING_CHANNEL
+    enqueue_NDRangeKernel("relu_forward_prop", fp_queue, &activation_fp_event, "mmmmmdm", output_buffer, output_r, output_c, &cache, &cache_offset, &layer_idx, &err_code);
+    clWaitForEvents(1, &activation_fp_event);
+    #else
+    layer_name = string("relu_") + to_string(layer_idx);
+    enqueue_NDRangeKernel("relu_forward_prop", find_queue_by_name(global_config.command_queues, layer_name.c_str()).q, NULL, "mmmmmdm", output_buffer, output_r, output_c, &cache, &cache_offset, &layer_idx, &err_code);
+    #endif
 
     // swap input output buffer
     tmp = input_buffer;
@@ -299,11 +333,24 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
     tmp = input_c;
     input_c = output_c;
     output_c = tmp;
-    clWaitForEvents(1, &activation_fp_event);
   }
   layer_idx = m->num_of_layers - 1;
+  #ifndef USING_CHANNEL
   enqueue_NDRangeKernel("linear_forward_prop", fp_queue, &linear_fp_event, "mmmmmmmmmmmdm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &err_code);
   clWaitForEvents(1, &linear_fp_event);
+  #else
+  layer_name = string("linear_") + to_string(layer_idx);
+  // printf("enqueuing last linear kernel %d %s\n", layer_idx, layer_name.c_str());
+  enqueue_NDRangeKernel("linear_forward_prop", find_queue_by_name(global_config.command_queues, layer_name.c_str()).q, &linear_fp_event, "mmmmmmmmmmmdm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &err_code);
+  #endif
+
+  #ifdef USING_CHANNEL
+  // end channel
+  int output_offset = 0;
+  cl_event end_event;
+  enqueue_NDRangeKernel("channel_end", fp_queue, &end_event, "mmmdd", output_buffer, output_r, output_c, &output_offset, &layer_idx);
+  clWaitForEvents(1, &end_event);
+  #endif
 
   // transfer target
   status = clEnqueueWriteBuffer(fp_queue, *input_buffer, CL_TRUE, 0, y->rows*y->cols*sizeof(float), y->data, 0, NULL, NULL);
@@ -319,7 +366,7 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
 
 int fpga_prepare_backward(model* m, int batch_size) {
   // context, kernels, queue ...
-  cl_command_queue queue = global_config.command_queues[0];
+  cl_command_queue queue = find_queue_by_name(global_config.command_queues, "dq").q;
   cl_kernel tpnc = find_kernel_by_name(global_config.kernels, "transpose_params_n_cache").k;
 
   // event
@@ -344,7 +391,7 @@ int fpga_prepare_backward(model* m, int batch_size) {
 
 int fpga_backward(model* m, matrix_t* grad) {
   // context, kernels, queue ...
-  cl_command_queue bp_queue = global_config.command_queues[0];
+  cl_command_queue bp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
   cl_kernel linear_backward_prop = find_kernel_by_name(global_config.kernels, "linear_backward_prop").k;
   cl_kernel relu_backward_prop = find_kernel_by_name(global_config.kernels, "relu_backward_prop").k;
 
@@ -436,7 +483,7 @@ matrix_t* fpga_adam(model* m, float lr) {
   assert(m->opt.type == adam);
   // context, kernels, queues ...
 
-  cl_command_queue queue = global_config.command_queues[0];
+  cl_command_queue queue = find_queue_by_name(global_config.command_queues, "dq").q;
   cl_kernel generate_update_adam = find_kernel_by_name(global_config.kernels, "generate_update_adam").k;
   set_single_float_value("lr", lr);
   // events
@@ -472,7 +519,7 @@ matrix_t* fpga_adam(model* m, float lr) {
 }
 
 int free_all_memory_objs() {
-
+  global_config.mem_objs.clear();
   return 1;
 }
 
@@ -497,7 +544,7 @@ void print_buffer(const char* buffer_name, int last_n_digit, int type) {
   Named_buffer b = find_buffer_by_name(global_config.mem_objs ,buffer_name);
   cl_event event;
   printf("-------------------------------------\n");
-  cl_command_queue q = global_config.command_queues[0];
+  cl_command_queue q = find_queue_by_name(global_config.command_queues, "dq").q;
   Named_kernel examine_array;
   if (type) {
     examine_array = find_kernel_by_name(global_config.kernels, "examine_float_array");

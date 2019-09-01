@@ -22,6 +22,10 @@ class Named_buffer {
       check_status(status, err_msg.c_str());
     }
     Named_buffer() : name(string("Invalid_buffer")) {}
+    // ~Named_buffer() {
+    //   // printf("Reclaiming %s with size %ld\n", name.c_str(), size);
+    //   clReleaseMemObject(buffer);
+    // }
     string name;
     size_t size;
     cl_mem buffer;
@@ -29,15 +33,30 @@ class Named_buffer {
 
 class Named_kernel {
   public:
-    Named_kernel(const char* name, cl_kernel k) : name(name), k(k) {}
+    Named_kernel(const char* name, cl_kernel k) : name(name), k(k) {
+      printf("Creating kernel %s\n", name);
+    }
     Named_kernel() : name(string("Invalid_kernel")) {}
     string name;
     cl_kernel k;
 };
 
+class Named_command_queue {
+  public:
+    Named_command_queue(const char* name, cl_context c, cl_device_id did, cl_command_queue_properties p) : name(name) {
+      printf("Creating named queue for layer %s\n", name);
+      cl_int status;
+      q = clCreateCommandQueue(c, did, p, &status);
+      check_status(status, "Failed creating command queue with name %s", name);
+    }
+    Named_command_queue() : name(string("Invalid command queue")) {}
+    string name;
+    cl_command_queue q;
+};
+
 Named_buffer find_buffer_by_name(vector<Named_buffer> mem_objs, const char* name);
 Named_kernel find_kernel_by_name(vector<Named_kernel> mem_objs, const char* name);
-
+Named_command_queue find_queue_by_name(vector<Named_command_queue> mem_obj, const char* name);
 
 
 #endif

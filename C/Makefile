@@ -9,7 +9,7 @@ EXE = main
 
 # for production
 CC = gcc
-CFLAGS = -Wall -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3
+CFLAGS = -Wall -DMKL_ILP64 -m64 -I${MKLROOT}/include -O3 -g
 MKL_FLAGS = ${MKLROOT}/lib/libmkl_intel_ilp64.a ${MKLROOT}/lib/libmkl_intel_thread.a ${MKLROOT}/lib/libmkl_core.a -liomp5 -lpthread -lm -ldl
 
 CXX = g++
@@ -22,7 +22,7 @@ INC = $(shell aocl compile-config )
 # -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_pro/17.1/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf -lrt -lpthread
 LIB = $(shell aocl link-config )
 
-CXXFLAGS = -Wall  $(INC)
+CXXFLAGS = -Wall  $(INC) -g
 CXXDEPS = device/setup.hpp device/tests.hpp device/utils.hpp device/c_interface.hpp
 CXXOBJS = device/setup.cxx.o device/main.cxx.o device/tests.cxx.o device/utils.cxx.o device/c_interface.cxx.o
 
@@ -72,4 +72,4 @@ rl.aocx: device/rl.cl
 	$(CL_COMPILER) $(ARCH_FLAG) $(BOARD_FLAG) $<
 
 clean :
-	rm -rf *.o multi_agents/*.o $(BDIR) *.aocx *.aoco rl $(EXE) *.cxx.o
+	rm -rf *.o multi_agents/*.o $(BDIR) *.aocx *.aoco rl $(EXE) device/*.cxx.o
