@@ -459,10 +459,15 @@ int predict(model* m, matrix_t* x) {
     init_caches(m, x->rows);
   }
   for (int i = 0; i < m->num_of_layers; ++i) {
+    if (i == 0) {
+      print_matrix(x, 0);
+    }
     if (!forward(m->hidden_linears+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth linear layer\n", i);
       return 0;
     }
+
+
 
     if (!forward(m->hidden_activations+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth activation layer\n", i);

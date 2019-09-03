@@ -325,7 +325,7 @@ static void test_device() {
   }
   printf("largest difference %e\n", ld);
   printf("total difference on updated parameter: %e\n", sum);
-  
+  exit(1);
   printf("====================================\n");
   printf("Second round\n");
 
