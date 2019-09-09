@@ -22,7 +22,7 @@ INC = $(shell aocl compile-config )
 # -L/opt/intelFPGA_pro/17.1/hld/board/a10_ref/linux64/lib -L/opt/intelFPGA_pro/17.1/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf -lrt -lpthread
 LIB = $(shell aocl link-config )
 
-CXXFLAGS = -Wall  $(INC) -g
+CXXFLAGS = -Wall  $(INC) -g -std=c++11
 CXXDEPS = device/setup.hpp device/tests.hpp device/utils.hpp device/c_interface.hpp
 CXXOBJS = device/setup.cxx.o device/main.cxx.o device/tests.cxx.o device/utils.cxx.o device/c_interface.cxx.o
 

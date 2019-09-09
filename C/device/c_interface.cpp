@@ -464,6 +464,7 @@ int fpga_backward(model* m, matrix_t* grad) {
   // matrix_t* gd = new_matrix(1, 30);
   // matrix_t* gh = new_matrix(1, 30);
   // gd->data = params_g_device;
+  // print_matrix(gd, 1);
   // gh->data = params_g_host;
   return 1;
 }

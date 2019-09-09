@@ -285,7 +285,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
   #ifdef USING_CHANNEL
   num_of_kernels = 13;
   #endif
-  c_init_opencl(15, names);
+  c_init_opencl(num_of_kernels, names);
   initialize_training_env(m, batch_size);
   initialize_values_on_device(m);
   #endif
@@ -459,15 +459,13 @@ int predict(model* m, matrix_t* x) {
     init_caches(m, x->rows);
   }
   for (int i = 0; i < m->num_of_layers; ++i) {
-    if (i == 0) {
-      print_matrix(x, 0);
-    }
+    // if (i == 0) {
+    //   print_matrix(x, 0);
+    // }
     if (!forward(m->hidden_linears+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth linear layer\n", i);
       return 0;
     }
-
-
 
     if (!forward(m->hidden_activations+i, x)) {
       printf("[MODEL_FORWARD] failed at %dth activation layer\n", i);
