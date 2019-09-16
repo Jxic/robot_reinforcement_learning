@@ -169,6 +169,9 @@ void initialize_values_on_device(model* m) {
   global_config.command_queues.emplace_back("linear_0", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
   global_config.command_queues.emplace_back("relu_0", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
   global_config.command_queues.emplace_back("cm", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
+  global_config.command_queues.emplace_back("b_cm", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
+  global_config.command_queues.emplace_back("b_ce", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
+
   global_config.command_queues.emplace_back("ce", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
   global_config.command_queues.emplace_back("cs", global_config.context, global_config.device_id, CL_QUEUE_PROFILING_ENABLE);
   #endif
@@ -177,7 +180,7 @@ void initialize_values_on_device(model* m) {
 
 
 void enqueue_NDRangeKernel(const char* kernel_name, cl_command_queue queue, size_t gws, cl_event* event, const char* fmt...) {
-  printf("launching %s\n", kernel_name);
+  // printf("launching %s\n", kernel_name);
   va_list args;
   va_start(args, fmt);
 
@@ -273,6 +276,8 @@ float fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   for (int i = 0; i < m->param_size; ++i) moments_host[i] = 0;
   status = clEnqueueWriteBuffer(fp_queue, param_grads.buffer, CL_TRUE, 0, param_grads.size, moments_host, 0, NULL, NULL);
   check_status(status, "Failed to initialize value for parameter gradients");
+  set_single_int_value("param_offset", 0);
+  set_single_int_value("cache_offset", 0);
 
   // transfer input batch and target batch
   status = clEnqueueWriteBuffer(fp_queue, layer_io_buffer1, CL_TRUE, 0, x->rows*x->cols*sizeof(float), x->data, 0, NULL, NULL);
@@ -383,7 +388,7 @@ int fpga_backward(model* m, matrix_t* grad) {
   cl_command_queue bp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
   cl_kernel linear_backward_prop = find_kernel_by_name(global_config.kernels, "linear_backward_prop").k;
   cl_kernel relu_backward_prop = find_kernel_by_name(global_config.kernels, "relu_backward_prop").k;
-
+  
   // events
   cl_event linear_bp_event;
   cl_event activation_bp_event;
@@ -429,15 +434,18 @@ int fpga_backward(model* m, matrix_t* grad) {
     output_c = c1;
   }
 
+ 
 
   int layer_idx = m->num_of_layers-1;
+  #ifndef USING_CHANNEL
   cl_mem tmp;
-  enqueue_NDRangeKernel("linear_backward_prop", bp_queue, 1, &linear_bp_event, "mmmmmmmmmmmmmdm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &err_code);
+  int layer_idx_max = m->num_of_layers-1;
+  enqueue_NDRangeKernel("linear_backward_prop", bp_queue, 1, &linear_bp_event, "mmmmmmmmmmmmmddm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &layer_idx_max, &err_code);
   clWaitForEvents(1, &linear_bp_event);
 
   for (int i = m->num_of_layers-2; i >= 0; --i) {
     layer_idx = i;
-    enqueue_NDRangeKernel("relu_backward_prop", bp_queue, 1, &activation_bp_event, "mmmmmm", &output_buffer, &output_r, &output_c, &cache_T, &cache_offset, &err_code);
+    enqueue_NDRangeKernel("relu_backward_prop", bp_queue, 1, &activation_bp_event, "mmmmmddm", &output_buffer, &output_r, &output_c, &cache_T, &cache_offset, &layer_idx, &layer_idx_max, &err_code);
     // swap input ouput buffer
     tmp = input_buffer;
     input_buffer = output_buffer;
@@ -451,9 +459,25 @@ int fpga_backward(model* m, matrix_t* grad) {
     output_c = tmp;
     clWaitForEvents(1, &activation_bp_event);
 
-    enqueue_NDRangeKernel("linear_backward_prop", bp_queue, 1, &linear_bp_event, "mmmmmmmmmmmmmdm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &err_code);
+    enqueue_NDRangeKernel("linear_backward_prop", bp_queue, 1, &linear_bp_event, "mmmmmmmmmmmmmddm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &layer_idx_max, &err_code);
     clWaitForEvents(1, &linear_bp_event);
   }
+
+  #else
+  enqueue_NDRangeKernel("b_channel_manager", find_queue_by_name(global_config.command_queues, "b_cm").q, 1, NULL, "d", &m->num_of_layers);
+
+  enqueue_NDRangeKernel("prepare_input_grads", bp_queue, 1, NULL, "mmmmmmmmd", &input_buffer, &input_r, &input_c, &params_T, &param_T_offset, &cache_T, &cache_offset, &dims, &m->num_of_layers);
+
+  cl_event end_event;
+  enqueue_NDRangeKernel("linear_backward_prop", find_queue_by_name(global_config.command_queues, "linear_0").q, m->num_of_layers, &end_event, "mmmmmmmmmmmmmddm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &m->num_of_layers-1, &err_code);
+
+  // int end_idx = 0;
+
+  // enqueue_NDRangeKernel("b_channel_end", find_queue_by_name(global_config.command_queues, "b_ce").q, 1, &end_event, "mmmd", &output_buffer, &output_r, &output_c, &end_idx);
+
+  clWaitForEvents(1, &end_event);
+
+  #endif
 
   // float params_g_device[m->param_size];
   // float params_g_host[m->param_size];
@@ -464,6 +488,7 @@ int fpga_backward(model* m, matrix_t* grad) {
   // matrix_t* gd = new_matrix(1, 30);
   // matrix_t* gh = new_matrix(1, 30);
   // gd->data = params_g_device;
+  // printf("device grads\n");
   // print_matrix(gd, 1);
   // gh->data = params_g_host;
   return 1;

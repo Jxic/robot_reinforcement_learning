@@ -26,10 +26,10 @@ void run_rl(rl_type t) {
   {
     case test:
       printf("Running test algorithm ... \n");
-      // test_run_mse();
+      test_run_mse();
       // test_run_cce();
       // test_run_conv();
-      test_device();
+      // test_device();
       break;
     
     // deep deterministic policy gradient
@@ -272,11 +272,14 @@ static void test_device() {
     "channel_start",
     "channel_end",
     "channel_manager",
+    "prepare_input_grads",
+    "b_channel_end",
+    "b_channel_manager",
     #endif
   };
   int num_of_kernels = 10;
   #ifdef USING_CHANNEL
-  num_of_kernels = 13;
+  num_of_kernels = 16;
   #endif
   c_init_opencl(num_of_kernels, names);
   initialize_training_env(m, batch_size);
@@ -306,6 +309,7 @@ static void test_device() {
   matrix_t* gh = new_matrix(1, m->param_size);
   for (int i = 0; i < m->param_size; ++i) gh->data[i] = *(m->opt.cache.a.trainable_params_g[i]);
   gh->cols = 30;
+  printf("host grads\n");
   print_matrix(gh, 1);
 
   printf("====================================\n");
@@ -325,7 +329,7 @@ static void test_device() {
   }
   printf("largest difference %e\n", ld);
   printf("total difference on updated parameter: %e\n", sum);
-  exit(1);
+  // exit(1);
   printf("====================================\n");
   printf("Second round\n");
 
@@ -352,7 +356,7 @@ static void test_device() {
   matrix_t* gh_2 = new_matrix(1, m->param_size);
   for (int i = 0; i < m->param_size; ++i) gh_2->data[i] = *(m->opt.cache.a.trainable_params_g[i]);
   gh_2->cols = 30;
-  print_matrix(gh, 1);
+  print_matrix(gh_2, 1);
 
   printf("====================================\n");
 

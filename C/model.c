@@ -279,11 +279,14 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     "channel_start",
     "channel_end",
     "channel_manager",
+    "prepare_input_grads",
+    "b_channel_end",
+    "b_channel_manager",
     #endif
   };
   int num_of_kernels = 10;
   #ifdef USING_CHANNEL
-  num_of_kernels = 13;
+  num_of_kernels = 16;
   #endif
   c_init_opencl(num_of_kernels, names);
   initialize_training_env(m, batch_size);
@@ -295,7 +298,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     struct timeval t_start;
 
     timer_reset(&t_start);
-    printf("epoch %d: ", epc+1);
+    
     #else
     // printf("epoch %d: ", epc+1);
     #endif
@@ -318,6 +321,10 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     int step_count = 0;
 
     while (start < data_size - 1) {
+      #ifdef RUN_TEST
+      printf("\repoch %d: [%d]", epc+1, step_count);
+      fflush(stdout);
+      #endif
       step_count++;
       int curr_batch = start+batch_size<data_size ? batch_size : data_size-start;
       if (curr_batch < batch_size) {
@@ -393,7 +400,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     }
     #ifdef RUN_TEST
     float msec = timer_check(&t_start);
-    printf("%f time: %.1f ms | prep: %.1f forward: %.1f backward: %.1f update %.1f\n", loss / (float)step_count, msec, prep, forward, backward, update);
+    printf("epoch %d: %f time: %.1f ms | prep: %.1f forward: %.1f backward: %.1f update %.1f\n", epc, loss / (float)step_count, msec, prep, forward, backward, update);
     fflush(stdout);
     if (loss > 1000) {
       printf("Anomalous loss %f\n", loss);

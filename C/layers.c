@@ -232,14 +232,19 @@ static int linear_backward(layer* l, matrix_t* grad) {
   // grad->rows = 1;
   // grad->cols = 30;
   // matrix_t* wtmp = transpose(l->data.l.W);
+  // matrix_t* ctmp = transpose(l->data.l.cache);
   // wtmp->rows = 1;
   // wtmp->cols = 30;
-  // printf("host grad\n");
+  // ctmp->rows = 1;
+  // ctmp->cols = 30;
+  // printf("*******host grad*********\n");
   // printf("In\n");
   // print_matrix(grad, 1);
   // printf("param_t\n");
   // print_matrix(wtmp, 1);
-  // printf("host grad end\n");
+  // printf("cache_t\n");
+  // print_matrix(ctmp, 1);
+  // printf("#######host grad end#######\n");
   // grad->rows = tmp_r;
   // grad->cols = tmp_c;
 
