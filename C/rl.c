@@ -26,10 +26,10 @@ void run_rl(rl_type t) {
   {
     case test:
       printf("Running test algorithm ... \n");
-      test_run_mse();
+      // test_run_mse();
       // test_run_cce();
       // test_run_conv();
-      // test_device();
+      test_device();
       break;
     
     // deep deterministic policy gradient
@@ -268,6 +268,7 @@ static void test_device() {
     "examine_int_array",
     "examine_float_array",
     "transpose_params_n_cache",
+    "matmul_engine",
     #ifdef USING_CHANNEL
     "channel_start",
     "channel_end",
@@ -277,7 +278,7 @@ static void test_device() {
     "b_channel_manager",
     #endif
   };
-  int num_of_kernels = 10;
+  int num_of_kernels = 11;
   #ifdef USING_CHANNEL
   num_of_kernels = 16;
   #endif
@@ -291,7 +292,10 @@ static void test_device() {
   matrix_t* d_ex = matrix_clone(ex);
   matrix_t* d_ey = matrix_clone(ey);
 
-  float loss_device = fpga_forward(m, d_ex, d_ey);
+  
+  fpga_forward(m, d_ex, d_ey);
+  float loss_device = fpga_mse_loss_forward(m, d_ex, d_ey);
+
   printf("done device side forward\n");
   predict(m, ex);
   float loss_host = loss_forward(&m->loss_layer, ex, ey);
@@ -302,7 +306,9 @@ static void test_device() {
 
   // fpga_backward(m, 0.01);
   fpga_prepare_backward(m, batch_size);
-  fpga_backward(m, new_matrix(1,1));
+  fpga_backward(m, new_matrix(1,1), 0);
+  retrieve_grad_of_input(m, batch_size);
+
 
   matrix_t* grad_host = loss_backward(&m->loss_layer );
   model_backward(m, grad_host);
@@ -310,7 +316,10 @@ static void test_device() {
   for (int i = 0; i < m->param_size; ++i) gh->data[i] = *(m->opt.cache.a.trainable_params_g[i]);
   gh->cols = 30;
   printf("host grads\n");
-  print_matrix(gh, 1);
+  // print_matrix(gh, 1);
+  grad_host->rows = 1;
+  grad_host->cols = 30;
+  print_matrix(grad_host, 1);
 
   printf("====================================\n");
 
@@ -329,7 +338,7 @@ static void test_device() {
   }
   printf("largest difference %e\n", ld);
   printf("total difference on updated parameter: %e\n", sum);
-  // exit(1);
+  exit(1);
   printf("====================================\n");
   printf("Second round\n");
 
@@ -349,7 +358,7 @@ static void test_device() {
 
   // fpga_backward(m, 0.01);
   fpga_prepare_backward(m, batch_size);
-  fpga_backward(m, new_matrix(1,1));
+  fpga_backward(m, new_matrix(1,1), 0);
 
   matrix_t* grad_host_2 = loss_backward(&m->loss_layer );
   model_backward(m, grad_host_2);

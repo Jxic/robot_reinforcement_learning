@@ -16,7 +16,7 @@
 // #define RENDER
 // #define MPI
 
-#define USING_CHANNEL
+// #define USING_CHANNEL
 
 
 #endif

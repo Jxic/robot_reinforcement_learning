@@ -1,7 +1,7 @@
 #include "../macros.h"
 
-#ifdef USING_CHANNEL
 #pragma OPENCL EXTENSION cl_intel_channels : enable
+#ifdef USING_CHANNEL
 channel int l_token[10] __attribute__ ((depth(10)));
 channel int l_ack[10] __attribute__ ((depth(10)));
 channel int a_token[10] __attribute__ ((depth(10)));
@@ -9,6 +9,57 @@ channel int a_token[10] __attribute__ ((depth(10)));
 channel float c_li[10] __attribute__ ((depth(10)));
 channel float c_ri[10] __attribute__ ((depth(10)));
 #endif
+
+channel int linear_forward_token __attribute__ ((depth(1)));
+channel int linear_backward_token __attribute__ ((depth(1)));
+channel int matmul_token_forward __attribute__ ((depth(1)));
+channel int matmul_token_backward __attribute__ ((depth(1)));
+// mode: 0 forward, 1 backward
+__kernel void matmul_engine(int mode,
+            __global const float* restrict x,
+            __global const int* restrict x_row,
+            __global const int* restrict x_col,
+            __global const int* restrict x_offset,
+            __global const float* restrict y,
+            __global const int* y_row,
+            __global const int* y_col,
+            __global const int* restrict y_offset,
+            __global float* restrict r,
+            __global int* restrict r_row,
+            __global int* restrict r_col,
+            __global const int* restrict r_offset) {
+  // printf("matmul engine start %d %d\n", *y_row, *y_col);
+  if (!mode) {
+    printf("acquiring token from forward\n");
+    read_channel_intel(matmul_token_forward);
+  } else {
+    read_channel_intel(matmul_token_backward);
+  }
+  int l_r_row = *x_row;
+  int l_r_col = *y_col;
+
+  // clear output buffer
+  for (int i = 0 ; i < l_r_row*l_r_col; ++i) {
+    r[i+*r_offset] = 0;
+  }
+
+  printf("[matmul] xr %d xc %d xo %d yr %d yc %d yo %d rr %d rc %d ro %d\n", *x_row, *x_col, *x_offset, *y_row, *y_col, *y_offset, l_r_row, l_r_col, *r_offset);
+  for (int i = 0; i < l_r_row; ++i) {
+    for (int k = 0; k < *x_col; ++k) {
+      for (int j = 0; j < l_r_col; ++j) {
+        r[i*l_r_col+j+(*r_offset)] += x[i*(*x_col)+k+(*x_offset)] * y[k*(*y_col)+j+(*y_offset)];
+      }
+    }
+  }
+  *r_row = l_r_row;
+  *r_col = l_r_col;
+  printf("allowing linear to proceed\n");
+  if (!mode) {
+    write_channel_intel(linear_forward_token, 1);
+  } else {
+    write_channel_intel(linear_backward_token, 1);
+  }
+}
 
 void matmul(__global const float* restrict x,
             const int x_row,
@@ -58,16 +109,8 @@ void matmul_w_bias_from_channel(__global int* restrict x_row,
   *r_col = l_r_col;
   *x_row = l_r_row;
   *x_col = l_r_col;
-  // printf("layer %d allowing for activation to start, or %d oc %d\n", layer_idx, *r_row, *r_col);
-  // write_channel_intel(a_token[layer_idx], 1);
-  switch (layer_idx) {
-    case 0: write_channel_intel(a_token[0], 1); break;
-    case 1: write_channel_intel(a_token[1], 1); break;
-    case 2: write_channel_intel(a_token[2], 1); break;
-    case 3: write_channel_intel(a_token[3], 1); break;
-    case 4: write_channel_intel(a_token[4], 1); break;
-    default: printf("Error!!!!!!\n");
-  }
+  printf("layer %d allowing for activation to start, or %d oc %d\n", layer_idx, *r_row, *r_col);
+  write_channel_intel(a_token[layer_idx], 1);
   // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
   float x[1024];
   float r_[1024];
@@ -77,15 +120,7 @@ void matmul_w_bias_from_channel(__global int* restrict x_row,
       r_[ri] = 0;
     }
     for (int vi = 0; vi < x_col_; ++vi) {
-      // x[vi] = read_channel_intel(c_li[layer_idx]);
-      switch (layer_idx) {
-        case 0: x[vi] = read_channel_intel(c_li[0]); break;
-        case 1: x[vi] = read_channel_intel(c_li[1]); break;
-        case 2: x[vi] = read_channel_intel(c_li[2]); break;
-        case 3: x[vi] = read_channel_intel(c_li[3]); break;
-        case 4: x[vi] = read_channel_intel(c_li[4]); break;
-        default: printf("Error!!!!!!\n");
-      }
+      x[vi] = read_channel_intel(c_li[layer_idx]);
     }
     for (int j = 0; j < l_r_col; ++j) {
       for (int k = 0; k < x_col_; ++k) {
@@ -94,15 +129,7 @@ void matmul_w_bias_from_channel(__global int* restrict x_row,
     }
 
     for (int b = 0; b < l_r_col; ++b) {
-      // write_channel_intel(c_ri[layer_idx], r_[b] + y[bias_offset+b]);
-      switch (layer_idx) {
-        case 0: write_channel_intel(c_ri[0], r_[b] + y[bias_offset+b]); break;
-        case 1: write_channel_intel(c_ri[1], r_[b] + y[bias_offset+b]); break;
-        case 2: write_channel_intel(c_ri[2], r_[b] + y[bias_offset+b]); break;
-        case 3: write_channel_intel(c_ri[3], r_[b] + y[bias_offset+b]); break;
-        case 4: write_channel_intel(c_ri[4], r_[b] + y[bias_offset+b]); break;
-        default: printf("Error!!!!!!\n");
-      }
+      write_channel_intel(c_ri[layer_idx], r_[b] + y[bias_offset+b]);
     }
   }
 }
@@ -136,26 +163,10 @@ __kernel void channel_end(__global float* restrict buffer,
                           __global int* restrict output_c,
                           const int offset,
                           const int idx) {
-  // read_channel_intel(a_token[idx]);
-  switch (idx) {
-    case 0: read_channel_intel(a_token[0]); break;
-    case 1: read_channel_intel(a_token[1]); break;
-    case 2: read_channel_intel(a_token[2]); break;
-    case 3: read_channel_intel(a_token[3]); break;
-    case 4: read_channel_intel(a_token[4]); break;
-    default: printf("Error!!!!!!\n");
-  }
+  read_channel_intel(a_token[idx]);
   write_channel_intel(l_ack[idx], 1);
   for (int i = 0; i < *output_r*(*output_c); ++i) {
-    // buffer[offset+i] = read_channel_intel(c_ri[idx]);
-    switch (idx) {
-        case 0: buffer[offset+i] = read_channel_intel(c_ri[0]); break;
-        case 1: buffer[offset+i] = read_channel_intel(c_ri[1]); break;
-        case 2: buffer[offset+i] = read_channel_intel(c_ri[2]); break;
-        case 3: buffer[offset+i] = read_channel_intel(c_ri[3]); break;
-        case 4: buffer[offset+i] = read_channel_intel(c_ri[4]); break;
-        default: printf("Error!!!!!!\n");
-    }
+    buffer[offset+i] = read_channel_intel(c_ri[idx]);
   }
   // printf("exiting channel end\n");
 }
@@ -163,18 +174,10 @@ __kernel void channel_end(__global float* restrict buffer,
 // __attribute__((max_global_work_dim(0)))
 __kernel void channel_manager(const int num_of_layers) {
   for (int i = 0; i < num_of_layers; ++i) {
-    // printf("allowing for forward propagation of layer %d/%d\n", i+1, num_of_layers);
-    // write_channel_intel(l_token[i], 1);
-    // read_channel_intel(l_ack[i]);
-    switch (i) {
-        case 0:  write_channel_intel(l_token[0], 1); read_channel_intel(l_ack[0]); break;
-        case 1:  write_channel_intel(l_token[1], 1); read_channel_intel(l_ack[1]); break;
-        case 2:  write_channel_intel(l_token[2], 1); read_channel_intel(l_ack[2]); break;
-        case 3:  write_channel_intel(l_token[3], 1); read_channel_intel(l_ack[3]); break;
-        case 4:  write_channel_intel(l_token[4], 1); read_channel_intel(l_ack[4]); break;
-        default: printf("Error!!!!!!\n");
-    }
-    // printf("got acknowledgement from layer %d\n", i);
+    printf("allowing for forward propagation of layer %d/%d\n", i+1, num_of_layers);
+    write_channel_intel(l_token[i], 1);
+    read_channel_intel(l_ack[i]);
+    printf("got acknowledgement from layer %d\n", i);
   }
   // printf("exiting mananger\n");
 }
@@ -197,21 +200,17 @@ __kernel void linear_forward_prop(__global const float* restrict params,
                                   int layer_idx,
                                   const int layer_idx_max,
                                   __global int* restrict err_code) {
+  printf("layer %d got token starting, input_r: %d, input_c: %d co: %d lo: %d\n", layer_idx , *input_r, *input_c, *cache_offset_, *layer_param_offset);
+
   #ifdef USING_CHANNEL
   layer_idx = get_global_id(0);
   if (layer_idx > layer_idx_max) return;
-  // printf("layer %d trying to acquire token, max %d\n", layer_idx, layer_idx_max);
-  // read_channel_intel(l_token[layer_idx]);
-  switch (layer_idx) {
-    case 0: read_channel_intel(l_token[0]); break;
-    case 1: read_channel_intel(l_token[1]); break;
-    case 2: read_channel_intel(l_token[2]); break;
-    case 3: read_channel_intel(l_token[3]); break;
-    case 4: read_channel_intel(l_token[4]); break;
-    default: printf("Error!!!!!!\n");
-  }
-  // printf("layer %d got token starting, input_r: %d, input_c: %d\n", layer_idx , *input_r, *input_c);
+  printf("layer %d trying to acquire token, max %d\n", layer_idx, layer_idx_max);
+  read_channel_intel(l_token[layer_idx]);
+  printf("layer %d got token starting, input_r: %d, input_c: %d\n", layer_idx , *input_r, *input_c);
   #endif
+  printf("allowing matmul engine to start\n");
+  write_channel_intel(matmul_token_forward, 1);
   // local int layer_param_offset = 0;
   int cache_offset = *cache_offset_;
   // for (int i = 0; i < num_layers; i++) {
@@ -221,10 +220,7 @@ __kernel void linear_forward_prop(__global const float* restrict params,
   int b_r; b_r = dims[dim_offset+2];
   int b_c; b_c = dims[dim_offset+3];
 
-  // clear output buffer
-  for (int i = 0 ; i < *input_r*(W_c); ++i) {
-    output[i] = 0;
-  }
+
   // save cache
   for (int i = 0; i < *input_r*(*input_c); ++i) cache[cache_offset+i] = input_data[i];
   *cache_offset_ += *input_r * *(input_c);
@@ -236,12 +232,19 @@ __kernel void linear_forward_prop(__global const float* restrict params,
   #endif
 
   #ifndef USING_CHANNEL
-  matmul(input_data, *input_r, *input_c, 0, params, W_r, W_c, *layer_param_offset, output, output_r, output_c, 0);
-  *layer_param_offset += W_r * W_c;
+  // matmul(input_data, *input_r, *input_c, 0, params, W_r, W_c, *layer_param_offset, output, output_r, output_c, 0);
+  // *layer_param_offset += W_r * W_c;
   #endif
+
+
+  
   #ifndef USING_CHANNEL
+  printf("linear trying to acquire token\n");
+  read_channel_intel(linear_forward_token);
+  printf("linear proceeding\n");
+  *layer_param_offset += W_r*W_c;
   add_bias(output, *output_r, *output_c, params, *layer_param_offset);
-  *layer_param_offset += b_r * b_c;
+  *layer_param_offset += b_r*b_c;
   #endif
   // printf("layer %d finished\n", layer_idx);
 }
@@ -260,56 +263,23 @@ __kernel void relu_forward_prop(__global float* restrict input_data,
   #ifdef USING_CHANNEL
   layer_idx = get_global_id(0);
   if (layer_idx > layer_idx_max) return;
-  // printf("relu layer %d trying to acquire token, max %d\n", layer_idx, layer_idx_max);
-  // read_channel_intel(a_token[layer_idx]);
-  switch (layer_idx) {
-    case 0: read_channel_intel(a_token[0]); break;
-    case 1: read_channel_intel(a_token[1]); break;
-    case 2: read_channel_intel(a_token[2]); break;
-    case 3: read_channel_intel(a_token[3]); break;
-    case 4: read_channel_intel(a_token[4]); break;
-    default: printf("Error!!!!!!\n");
-  }
-  // printf("relu layer %d got token starting..., ir %d ic %d\n", layer_idx, *input_r, *input_c);
+  printf("relu layer %d trying to acquire token, max %d\n", layer_idx, layer_idx_max);
+  read_channel_intel(a_token[layer_idx]);
+  printf("relu layer %d got token starting..., ir %d ic %d\n", layer_idx, *input_r, *input_c);
   #endif
   int cache_offset_ = *cache_offset;
   *cache_offset += *input_r * *input_c;
   int input_c_ = *input_c;
   int input_r_ = *input_r;
   #ifdef USING_CHANNEL
-  // write_channel_intel(l_ack[layer_idx], 1);
-  switch (layer_idx) {
-    case 0: write_channel_intel(l_ack[0], 1); break;
-    case 1: write_channel_intel(l_ack[1], 1); break;
-    case 2: write_channel_intel(l_ack[2], 1); break;
-    case 3: write_channel_intel(l_ack[3], 1); break;
-    case 4: write_channel_intel(l_ack[4], 1); break;
-    default: printf("Error!!!!!!\n");
-  }
+  write_channel_intel(l_ack[layer_idx], 1);
   #endif
   for (int i = 0; i < input_c_*input_r_; ++i) {
     #ifdef USING_CHANNEL
-    // float nxt_num = read_channel_intel(c_ri[layer_idx]);
-    float nxt_num;
-    switch (layer_idx) {
-      case 0: nxt_num = read_channel_intel(c_ri[0]); break;
-      case 1: nxt_num = read_channel_intel(c_ri[1]); break;
-      case 2: nxt_num = read_channel_intel(c_ri[2]); break;
-      case 3: nxt_num = read_channel_intel(c_ri[3]); break;
-      case 4: nxt_num = read_channel_intel(c_ri[4]); break;
-      default: printf("Error!!!!!!\n");
-    }
+    float nxt_num = read_channel_intel(c_ri[layer_idx]);
     cache[cache_offset_+i] = nxt_num > 0 ? 1 : 0;
     float out = nxt_num > 0 ? nxt_num : 0;
-    // write_channel_intel(c_li[layer_idx+1], out);
-    switch (layer_idx+1) {
-      case 0: write_channel_intel(c_li[0], out); break;
-      case 1: write_channel_intel(c_li[1], out); break;
-      case 2: write_channel_intel(c_li[2], out); break;
-      case 3: write_channel_intel(c_li[3], out); break;
-      case 4: write_channel_intel(c_li[4], out); break;
-      default: printf("Error!!!!!!\n");
-    }
+    write_channel_intel(c_li[layer_idx+1], out);
     #else
     cache[cache_offset_+i] = input_data[i] > 0 ? 1 : 0;
     input_data[i] = input_data[i] > 0 ? input_data[i] : 0;
@@ -611,6 +581,7 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   // }
   // printf("\n");
   // clear output buffer
+  printf("backward dims %d %d %d %d\n", *input_grad_r, *input_grad_c, *output_grad_r, *output_grad_c);
   for (int i = 0; i < *input_grad_r*W_r; ++i) {
     output_grad[i] = 0;
   }
@@ -684,7 +655,11 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   *layer_param_offset -= b_c*b_r;
   // for (int i= *layer_param_offset; i < *layer_param_offset+*input_grad_r; ++i) printf("%e ", params_T[i]);
   // printf("\n");
-  matmul(params_T, 1, *input_grad_r, *params_T_offset, input_grad, *input_grad_r, *input_grad_c, 0, param_grads, output_grad_r, output_grad_c, *layer_param_offset);
+
+  write_channel_intel(matmul_token_backward, 1);
+  // matmul(params_T, 1, *input_grad_r, *params_T_offset, input_grad, *input_grad_r, *input_grad_c, 0, param_grads, output_grad_r, output_grad_c, *layer_param_offset);
+  read_channel_intel(linear_backward_token);
+  
   // int W_offset = *layer_param_offset;
   *params_T_offset -= b_c*b_r;
   // printf("[linear in W] param offset at %d, changing to %d\n", *layer_param_offset, *layer_param_offset-W_r*W_c);
@@ -693,11 +668,18 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   *layer_param_offset -= W_r * W_c;
   *params_T_offset -= W_r * W_c;
   *cache_offset -= W_r * (*input_grad_r);
-  matmul(cache_T, W_r, *input_grad_r, *cache_offset, input_grad, *input_grad_r, *input_grad_c, 0, param_grads, output_grad_r, output_grad_c, *layer_param_offset);
-  matmul(input_grad, *input_grad_r, *input_grad_c, 0, params_T, W_c, W_r, *params_T_offset, output_grad, output_grad_r, output_grad_c, 0);
+  write_channel_intel(matmul_token_backward, 1);
+  // matmul(cache_T, W_r, *input_grad_r, *cache_offset, input_grad, *input_grad_r, *input_grad_c, 0, param_grads, output_grad_r, output_grad_c, *layer_param_offset);
+  read_channel_intel(linear_backward_token);
+  write_channel_intel(matmul_token_backward, 1);
+
+  // matmul(input_grad, *input_grad_r, *input_grad_c, 0, params_T, W_c, W_r, *params_T_offset, output_grad, output_grad_r, output_grad_c, 0);
+  read_channel_intel(linear_backward_token);
+ 
+ 
   // printf("device grads\n");
-  // printf("In----------\n");
-  // for (int i = 0; i < *input_grad_c*(*input_grad_r); ++i) printf("%e  ", input_grad[i]);
+  // printf("Out----------\n");
+  // for (int i = 0; i < *output_grad_c*(*output_grad_r); ++i) printf("%e  ", output_grad[i]);
   // printf("\n");
   // printf("param_T\n");
   // for (int i = *params_T_offset; i < *params_T_offset+W_c*W_r; ++i) printf("%e  ", params_T[i]);

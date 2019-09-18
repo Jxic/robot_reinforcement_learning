@@ -362,7 +362,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
       model_backward(m, grad);
       #else
       fpga_prepare_backward(m, batch_size);
-      fpga_backward(m, new_matrix(1,1));
+      fpga_backward(m, new_matrix(1,1), 0);
       #endif
       backward += timer_check(&ep_t_start);
 

@@ -29,3 +29,5 @@ for_ssh
 full_comp
 *.tgz
 full_comp1
+C_back
+rl_ddpg.cl
