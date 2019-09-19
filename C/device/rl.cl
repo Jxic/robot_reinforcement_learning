@@ -30,7 +30,7 @@ __kernel void matmul_engine(int mode,
             __global const int* restrict r_offset) {
   // printf("matmul engine start %d %d\n", *y_row, *y_col);
   if (!mode) {
-    printf("acquiring token from forward\n");
+    // printf("acquiring token from forward\n");
     read_channel_intel(matmul_token_forward);
   } else {
     read_channel_intel(matmul_token_backward);
@@ -43,7 +43,7 @@ __kernel void matmul_engine(int mode,
     r[i+*r_offset] = 0;
   }
 
-  printf("[matmul] xr %d xc %d xo %d yr %d yc %d yo %d rr %d rc %d ro %d\n", *x_row, *x_col, *x_offset, *y_row, *y_col, *y_offset, l_r_row, l_r_col, *r_offset);
+  // printf("[matmul] xr %d xc %d xo %d yr %d yc %d yo %d rr %d rc %d ro %d\n", *x_row, *x_col, *x_offset, *y_row, *y_col, *y_offset, l_r_row, l_r_col, *r_offset);
   for (int i = 0; i < l_r_row; ++i) {
     for (int k = 0; k < *x_col; ++k) {
       for (int j = 0; j < l_r_col; ++j) {
@@ -53,7 +53,7 @@ __kernel void matmul_engine(int mode,
   }
   *r_row = l_r_row;
   *r_col = l_r_col;
-  printf("allowing linear to proceed\n");
+  // printf("allowing linear to proceed\n");
   if (!mode) {
     write_channel_intel(linear_forward_token, 1);
   } else {
@@ -109,7 +109,7 @@ void matmul_w_bias_from_channel(__global int* restrict x_row,
   *r_col = l_r_col;
   *x_row = l_r_row;
   *x_col = l_r_col;
-  printf("layer %d allowing for activation to start, or %d oc %d\n", layer_idx, *r_row, *r_col);
+  // printf("layer %d allowing for activation to start, or %d oc %d\n", layer_idx, *r_row, *r_col);
   write_channel_intel(a_token[layer_idx], 1);
   // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
   float x[1024];
@@ -200,7 +200,7 @@ __kernel void linear_forward_prop(__global const float* restrict params,
                                   int layer_idx,
                                   const int layer_idx_max,
                                   __global int* restrict err_code) {
-  printf("layer %d got token starting, input_r: %d, input_c: %d co: %d lo: %d\n", layer_idx , *input_r, *input_c, *cache_offset_, *layer_param_offset);
+  // printf("layer %d got token starting, input_r: %d, input_c: %d co: %d lo: %d\n", layer_idx , *input_r, *input_c, *cache_offset_, *layer_param_offset);
 
   #ifdef USING_CHANNEL
   layer_idx = get_global_id(0);
@@ -209,7 +209,7 @@ __kernel void linear_forward_prop(__global const float* restrict params,
   read_channel_intel(l_token[layer_idx]);
   printf("layer %d got token starting, input_r: %d, input_c: %d\n", layer_idx , *input_r, *input_c);
   #endif
-  printf("allowing matmul engine to start\n");
+  // printf("allowing matmul engine to start\n");
   write_channel_intel(matmul_token_forward, 1);
   // local int layer_param_offset = 0;
   int cache_offset = *cache_offset_;
@@ -239,9 +239,9 @@ __kernel void linear_forward_prop(__global const float* restrict params,
 
   
   #ifndef USING_CHANNEL
-  printf("linear trying to acquire token\n");
+  // printf("linear trying to acquire token\n");
   read_channel_intel(linear_forward_token);
-  printf("linear proceeding\n");
+  // printf("linear proceeding\n");
   *layer_param_offset += W_r*W_c;
   add_bias(output, *output_r, *output_c, params, *layer_param_offset);
   *layer_param_offset += b_r*b_c;
@@ -288,13 +288,13 @@ __kernel void relu_forward_prop(__global float* restrict input_data,
 }
 
 __attribute__((max_global_work_dim(0)))
-__kernel void mse(__global   const float* restrict input_data,
-                  __global   const int* restrict input_r,
-                  __global   const int* restrict input_c,
-                  __global   float* restrict target_data,
-                  __global   float* restrict tmp_buffer,
-                  __global   float* restrict loss,
-                  __global   int* restrict err_code) {
+__kernel void mse(__global const float* restrict input_data,
+                  __global const int* restrict input_r,
+                  __global const int* restrict input_c,
+                  __global float* restrict target_data,
+                  __global float* restrict tmp_buffer,
+                  __global float* restrict loss,
+                  __global int* restrict err_code) {
   int ir; ir = *input_r;
   int ic; ic = *input_c;
   for (int i = 0; i < ir*ic; ++i) {
@@ -307,6 +307,80 @@ __kernel void mse(__global   const float* restrict input_data,
   
   for (int i = 0; i < *input_r*(*input_c); ++i) sum += tmp_buffer[i];
   *loss = sum / (*input_c * *input_r);
+}
+
+
+__kernel void transfer_data(__global const float* restrict a,
+                            __global const int* restrict ir,
+                            __global const int* restrict ic,
+                            __global float* restrict b) {
+  for (int i = 0; i < *ir*(*ic); ++i) b[i] = a[i];
+}
+
+__kernel void dqn_grad(__global const float* restrict nxt_qs,
+                  __global const float* curr_qs,
+                  __global float* actions,
+                  __global const int* restrict input_r,
+                  __global const int* restrict input_c,
+                  const float gamma,
+                  __global const float* reward,
+                  __global float* loss) {
+
+  int ir = *input_r;
+  int ic = *input_c;
+  float nxt_q_max[1000];
+  // 
+  // nxt_qs 
+  // printf("nxt_qs\n");
+  // for (int i = 0; i < 30; i++) {
+  //   printf("%e ", nxt_qs[i]);
+  // }
+  
+  // printf("\n");
+  // printf("curr_qs\n");
+  // for (int i = 0; i < 30; i++) {
+  //   printf("%e ", curr_qs[i]);
+  // }
+  // printf("\n");
+  // printf("actions\n");
+  // for (int i = 0; i < 30; i++) {
+  //   printf(" %e ", actions[i]);
+  // }
+  // printf("\n");
+  // printf("reward\n");
+  // for (int i = 0; i < 30; i++) {
+  //   printf(" %e ", reward[i]);
+  // }
+  // printf("\n");
+  //
+  for (int i = 0; i < ir; ++i) {
+    int max = 0;
+    for (int j = 0; j < ic; ++j) {
+      if (nxt_qs[i*ic+j] > nxt_qs[i*ic+max]) max = j;
+    }
+    nxt_q_max[i] = gamma * nxt_qs[i*ic+max] + reward[i];
+  }
+  // calculate target
+  float sum = 0;
+  for (int i = 0; i < ir; ++i) {
+    for (int j = 0; j < ic; ++j) {
+      int idx = i*ic+j;
+      if (actions[idx] > 0) {
+        float cq = curr_qs[idx];
+        float t = nxt_q_max[i];
+        sum += (cq - t);
+        float grad = (cq - t) * 2.0 / (float) ir;
+        actions[idx] = grad;
+      }
+    }
+  }
+  // printf("device grad\n");
+  // for (int i = 0; i < 30; i++) {
+  //   printf(" %e ", actions[i]);
+  // }
+  // printf("\n");
+  
+  *loss = sum / (ir*ic);
 }
 
 __attribute__((max_global_work_dim(0)))
@@ -581,7 +655,7 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   // }
   // printf("\n");
   // clear output buffer
-  printf("backward dims %d %d %d %d\n", *input_grad_r, *input_grad_c, *output_grad_r, *output_grad_c);
+  // printf("backward dims %d %d %d %d\n", *input_grad_r, *input_grad_c, *output_grad_r, *output_grad_c);
   for (int i = 0; i < *input_grad_r*W_r; ++i) {
     output_grad[i] = 0;
   }

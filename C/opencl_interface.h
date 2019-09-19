@@ -8,6 +8,8 @@ int free_all_memory_objs();
 int fpga_forward(model*, matrix_t*,matrix_t*);
 float fpga_mse_loss_forward(model* m, matrix_t* x, matrix_t* y);
 matrix_t* retrieve_grad_of_input(model* m, int batch_size);
+float fpga_dqn_grad(model* m, matrix_t* actions, matrix_t* reward, float gamma);
+int fpga_transfer_data_to_aux(model* m);
 
 int fpga_backward(model*, matrix_t*,int);
 matrix_t* fpga_adam(model*, float);

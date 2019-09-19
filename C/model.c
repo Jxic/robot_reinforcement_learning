@@ -275,6 +275,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     "examine_int_array",
     "examine_float_array",
     "transpose_params_n_cache",
+    "matmul_engine",
     #ifdef USING_CHANNEL
     "channel_start",
     "channel_end",
@@ -284,7 +285,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     "b_channel_manager",
     #endif
   };
-  int num_of_kernels = 10;
+  int num_of_kernels = 11;
   #ifdef USING_CHANNEL
   num_of_kernels = 16;
   #endif
@@ -351,7 +352,8 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
       float step_loss_h = model_forward(m, next_batch, next_target);
       loss += step_loss_h;
       #else
-      float step_loss_d = fpga_forward(m, next_batch, next_target);
+      fpga_forward(m, next_batch, next_target);
+      float step_loss_d = fpga_mse_loss_forward(m, next_batch, next_target);
       loss += step_loss_d;
       // printf("step loss h %f d %f\n", step_loss_h, step_loss_d);
       #endif

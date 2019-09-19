@@ -11,6 +11,7 @@
 #include "matrix_op.h"
 #include "optimizer.h"
 #include "model_utils.h"
+#include "opencl_interface.h"
 
 #define STATE_DIM 3 //16
 #define ACTION_DIM 9 //4
@@ -18,10 +19,10 @@
 #define UNIT_MOVEMENT 2 / ACTION_DIM
 #define GAMMA 0.99
 #define C_LR 0.001
-#define A_LR 0.0001
-#define EPOCH 1000000
+#define A_LR 0.001
+#define EPOCH 100000
 #define MAX_EPOCH_LEN 1000
-#define BATCH_SIZE 64 // same as 64 timesteps
+#define BATCH_SIZE 128 // same as 64 timesteps
 #define PRE_TRAIN_STEPS 10000
 #define MEMORY_SIZE 1000000
 #define RANDOM_INIT_ANGLE 1
@@ -37,7 +38,7 @@
 // #define DDPG_CRITIC_T_FILE "DQ_CRITI_T_PENDULUM.model"
 
 static float actions[ACTION_DIM];
-static int actor_layers_config[NUM_OF_LAYERS] = {64, 64, ACTION_DIM};
+static int actor_layers_config[NUM_OF_LAYERS] = {100, 100, ACTION_DIM};
 static layer_type actor_layers_acts[NUM_OF_LAYERS] = {relu, relu, placeholder};
 static model *actor;
 static experience_buffer* exp_buf;
@@ -54,6 +55,7 @@ static matrix_t* converted_action(matrix_t* one_hot);
 
 void run_rl_deep_q  () {
   // preparation phase
+
   float action_l = -2;
   for (int i = 0; i < ACTION_DIM; i++) {
     actions[i] = action_l;
@@ -70,6 +72,40 @@ void run_rl_deep_q  () {
     printf("[RUN_DDPG] failed to fill the experience buffer");
   }
   printf("Done pre-training\n");
+
+  // OpenCL
+  const char * names[] = {
+    // "vector_add",
+    // "gemm",
+    "linear_forward_prop",
+    "relu_forward_prop",
+    "mse",
+    "relu_backward_prop",
+    "transpose_params_n_cache",
+    "linear_backward_prop",
+    "generate_update_adam",
+    "examine_int_array",
+    "examine_float_array",
+    "transpose_params_n_cache",
+    "matmul_engine",
+    "dqn_grad",
+    "transfer_data",
+    #ifdef USING_CHANNEL
+    "channel_start",
+    "channel_end",
+    "channel_manager",
+    "prepare_input_grads",
+    "b_channel_end",
+    "b_channel_manager",
+    #endif
+  };
+  int num_of_kernels = 13;
+  #ifdef USING_CHANNEL
+  num_of_kernels = 16;
+  #endif
+  c_init_opencl(num_of_kernels, names);
+  initialize_training_env(actor, BATCH_SIZE);
+  initialize_values_on_device(actor);
 
   // training
   int epc = 0;
@@ -206,10 +242,26 @@ static float train() {
   matrix_t* nxt_states = slice_col_wise(batch, STATE_DIM+ACTION_DIM, 2*STATE_DIM+ACTION_DIM);
   matrix_t* dones = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM, 2*STATE_DIM+ACTION_DIM+1);
   matrix_t* rewards = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM+1, 2*STATE_DIM+ACTION_DIM+2);
+  // matrix_t* device_rewards = matrix_clone(rewards);
+  // int tmp_r;
+  // int tmp_c;
 
+  #ifndef OPENCL
   // calculating q target
   matrix_t* nxt_qs_ = matrix_clone(nxt_states);
   predict(actor, nxt_qs_);  
+  
+  // //
+  // tmp_r = nxt_qs_->rows;
+  // tmp_c = nxt_qs_ -> cols;
+  // nxt_qs_->rows = 1;
+  // nxt_qs_->cols = 30;
+  // printf("host nxt_qs\n");
+  // print_matrix(nxt_qs_, 1);
+  // nxt_qs_->rows = tmp_r;
+  // nxt_qs_->cols = tmp_c;
+  // //
+
   matrix_t* nxt_max_q = new_matrix(nxt_qs_->rows, 1);
   for (int i = 0; i < nxt_qs_->rows; ++i) {
     int max = 0;
@@ -220,15 +272,46 @@ static float train() {
   }
   // matrix_t* nxt_max_q = matrix_row_argmax(nxt_qs);
 
-  neg(dones);
-  add_scalar(dones, 1);
-  elem_wise_mult(nxt_max_q, dones);
+  // neg(dones);
+  // add_scalar(dones, 1);
+  // elem_wise_mult(nxt_max_q, dones);
   mult_scalar(nxt_max_q, GAMMA);
   elem_wise_add(rewards, nxt_max_q); // reward is the target
 
   // get curr q gradients
   matrix_t* qs_grad = matrix_clone(states);
   predict(actor, qs_grad);
+
+  // //
+  // tmp_r = qs_grad->rows;
+  // tmp_c = qs_grad -> cols;
+  // qs_grad->rows = 1;
+  // qs_grad->cols = 30;
+  // printf("host curr_qs\n");
+  // print_matrix(qs_grad, 1);
+  // qs_grad->rows = tmp_r;
+  // qs_grad->cols = tmp_c;
+  // //
+  // //
+  // tmp_r = actions->rows;
+  // tmp_c = actions -> cols;
+  // actions->rows = 1;
+  // actions->cols = 30;
+  // printf("host actions\n");
+  // print_matrix(actions, 1);
+  // actions->rows = tmp_r;
+  // actions->cols = tmp_c;
+  //
+  // tmp_r = rewards->rows;
+  // tmp_c = rewards -> cols;
+  // rewards->rows = 1;
+  // rewards->cols = 30;
+  // printf("host rewards\n");
+  // print_matrix(rewards, 1);
+  // rewards->rows = tmp_r;
+  // rewards->cols = tmp_c;
+  
+
   elem_wise_mult(qs_grad, actions);
   matrix_t* qs_target = matrix_clone(actions);
   int t_idx = 0;
@@ -239,14 +322,28 @@ static float train() {
   }
   assert(t_idx == rewards->rows*rewards->cols);
 
-  float final_loss = mean(rewards);
+  // float final_loss = mean(rewards);
   elem_wise_minus(qs_grad, qs_target);
+  float final_loss = mean(qs_grad);
   mult_scalar(qs_grad, 2.0/(float)qs_target->rows);
+  
+
+  // tmp_r = qs_grad->rows;
+  // tmp_c = qs_grad -> cols;
+  // qs_grad->rows = 1;
+  // qs_grad->cols = 30;
+  // printf("host qs_grad\n");
+  // print_matrix(qs_grad, 1);
+  // qs_grad->rows = tmp_r;
+  // qs_grad->cols = tmp_c;
 
   // backward prop
   model_backward(actor, qs_grad);
   perform_update(actor, A_LR);
 
+  free_matrix(nxt_max_q);
+  free_matrix(qs_grad);
+  free_matrix(qs_target);
   free_matrix(nxt_qs_);
   free_matrix(dones);
   free_matrix(nxt_states);
@@ -255,6 +352,30 @@ static float train() {
   free_matrix(batch);
   free_matrix(rewards);
   return final_loss;
+
+  #else
+
+  fpga_forward(actor, nxt_states, NULL);
+  fpga_transfer_data_to_aux(actor);
+  fpga_forward(actor, states, NULL);
+  float loss = fpga_dqn_grad(actor, actions, rewards, GAMMA);
+  fpga_prepare_backward(actor, BATCH_SIZE);
+  fpga_backward(actor, NULL, 0);
+  free_matrix(fpga_adam(actor, A_LR));
+
+  free_matrix(dones);
+  free_matrix(nxt_states);
+  free_matrix(actions);
+  free_matrix(states);
+  free_matrix(batch);
+  free_matrix(rewards);
+  // printf("%f %f\n", final_loss, loss);
+  return loss;
+  #endif
+
+
+  exit(1);
+  
 }
 
 // static matrix_t* deep_q_rand_action(int dim);

@@ -4,7 +4,7 @@
 // #include <time.h>
 
 // #define RUN_TEST
-// #define MKL
+#define MKL
 #define MULTI_MKL_THREAD
 #define SEED time(0)
 

@@ -53,16 +53,16 @@ class test_sim():
         #   print(len(a))
         #   if (len(a) > 0):
         #     exit(1)
-        frame = self.env.render(mode='rgb_array')
+        # frame = self.env.render(mode='rgb_array')
         action = self.env.action_space.sample()
         # print("action {}".format(action))
-        observation, reward, done, info = self.step(action)
+        observation, reward, done, info = self.step(action, render=True)
         # print(observation)
-        frame_size = 512
-        start_p = int((frame.shape[0] - frame_size) / 2)
-        frame = frame[start_p:start_p+frame_size, start_p:start_p+frame_size, :].copy()
+        # frame_size = 512
+        # start_p = int((frame.shape[0] - frame_size) / 2)
+        # frame = frame[start_p:start_p+frame_size, start_p:start_p+frame_size, :].copy()
         # print(frame[1:10,1:10,:])
-        frame = resize(frame, (83, 83, 3))
+        # frame = resize(frame, (83, 83, 3))
         # print(frame[1:10,1:10,:])
         # print(frame)
         # for i in range(frame.shape[0]):
@@ -72,11 +72,11 @@ class test_sim():
         #         frame[i][j][k] += 255
 
         # frame[:,:,0] = ((observation[2] + 8) / 16) * 255 + 0
-        frame = rgb2gray(frame)
-        print(frame[1:10, 1:10])
-        scipy.misc.imsave('outfile'+str(counter)+'.jpg', frame)
+        # frame = rgb2gray(frame)
+        # print(frame[1:10, 1:10])
+        # scipy.misc.imsave('outfile'+str(counter)+'.jpg', frame)
         # counter += 1
-        exit(1)
+        # exit(1)
 
         # print(reward)
         # print("nxt observation {}".format(observation))

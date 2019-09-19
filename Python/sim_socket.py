@@ -48,10 +48,10 @@ class sim_socket:
         if (len(data)!=self.flag_dim+self.action_dim):
           print("Wrong data sent")
           break
-        if self.count < 500000 or self.game != 'Pendulum-v0':
+        if self.count < 600000 or self.game != 'Pendulum-v0':
           observation, reward, done, _ = self.t.step(action)#, render=True)
         else:
-          observation, reward, done, _ = self.t.step(action, render=True)
+          observation, reward, done, _ = self.t.step(action)#, render=True)
         terminate = 1.0 if done else 0.0
         #print("From C: a:{} r:{:.2f} d:{:.2f}".format(action,reward,terminate))
         if self.count % 1000 == 0:

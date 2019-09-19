@@ -29,7 +29,7 @@ void run_rl(rl_type t) {
   {
     case test:
       printf("Running test algorithm ... \n");
-      // test_run_mse();
+      test_run_mse();
       // test_run_cce();
       // test_run_conv();
       // test_device();

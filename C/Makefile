@@ -1,6 +1,6 @@
 # for debugging checking memory leaks
 CC = /usr/local/Cellar/llvm/8.0.0/bin/clang
-CFLAGS = -fsanitize=address -g
+# CFLAGS = -fsanitize=address -g
 
 DEPS = matrix_op.h tests.h utils.h rl.h layers.h data_structures.h macros.h model.h sim_api.h rl_utils.h rl_ddpg.h socket_utils.h optimizer.h model_utils.h rl_ddpg_her.h normalizer.h test_agent.h rl_ddpg_her_sim.h rl_ddpg_her_demo.h rl_ddpg_her_demo_sim.h multi_agents/rl_ddpg_her_mpi.h multi_agents/mpi_utils.h rl_ddpg_pixel.c rl_deep_q.h
 BDIR = OBJ_FILES
@@ -38,7 +38,7 @@ EXE = main
 
 ifeq ($(shell uname), Linux)
 # 1 Linux, 0 macos
-CFLAGS += -D OPENCL
+# CFLAGS += -D OPENCL
 EXE += rl.aocx
 OBJ += $(CXXOBJS)
 version = 1
@@ -60,7 +60,7 @@ all: $(EXE)
 main : $(OBJ)
 	@mkdir -p $(BDIR)
 ifeq ($(version), 0)
-	@$(CC)  $^ -o $@ $(MKL_FLAGS)
+	@$(CC)  $^ -o $@ $(MKL_FLAGS) -fsanitize=address -g
 else
 	@$(CXX) $^ -o $@ $(LINUX_DY)
 endif

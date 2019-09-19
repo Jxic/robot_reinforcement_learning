@@ -85,6 +85,8 @@ int initialize_training_env(model* m, int batch_size) {
   global_config.mem_objs.emplace_back("epsilon", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
   global_config.mem_objs.emplace_back("lr", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
   global_config.mem_objs.emplace_back("grad_size", context, CL_MEM_READ_WRITE, sizeof(int), (void*)NULL);
+  global_config.mem_objs.emplace_back("rewards", context, CL_MEM_READ_WRITE, m->max_out*batch_size*sizeof(float), (void*)NULL);
+
 
   size_t t_size = 0;
   for (size_t i = 0; i < global_config.mem_objs.size(); ++i) t_size += global_config.mem_objs[i].size;
@@ -324,11 +326,11 @@ int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
     dims_host[dims_offset+2] = b_rows;
     dims_host[dims_offset+3] = b_cols;
   }
-  printf("starting forward\n");
-  for (int i = 0; i < 12; ++i) {
-    printf("%d ", dims_host[i]);
-  }
-  printf("\n");
+  // printf("starting forward\n");
+  // for (int i = 0; i < 12; ++i) {
+  //   printf("%d ", dims_host[i]);
+  // }
+  // printf("\n");
   #ifdef USING_CHANNEL
   // start channel
   enqueue_NDRangeKernel("channel_start", find_queue_by_name(global_config.command_queues, "cs").q, 1, NULL, "mmm", input_buffer, input_r, input_c);
@@ -341,12 +343,12 @@ int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
     // printf("layer %d\n", n);
     // enqueue linear forward
     layer_idx = n;
-    printf("host dim %d %d\n", dims_host[layer_idx*4], dims_host[layer_idx*4+1]);
+    // printf("host dim %d %d\n", dims_host[layer_idx*4], dims_host[layer_idx*4+1]);
     set_single_int_value("w_r", dims_host[layer_idx*4]);
     set_single_int_value("w_c", dims_host[layer_idx*4+1]);
-    printf("enqueueing linear\n");
+    // printf("enqueueing linear\n");
     enqueue_NDRangeKernel("linear_forward_prop", fp_queue, 1, &linear_fp_event, "mmmmmmmmmmmddm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &layer_idx_max,&err_code);
-    printf("enqueueing matmul\n");
+    // printf("enqueueing matmul\n");
     enqueue_NDRangeKernel("matmul_engine", find_queue_by_name(global_config.command_queues, "mm").q, 1, NULL, "dmmmmmmmmmmmm", &mode, input_buffer, input_r, input_c, &offset_ph_0, &params, &w_r, &w_c, &param_offset, output_buffer, output_r, output_c, &offset_ph_0);
     clWaitForEvents(1, &linear_fp_event);
     
@@ -453,6 +455,113 @@ float fpga_mse_loss_forward(model* m, matrix_t* x, matrix_t* y) {
   float loss_host[1];
   status = clEnqueueReadBuffer(fp_queue, loss, CL_TRUE, 0, sizeof(float), loss_host, 1, &mse_event, NULL);
   return loss_host[0];
+}
+
+int fpga_transfer_data_to_aux(model* m) {
+  int status;
+  // context, kernels, queue ...
+  cl_command_queue fp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
+  
+  // events
+  cl_event dqn_transfer_event;
+
+  // find buffers
+  cl_mem layer_io_buffer1 = find_buffer_by_name(global_config.mem_objs, "layer_io_buffer1").buffer;
+  cl_mem layer_io_buffer2 = find_buffer_by_name(global_config.mem_objs, "layer_io_buffer2").buffer;
+  cl_mem r1 = find_buffer_by_name(global_config.mem_objs, "r1").buffer;
+  cl_mem c1 = find_buffer_by_name(global_config.mem_objs, "c1").buffer;
+  cl_mem r2 = find_buffer_by_name(global_config.mem_objs, "r2").buffer;
+  cl_mem c2 = find_buffer_by_name(global_config.mem_objs, "c2").buffer;
+  cl_mem aux_buffer = find_buffer_by_name(global_config.mem_objs, "aux_buffer").buffer;
+
+  cl_mem input_buffer;
+  cl_mem output_buffer;
+  cl_mem input_r;
+  cl_mem input_c;
+  cl_mem output_r;
+  cl_mem output_c;
+
+  if (m->num_of_layers%2==0) {
+    // printf("mse using 2\n");
+    input_buffer = layer_io_buffer2;
+    output_buffer = layer_io_buffer1;
+    input_r = r2;
+    input_c = c2;
+    output_r = r1;
+    output_c = c1;
+  } else {
+    // printf("mse using 1\n");
+    input_buffer = layer_io_buffer1;
+    output_buffer = layer_io_buffer2;
+    input_r = r1;
+    input_c = c1;
+    output_r = r2;
+    output_c = c2;
+  }
+
+  enqueue_NDRangeKernel("transfer_data", fp_queue, 1, &dqn_transfer_event, "mmmm", &output_buffer, &output_r, &output_c, &aux_buffer);
+
+  clWaitForEvents(1, &dqn_transfer_event);
+}
+
+float fpga_dqn_grad(model* m, matrix_t* actions, matrix_t* device_reward, float gamma) {
+  int status;
+  // context, kernels, queue ...
+  cl_command_queue fp_queue = find_queue_by_name(global_config.command_queues, "dq").q;
+  
+  // events
+  cl_event dqn_grad_event;
+
+  // find buffers
+  cl_mem layer_io_buffer1 = find_buffer_by_name(global_config.mem_objs, "layer_io_buffer1").buffer;
+  cl_mem layer_io_buffer2 = find_buffer_by_name(global_config.mem_objs, "layer_io_buffer2").buffer;
+  cl_mem r1 = find_buffer_by_name(global_config.mem_objs, "r1").buffer;
+  cl_mem c1 = find_buffer_by_name(global_config.mem_objs, "c1").buffer;
+  cl_mem r2 = find_buffer_by_name(global_config.mem_objs, "r2").buffer;
+  cl_mem c2 = find_buffer_by_name(global_config.mem_objs, "c2").buffer;
+  cl_mem err_code = find_buffer_by_name(global_config.mem_objs, "err_code").buffer; 
+  cl_mem loss = find_buffer_by_name(global_config.mem_objs, "ret_loss").buffer;
+  cl_mem aux_buffer = find_buffer_by_name(global_config.mem_objs, "aux_buffer").buffer;
+  cl_mem rewards = find_buffer_by_name(global_config.mem_objs, "rewards").buffer;
+
+  cl_mem input_buffer;
+  cl_mem output_buffer;
+  cl_mem input_r;
+  cl_mem input_c;
+  cl_mem output_r;
+  cl_mem output_c;
+
+  if (m->num_of_layers%2==0) {
+    // printf("mse using 2\n");
+    input_buffer = layer_io_buffer2;
+    output_buffer = layer_io_buffer1;
+    input_r = r2;
+    input_c = c2;
+    output_r = r1;
+    output_c = c1;
+  } else {
+    // printf("mse using 1\n");
+    input_buffer = layer_io_buffer1;
+    output_buffer = layer_io_buffer2;
+    input_r = r1;
+    input_c = c1;
+    output_r = r2;
+    output_c = c2;
+  }
+
+  // transfer, actions, rewards, 
+  
+  status = clEnqueueWriteBuffer(fp_queue, input_buffer, CL_TRUE, 0, actions->rows*actions->cols*sizeof(float), actions->data, 0, NULL, NULL);
+  status = clEnqueueWriteBuffer(fp_queue, rewards, CL_TRUE, 0, device_reward->rows*device_reward->cols*sizeof(float), device_reward->data, 0, NULL, NULL);
+  check_status(status, "failed transferring data for gradient calculation\n");
+
+  enqueue_NDRangeKernel("dqn_grad", fp_queue, 1, &dqn_grad_event, "mmmmmdmm", &aux_buffer, &output_buffer, &input_buffer, &output_r, &output_c, &gamma, &rewards, &loss);
+
+  clWaitForEvents(1, &dqn_grad_event);
+  float loss_host[1];
+  status = clEnqueueReadBuffer(fp_queue, loss, CL_TRUE, 0, sizeof(float), loss_host, 0, NULL, NULL);
+  return loss_host[0];
+  // return 1;
 }
 
 int fpga_prepare_backward(model* m, int batch_size) {
