@@ -14,12 +14,15 @@
 #include "multi_agents/rl_ddpg_her_mpi.h"
 #include "rl_ddpg_pixel.h"
 #include <math.h>
+#include "rl_deep_q.h"
 
 
 static void test_run_mse();
 static void test_run_cce();
 static void test_run_conv();
+#ifdef OPENCL
 static void test_device();
+#endif
 
 void run_rl(rl_type t) {
   switch (t)
@@ -29,13 +32,18 @@ void run_rl(rl_type t) {
       // test_run_mse();
       // test_run_cce();
       // test_run_conv();
-      test_device();
+      // test_device();
       break;
     
     // deep deterministic policy gradient
     case ddpg:
       printf("Running ddpg ... \n");
       run_ddpg();
+      break;
+    
+    case deep_q:
+      printf("Running deep q ...\n");
+      run_rl_deep_q();
       break;
 
     case her:
