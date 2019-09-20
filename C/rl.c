@@ -232,14 +232,6 @@ void test_run_conv() {
   free_matrix(x);
   free_matrix(y);
   free_model(m);
-  // matrix_t* test_data = load_data("test.dat");
-  // normalize(test_data);
-  // predict(m, test_data);
-  // matrix_t* result = matrix_row_argmax(test_data);
-  // FILE* fp =fopen("submission.csv", "w+");
-  // for (int i = 0; i < result->rows; ++i) {
-  //   fprintf(fp, "%d,%d\n", i+1, (int)result->data[i]);
-  // }
   
 }
 
@@ -264,8 +256,6 @@ static void test_device() {
   model* m;
   m = init_model_0(100);
   const char * names[] = {
-    // "vector_add",
-    // "gemm",
     "linear_forward_prop",
     "relu_forward_prop",
     "mse",
@@ -273,8 +263,6 @@ static void test_device() {
     "transpose_params_n_cache",
     "linear_backward_prop",
     "generate_update_adam",
-    "examine_int_array",
-    "examine_float_array",
     "transpose_params_n_cache",
     "matmul_engine",
     #ifdef USING_CHANNEL
@@ -286,7 +274,7 @@ static void test_device() {
     "b_channel_manager",
     #endif
   };
-  int num_of_kernels = 11;
+  int num_of_kernels = 9;
   #ifdef USING_CHANNEL
   num_of_kernels = 16;
   #endif
@@ -396,11 +384,5 @@ static void test_device() {
   printf("====================================\n");
 
   free_all_memory_objs();
-  // // float loss = eval(m, x, y, min_max);
-  // // printf("test run finished with error rate of %f (mse).\n", loss);
-  // matrix_t* cache_T = transpose(m->hidden_linears[0].data.l.cache);
-  // cache_T->rows = 1;
-  // cache_T->cols = 50;
-  // print_matrix(cache_T,1);
 }
 #endif

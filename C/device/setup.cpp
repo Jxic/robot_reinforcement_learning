@@ -76,12 +76,6 @@ Config init_opencl(vector<string> kernel_names) {
   new_conf.device_id = did;
   
   size_t sz;
-  // for (size_t i = 0; i < num_devices; ++i) {
-  //   status = clGetDeviceInfo(dids[i], CL_DEVICE_NAME, 0, NULL, &sz);
-  //   if (!status) {
-  //     printf("%ld, %ld", i, sz);
-  //   }
-  // }
   status = clGetDeviceInfo(did, CL_DEVICE_NAME, 0, NULL, &sz);
   check_status(status, "Failed finding device name size");
 

@@ -75,8 +75,6 @@ void run_rl_deep_q  () {
 
   // OpenCL
   const char * names[] = {
-    // "vector_add",
-    // "gemm",
     "linear_forward_prop",
     "relu_forward_prop",
     "mse",
@@ -84,10 +82,8 @@ void run_rl_deep_q  () {
     "transpose_params_n_cache",
     "linear_backward_prop",
     "generate_update_adam",
-    "examine_int_array",
-    "examine_float_array",
     "transpose_params_n_cache",
-    "matmul_engine",
+    // "matmul_engine",
     "dqn_grad",
     "transfer_data",
     #ifdef USING_CHANNEL
@@ -99,7 +95,7 @@ void run_rl_deep_q  () {
     "b_channel_manager",
     #endif
   };
-  int num_of_kernels = 13;
+  int num_of_kernels = 10;
   #ifdef USING_CHANNEL
   num_of_kernels = 16;
   #endif
@@ -220,14 +216,7 @@ static matrix_t* get_action(matrix_t* state, float noise_scale) {
   predict(actor, action);
   matrix_t* argmax_idx = matrix_row_argmax(action);
   matrix_t* one_hot = one_hot_encoding(argmax_idx, ACTION_DIM);
-  // mult_scalar(action, ACTION_BOUND);
-  // matrix_t* action_ = converted_action(action);
-  // free_matrix(action);
-  // matrix_t* noise = rand_normal(ACTION_DIM);
-  // mult_scalar(noise, noise_scale);
-  // elem_wise_add(action, noise);
-  // free_matrix(noise);
-  // clip(action, -ACTION_BOUND, ACTION_BOUND);
+
   free_matrix(argmax_idx);
   free_matrix(action);
   return one_hot;
@@ -242,26 +231,12 @@ static float train() {
   matrix_t* nxt_states = slice_col_wise(batch, STATE_DIM+ACTION_DIM, 2*STATE_DIM+ACTION_DIM);
   matrix_t* dones = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM, 2*STATE_DIM+ACTION_DIM+1);
   matrix_t* rewards = slice_col_wise(batch, 2*STATE_DIM+ACTION_DIM+1, 2*STATE_DIM+ACTION_DIM+2);
-  // matrix_t* device_rewards = matrix_clone(rewards);
-  // int tmp_r;
-  // int tmp_c;
 
   #ifndef OPENCL
   // calculating q target
   matrix_t* nxt_qs_ = matrix_clone(nxt_states);
   predict(actor, nxt_qs_);  
   
-  // //
-  // tmp_r = nxt_qs_->rows;
-  // tmp_c = nxt_qs_ -> cols;
-  // nxt_qs_->rows = 1;
-  // nxt_qs_->cols = 30;
-  // printf("host nxt_qs\n");
-  // print_matrix(nxt_qs_, 1);
-  // nxt_qs_->rows = tmp_r;
-  // nxt_qs_->cols = tmp_c;
-  // //
-
   matrix_t* nxt_max_q = new_matrix(nxt_qs_->rows, 1);
   for (int i = 0; i < nxt_qs_->rows; ++i) {
     int max = 0;
@@ -270,47 +245,13 @@ static float train() {
     }
     nxt_max_q->data[i] = nxt_qs_->data[i*nxt_qs_->cols+max];
   }
-  // matrix_t* nxt_max_q = matrix_row_argmax(nxt_qs);
 
-  // neg(dones);
-  // add_scalar(dones, 1);
-  // elem_wise_mult(nxt_max_q, dones);
   mult_scalar(nxt_max_q, GAMMA);
   elem_wise_add(rewards, nxt_max_q); // reward is the target
 
   // get curr q gradients
   matrix_t* qs_grad = matrix_clone(states);
   predict(actor, qs_grad);
-
-  // //
-  // tmp_r = qs_grad->rows;
-  // tmp_c = qs_grad -> cols;
-  // qs_grad->rows = 1;
-  // qs_grad->cols = 30;
-  // printf("host curr_qs\n");
-  // print_matrix(qs_grad, 1);
-  // qs_grad->rows = tmp_r;
-  // qs_grad->cols = tmp_c;
-  // //
-  // //
-  // tmp_r = actions->rows;
-  // tmp_c = actions -> cols;
-  // actions->rows = 1;
-  // actions->cols = 30;
-  // printf("host actions\n");
-  // print_matrix(actions, 1);
-  // actions->rows = tmp_r;
-  // actions->cols = tmp_c;
-  //
-  // tmp_r = rewards->rows;
-  // tmp_c = rewards -> cols;
-  // rewards->rows = 1;
-  // rewards->cols = 30;
-  // printf("host rewards\n");
-  // print_matrix(rewards, 1);
-  // rewards->rows = tmp_r;
-  // rewards->cols = tmp_c;
-  
 
   elem_wise_mult(qs_grad, actions);
   matrix_t* qs_target = matrix_clone(actions);
@@ -326,16 +267,6 @@ static float train() {
   elem_wise_minus(qs_grad, qs_target);
   float final_loss = mean(qs_grad);
   mult_scalar(qs_grad, 2.0/(float)qs_target->rows);
-  
-
-  // tmp_r = qs_grad->rows;
-  // tmp_c = qs_grad -> cols;
-  // qs_grad->rows = 1;
-  // qs_grad->cols = 30;
-  // printf("host qs_grad\n");
-  // print_matrix(qs_grad, 1);
-  // qs_grad->rows = tmp_r;
-  // qs_grad->cols = tmp_c;
 
   // backward prop
   model_backward(actor, qs_grad);
@@ -369,7 +300,6 @@ static float train() {
   free_matrix(states);
   free_matrix(batch);
   free_matrix(rewards);
-  // printf("%f %f\n", final_loss, loss);
   return loss;
   #endif
 
@@ -377,9 +307,6 @@ static float train() {
   exit(1);
   
 }
-
-// static matrix_t* deep_q_rand_action(int dim);
-// static matrix_t* converted_action(matrix_t* one_hot);
 
 static matrix_t* deep_q_rand_action(int dim) {
   matrix_t* ret = new_matrix(1, ACTION_DIM);

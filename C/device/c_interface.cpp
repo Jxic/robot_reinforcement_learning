@@ -3,7 +3,6 @@
 #include "utils.hpp"
 #include <assert.h>
 #include "../macros.h"
-// #include <cstdarg>
 #include <stdarg.h>
 
 extern Config global_config;
@@ -253,6 +252,12 @@ void check_buffer(model* m, cl_command_queue fp_queue) {
   print_matrix(wx,1);
 }
 
+typedef struct alignas(64) aligned_arr_f_
+{
+  float f[50000];
+} aligned_arr_f;
+ 
+
 int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   // context, queue, kernels ...
   cl_int status;
@@ -287,7 +292,14 @@ int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   Named_buffer param_grads = find_buffer_by_name(global_config.mem_objs, "param_grads");
 
   // clean up buffers
-  float moments_host[m->param_size];
+  aligned_arr_f moments_host_;
+  // float moments_host[m->param_size];
+  float* moments_host = moments_host_.f;
+  void* align( std::size_t alignment,
+             std::size_t size,
+             void*& ptr,
+             std::size_t& space );
+
   for (int i = 0; i < m->param_size; ++i) moments_host[i] = 0;
   status = clEnqueueWriteBuffer(fp_queue, param_grads.buffer, CL_TRUE, 0, param_grads.size, moments_host, 0, NULL, NULL);
   check_status(status, "Failed to initialize value for parameter gradients");
@@ -326,11 +338,7 @@ int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
     dims_host[dims_offset+2] = b_rows;
     dims_host[dims_offset+3] = b_cols;
   }
-  // printf("starting forward\n");
-  // for (int i = 0; i < 12; ++i) {
-  //   printf("%d ", dims_host[i]);
-  // }
-  // printf("\n");
+
   #ifdef USING_CHANNEL
   // start channel
   enqueue_NDRangeKernel("channel_start", find_queue_by_name(global_config.command_queues, "cs").q, 1, NULL, "mmm", input_buffer, input_r, input_c);
@@ -340,15 +348,11 @@ int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   int layer_idx_max = m->num_of_layers-1;
   #ifndef USING_CHANNEL
   for (int n = 0; n < m->num_of_layers-1; ++n) {
-    // printf("layer %d\n", n);
     // enqueue linear forward
     layer_idx = n;
-    // printf("host dim %d %d\n", dims_host[layer_idx*4], dims_host[layer_idx*4+1]);
     set_single_int_value("w_r", dims_host[layer_idx*4]);
     set_single_int_value("w_c", dims_host[layer_idx*4+1]);
-    // printf("enqueueing linear\n");
     enqueue_NDRangeKernel("linear_forward_prop", fp_queue, 1, &linear_fp_event, "mmmmmmmmmmmddm", &params, &param_offset, &dims, input_buffer, input_r, input_c, &cache, &cache_offset, output_buffer, output_r, output_c, &layer_idx, &layer_idx_max,&err_code);
-    // printf("enqueueing matmul\n");
     enqueue_NDRangeKernel("matmul_engine", find_queue_by_name(global_config.command_queues, "mm").q, 1, NULL, "dmmmmmmmmmmmm", &mode, input_buffer, input_r, input_c, &offset_ph_0, &params, &w_r, &w_c, &param_offset, output_buffer, output_r, output_c, &offset_ph_0);
     clWaitForEvents(1, &linear_fp_event);
     
@@ -390,16 +394,6 @@ int fpga_forward(model* m, matrix_t* x, matrix_t* y) {
   // clWaitForEvents(1, &linear_fp_event);
   #endif
 
-  // // transfer target
-  // status = clEnqueueWriteBuffer(fp_queue, *input_buffer, CL_TRUE, 0, y->rows*y->cols*sizeof(float), y->data, 0, NULL, NULL);
-  // enqueue_NDRangeKernel("mse", fp_queue, 1, &mse_event, "mmmmmmm", output_buffer, output_r, output_c, input_buffer, &aux_buffer, &loss, &err_code);
-  // clWaitForEvents(1, &mse_event);
-
-  // // read loss
-  // float loss_host[1];
-  // status = clEnqueueReadBuffer(fp_queue, loss, CL_TRUE, 0, sizeof(float), loss_host, 1, &mse_event, NULL);
-
-  // return loss_host[0];
   return 1;
 }
 
@@ -600,31 +594,6 @@ matrix_t* retrieve_grad_of_input(model* m, int batch_size) {
   cl_mem c1 = find_buffer_by_name(global_config.mem_objs, "c1").buffer;
   cl_mem r2 = find_buffer_by_name(global_config.mem_objs, "r2").buffer;
   cl_mem c2 = find_buffer_by_name(global_config.mem_objs, "c2").buffer;
-  
-  // other variable
-  // cl_mem input_buffer;
-  // cl_mem output_buffer;
-  // cl_mem input_r;
-  // cl_mem input_c;
-  // cl_mem output_r;
-  // cl_mem output_c;
-
-  // reset offset
-  // if (m->num_of_layers%2==0) {
-  //   input_buffer = layer_io_buffer2;
-  //   output_buffer = layer_io_buffer1;
-  //   input_r = r2;
-  //   input_c = c2;
-  //   output_r = r1;
-  //   output_c = c1;
-  // } else {
-  //   input_buffer = layer_io_buffer1;
-  //   output_buffer = layer_io_buffer2;
-  //   input_r = r1;
-  //   input_c = c1;
-  //   output_r = r2;
-  //   output_c = c2;
-  // }
 
   matrix_t* grad2 = new_matrix(batch_size, m->input_dim);
   cl_int status = clEnqueueReadBuffer(queue, layer_io_buffer2.buffer, CL_TRUE, 0, batch_size*m->input_dim*sizeof(float), grad2->data, 0, NULL, NULL);
@@ -761,26 +730,10 @@ int fpga_backward(model* m, matrix_t* grad, int use_new_grad) {
   cl_event end_event;
   enqueue_NDRangeKernel("linear_backward_prop", find_queue_by_name(global_config.command_queues, "linear_0").q, m->num_of_layers, &end_event, "mmmmmmmmmmmmmddm", &params_T, &param_T_offset, &param_offset, &dims, &input_buffer, &input_r, &input_c, &cache_T, &cache_offset, &output_buffer, &output_r, &output_c, &param_grads, &layer_idx, &m->num_of_layers-1, &err_code);
 
-  // int end_idx = 0;
-
-  // enqueue_NDRangeKernel("b_channel_end", find_queue_by_name(global_config.command_queues, "b_ce").q, 1, &end_event, "mmmd", &output_buffer, &output_r, &output_c, &end_idx);
-
   clWaitForEvents(1, &end_event);
 
   #endif
 
-  // float params_g_device[m->param_size];
-  // float params_g_host[m->param_size];
-  // int status;
-  // status = clEnqueueReadBuffer(bp_queue, param_grads, CL_TRUE, 0, sizeof(float)*m->param_size, params_g_device, 0, NULL, NULL);
-  // check_status(status, "Failed reading grads");
-  // for (int i = 0; i < m->param_size; ++i) params_g_host[i] = *(m->opt.cache.a.trainable_params_g[i]);
-  // matrix_t* gd = new_matrix(1, 30);
-  // matrix_t* gh = new_matrix(1, 30);
-  // gd->data = params_g_device;
-  // printf("device grads\n");
-  // print_matrix(gd, 1);
-  // gh->data = params_g_host;
   return 1;
 }
 

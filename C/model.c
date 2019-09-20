@@ -263,8 +263,6 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
 
   #ifdef OPENCL
   const char * names[] = {
-    // "vector_add",
-    // "gemm",
     "linear_forward_prop",
     "relu_forward_prop",
     "mse",
@@ -272,8 +270,6 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     "transpose_params_n_cache",
     "linear_backward_prop",
     "generate_update_adam",
-    "examine_int_array",
-    "examine_float_array",
     "transpose_params_n_cache",
     "matmul_engine",
     #ifdef USING_CHANNEL
@@ -285,7 +281,7 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
     "b_channel_manager",
     #endif
   };
-  int num_of_kernels = 11;
+  int num_of_kernels = 9;
   #ifdef USING_CHANNEL
   num_of_kernels = 16;
   #endif
@@ -372,19 +368,6 @@ float fit(model* m, matrix_t* x, matrix_t* y, int batch_size, int epoch, float l
       free_matrix(grad);
       if (auto_update) {
         perform_update(m, learning_rate);
-        // matrix_t* ph = new_matrix(1, m->param_size);
-        // for (int i = 0; i < m->param_size; ++i) ph->data[i] = *(m->opt.cache.a.trainable_params[i]);
-        // float sum = 0;
-        // float ld = 0;
-        // for (int i = 0; i < m->param_size; ++i) {
-        //   float difference = fabs(pd->data[i]-ph->data[i]);
-        //   if (difference > ld) {
-        //     ld = difference;
-        //   }
-        //   sum += difference;
-        // }
-        // printf("largest difference %e\n", ld);
-        // printf("total difference on updated parameter: %e\n", sum);
       } else if (batch_size < x->rows || epoch != 1) {
         printf("[Warning] Model is not updating, entering next loop ... batch size: %d, x_size: %d, epoch: %d\n", batch_size, x->rows, epoch);
       }

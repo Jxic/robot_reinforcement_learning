@@ -28,9 +28,8 @@ __kernel void matmul_engine(int mode,
             __global int* restrict r_row,
             __global int* restrict r_col,
             __global const int* restrict r_offset) {
-  // printf("matmul engine start %d %d\n", *y_row, *y_col);
+
   if (!mode) {
-    // printf("acquiring token from forward\n");
     read_channel_intel(matmul_token_forward);
   } else {
     read_channel_intel(matmul_token_backward);
@@ -43,7 +42,6 @@ __kernel void matmul_engine(int mode,
     r[i+*r_offset] = 0;
   }
 
-  // printf("[matmul] xr %d xc %d xo %d yr %d yc %d yo %d rr %d rc %d ro %d\n", *x_row, *x_col, *x_offset, *y_row, *y_col, *y_offset, l_r_row, l_r_col, *r_offset);
   for (int i = 0; i < l_r_row; ++i) {
     for (int k = 0; k < *x_col; ++k) {
       for (int j = 0; j < l_r_col; ++j) {
@@ -53,7 +51,7 @@ __kernel void matmul_engine(int mode,
   }
   *r_row = l_r_row;
   *r_col = l_r_col;
-  // printf("allowing linear to proceed\n");
+
   if (!mode) {
     write_channel_intel(linear_forward_token, 1);
   } else {
@@ -75,7 +73,6 @@ void matmul(__global const float* restrict x,
             const int r_offset) {
   int l_r_row; l_r_row = x_row;
   int l_r_col; l_r_col = y_col;
-  // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
   for (int i = 0; i < l_r_row; ++i) {
     for (int k = 0; k < x_col; ++k) {
       for (int j = 0; j < l_r_col; ++j) {
@@ -109,9 +106,7 @@ void matmul_w_bias_from_channel(__global int* restrict x_row,
   *r_col = l_r_col;
   *x_row = l_r_row;
   *x_col = l_r_col;
-  // printf("layer %d allowing for activation to start, or %d oc %d\n", layer_idx, *r_row, *r_col);
   write_channel_intel(a_token[layer_idx], 1);
-  // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
   float x[1024];
   float r_[1024];
   
@@ -155,7 +150,6 @@ __kernel void channel_start(__global const float* restrict input_data,
   for (int i = 0; i < *input_r*(*input_c); ++i) {
     write_channel_intel(c_li[0], input_data[i]);
   }
-  // printf("exiting channel_start\n");
 }
 
 __kernel void channel_end(__global float* restrict buffer,
@@ -168,7 +162,6 @@ __kernel void channel_end(__global float* restrict buffer,
   for (int i = 0; i < *output_r*(*output_c); ++i) {
     buffer[offset+i] = read_channel_intel(c_ri[idx]);
   }
-  // printf("exiting channel end\n");
 }
 
 // __attribute__((max_global_work_dim(0)))
@@ -179,7 +172,6 @@ __kernel void channel_manager(const int num_of_layers) {
     read_channel_intel(l_ack[i]);
     printf("got acknowledgement from layer %d\n", i);
   }
-  // printf("exiting mananger\n");
 }
 #endif
 
@@ -200,7 +192,6 @@ __kernel void linear_forward_prop(__global const float* restrict params,
                                   int layer_idx,
                                   const int layer_idx_max,
                                   __global int* restrict err_code) {
-  // printf("layer %d got token starting, input_r: %d, input_c: %d co: %d lo: %d\n", layer_idx , *input_r, *input_c, *cache_offset_, *layer_param_offset);
 
   #ifdef USING_CHANNEL
   layer_idx = get_global_id(0);
@@ -209,11 +200,8 @@ __kernel void linear_forward_prop(__global const float* restrict params,
   read_channel_intel(l_token[layer_idx]);
   printf("layer %d got token starting, input_r: %d, input_c: %d\n", layer_idx , *input_r, *input_c);
   #endif
-  // printf("allowing matmul engine to start\n");
   write_channel_intel(matmul_token_forward, 1);
-  // local int layer_param_offset = 0;
   int cache_offset = *cache_offset_;
-  // for (int i = 0; i < num_layers; i++) {
   int dim_offset = layer_idx*4;
   int W_r; W_r = dims[dim_offset];
   int W_c; W_c = dims[dim_offset+1];
@@ -239,14 +227,11 @@ __kernel void linear_forward_prop(__global const float* restrict params,
 
   
   #ifndef USING_CHANNEL
-  // printf("linear trying to acquire token\n");
   read_channel_intel(linear_forward_token);
-  // printf("linear proceeding\n");
   *layer_param_offset += W_r*W_c;
   add_bias(output, *output_r, *output_c, params, *layer_param_offset);
   *layer_param_offset += b_r*b_c;
   #endif
-  // printf("layer %d finished\n", layer_idx);
 }
 
 #ifdef USING_CHANNEL
@@ -329,30 +314,7 @@ __kernel void dqn_grad(__global const float* restrict nxt_qs,
   int ir = *input_r;
   int ic = *input_c;
   float nxt_q_max[1000];
-  // 
-  // nxt_qs 
-  // printf("nxt_qs\n");
-  // for (int i = 0; i < 30; i++) {
-  //   printf("%e ", nxt_qs[i]);
-  // }
-  
-  // printf("\n");
-  // printf("curr_qs\n");
-  // for (int i = 0; i < 30; i++) {
-  //   printf("%e ", curr_qs[i]);
-  // }
-  // printf("\n");
-  // printf("actions\n");
-  // for (int i = 0; i < 30; i++) {
-  //   printf(" %e ", actions[i]);
-  // }
-  // printf("\n");
-  // printf("reward\n");
-  // for (int i = 0; i < 30; i++) {
-  //   printf(" %e ", reward[i]);
-  // }
-  // printf("\n");
-  //
+
   for (int i = 0; i < ir; ++i) {
     int max = 0;
     for (int j = 0; j < ic; ++j) {
@@ -374,11 +336,6 @@ __kernel void dqn_grad(__global const float* restrict nxt_qs,
       }
     }
   }
-  // printf("device grad\n");
-  // for (int i = 0; i < 30; i++) {
-  //   printf(" %e ", actions[i]);
-  // }
-  // printf("\n");
   
   *loss = sum / (ir*ic);
 }
@@ -419,26 +376,21 @@ __kernel void transpose_params_n_cache(__global float* restrict params,
     param_offset += batch_size + b_c*b_r;
     // cache_W
     int c_c; c_c = W_r;
-    // printf("c_W cc %d cr %d\n", c_c, c_r);
     for (int i = 0; i < c_c; ++i) {
       for (int j = 0; j < c_r; ++j) {
-        // printf("moving from %d: %f to %d: %f j %d i %d\n", j*c_c+i+cache_offset, cache[j*c_c+i+cache_offset], i*c_r+j+cache_offset,cache_T[i*c_r+j+cache_offset], j, i);
         cache_T[i*c_r+j+cache_offset] = cache[j*c_c+i+cache_offset];
       }
     }
     cache_offset += c_c*c_r;
     // cache_act
     c_c = W_c;
-    // printf("c_A cc %d cr %d\n", c_c, c_r);
     for (int i = 0; i < c_c*c_r; ++i) {
       cache_T[i+cache_offset] = cache[i+cache_offset];
     }
     cache_offset += c_c*c_r;
   }
-  // printf("param_global has value: %d\n", *layer_param_offset);
-  // printf("setting param offset to %d\n", param_offset);
+
   *layer_param_offset = param_offset;
-  // printf("param offset set to %d\n", *layer_param_offset);
 }
 
 #ifdef USING_CHANNEL
@@ -470,10 +422,8 @@ __kernel void b_channel_end(__global float* restrict output_buffer,
 __kernel void b_channel_manager(const int num_of_layers) {
   read_channel_intel(preparation_signal);
   for (int i = num_of_layers - 1; i >= 0; --i) {
-    // printf("allowing layer %d to start\n", i);
     write_channel_intel(b_l_token[i], 1);
     read_channel_intel(b_l_ack[i]);
-    // printf("got acknowledgement from %d\n", i);
   }
 }
 
@@ -491,7 +441,6 @@ void b_matmul(__global const float* restrict x,
             const int r_offset) {
   int l_r_row; l_r_row = x_row;
   int l_r_col; l_r_col = y_col;
-  // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
   for (int i = 0; i < l_r_row; ++i) {
     for (int k = 0; k < x_col; ++k) {
       for (int j = 0; j < l_r_col; ++j) {
@@ -517,7 +466,6 @@ void prepare_ig_matmul(float* ig,
                        const int og_offset) {
   int l_r_row = ig_r;
   int l_r_col = pt_c;
-  // printf("[matmul] xr %d xc %d yr %d yc %d rr %d rc %d\n", x_row, x_col, y_row, y_col, l_r_row, l_r_col);
   for (int i = 0; i < l_r_row; ++i) {
     for (int k = 0; k < ig_c; ++k) {
       for (int j = 0; j < l_r_col; ++j) {
@@ -525,19 +473,9 @@ void prepare_ig_matmul(float* ig,
       }
     }
   }
-  // printf("[Device] In");
-  // for (int i = 0; i < ig_r*ig_c; i++) {
-  //   printf("%f ", ig[i+ig_offset]);
-  // }
-  // printf("\n");
-  // printf("[Device] Out");
-  // for (int i = 0; i < ig_r*pt_c; i++) {
-  //   printf("%f ", og[i+og_offset]);
-  // }
-  // printf("\n");
+
   *og_r = l_r_row;
   *og_c = l_r_col;
-  // printf("output_r %d output_c %d\n", *og_r, *og_c);
 }
 
 __kernel void prepare_input_grads(__global float* restrict input_grad,
@@ -557,14 +495,12 @@ __kernel void prepare_input_grads(__global float* restrict input_grad,
   int l_oc = 0;
   int batch_size = *input_r;
   write_channel_intel(preparation_signal, 1);
-  // printf("preparing backward input gradients lir %d lic %d param_T_offset %d cache_offset %d batch_size %d\n", l_ir, l_ic, l_param_T_offset, l_cache_offset, batch_size);
   float l_buffer_in[20000];
   float l_buffer_out[20000];
   for (int i = 0; i < 20000; i++) {
     l_buffer_in[i] = l_buffer_out[i] = 0;
   }
-  // float* l_buffer_in = l_buffer_in_;
-  // float* l_buffer_out = l_buffer_out_;
+
 
   for (int i = 0; i < l_ir*l_ic; ++i) {
     l_buffer_in[i] = input_grad[i];
@@ -576,11 +512,9 @@ __kernel void prepare_input_grads(__global float* restrict input_grad,
     int W_c = dims[layer_offset+1];
     int b_r = dims[layer_offset+2];
     int b_c = dims[layer_offset+3];
-    // printf("start preparing for layer %d ptoffset %d cacheoffset %d lir %d lic %d wr %d wc %d br %d bc %d\n", i, l_param_T_offset, l_cache_offset, l_ir, l_ic, W_r, W_c, b_r, b_c);
-    // feed input gradients to particular channel
+
     for (int j = 0; j < l_ir*l_ic; ++j) {
       write_channel_intel(b_c_li[i], l_buffer_in[j]);
-      // printf("sent %d for layer %d\n", j, i);
     }
     // calculate gradient for upper layer
     l_param_T_offset -= l_ir + b_r*b_c + W_r*W_c;
@@ -589,23 +523,16 @@ __kernel void prepare_input_grads(__global float* restrict input_grad,
     l_cache_offset -= batch_size * W_r;
     l_cache_offset -= batch_size * W_r;
     if (l_cache_offset < 0) break;
-    // printf("layer %d input grads cache %d, ptoffset %d lor %d loc %d\n", i, l_cache_offset, l_param_T_offset, l_or, l_oc);
     for (int k = 0; k < batch_size*W_r; ++k) {
       l_buffer_out[k] *= cache[l_cache_offset+k];
     }
-    // l_cache_offset -= batch_size * W_r;
-    // swap in and out buffer and update the offset
-    // float* tmp;
-    // tmp = l_buffer_in;
-    // l_buffer_in = l_buffer_out;
-    // l_buffer_out = tmp;
+
     l_ir = l_or;
     l_ic = l_oc;
     for (int m = 0; m < 20000; m++) {
       l_buffer_in[m] = l_buffer_out[m];
       l_buffer_out[m] = 0;
     }
-    // printf("done preparing for layer %d\n", i);
   }
 
 }
@@ -650,12 +577,7 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   int W_c; W_c = dims[layer_offset+1];
   int b_r; b_r = dims[layer_offset+2];
   int b_c; b_c = dims[layer_offset+3];
-  // for (int i = 0; i < 12; ++i) {
-  //   printf("%d ", dims[i]);
-  // }
-  // printf("\n");
-  // clear output buffer
-  // printf("backward dims %d %d %d %d\n", *input_grad_r, *input_grad_c, *output_grad_r, *output_grad_c);
+ 
   for (int i = 0; i < *input_grad_r*W_r; ++i) {
     output_grad[i] = 0;
   }
@@ -669,7 +591,6 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   W_c = dims[layer_offset+1];
   b_r = dims[layer_offset+2];
   b_c = dims[layer_offset+3];
-  // printf("layer %d trying to acquire token\n", layer_idx);
   read_channel_intel(b_l_token[layer_idx]);
   // save variables and read input
   float l_buffer_in[20000];
@@ -686,58 +607,30 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   *cache_offset -= W_r*l_ir*2;
   *layer_param_offset -= b_c*b_r + W_r*W_c;
   write_channel_intel(b_l_ack[layer_idx], 1);
-  // printf("layer %d trying to acquire gradients\n", layer_idx);
   for (int i = 0; i < l_ir*l_ic; ++i) {
     l_buffer_in[i] = read_channel_intel(b_c_li[layer_idx]);
   }
-  // printf("layer %d done obtaining all gradients, starting param_T_offset %d param_offset %d cache_offset %d wr %d wc %d br %d bc %d lir %d lic %d\n", layer_idx, l_param_T_offset, l_layer_param_offset, l_cache_offset, W_r, W_c, b_r, b_c, l_ir, l_ic);
 
   l_param_T_offset -= l_ir;
   l_layer_param_offset -= b_c*b_r;
   b_matmul(params_T, 1, l_ir, l_param_T_offset, l_buffer_in, l_ir, l_ic, 0, param_grads, output_grad_r, output_grad_c, l_layer_param_offset);
-  // printf("[Device] Layer %d b grad\n", layer_idx);
-  // for (int i = 0; i < 3; i++) {
-  //   printf("%d ", param_grads[i+l_layer_param_offset]);
-  // }
-  // printf("\n");
 
   l_param_T_offset -= b_c*b_r;
   l_layer_param_offset -= W_c*W_r;
   l_param_T_offset -= W_c*W_r;
   l_cache_offset -= W_r * l_ir;
   b_matmul(cache_T, W_r, l_ir, l_cache_offset, l_buffer_in, l_ir, l_ic, 0, param_grads, output_grad_r, output_grad_c, l_layer_param_offset);
-  // printf("[Device] Layer %d in\n", layer_idx);
-  // for (int i = 0; i < 30; i++) {
-  //   printf("%e ", l_buffer_in[i]);
-  // }
-  // printf("\n");
-  // printf("[Device] Layer %d WT\n", layer_idx);
-  // for (int i = 0; i < 30; i++) {
-  //   printf("%e ", params_T[l_param_T_offset+i]);
-  // }
-  // printf("\n");
-  // printf("[Device] Layer %d CT\n", layer_idx);
-  // for (int i = 0; i < 30; i++) {
-  //   printf("%e ", cache_T[i]);
-  // }
-  // printf("\n");
-  #else
-  // printf("[linear backward] idx %d ir %d ic %d\n", layer_idx, *input_grad_r, *input_grad_c);
-  // printf("[linear in b] param offset at %d, changing to %d\n", *params_T_offset, *params_T_offset-*input_grad_r);
 
+  #else
+ 
   *params_T_offset -= *input_grad_r;
   *layer_param_offset -= b_c*b_r;
-  // for (int i= *layer_param_offset; i < *layer_param_offset+*input_grad_r; ++i) printf("%e ", params_T[i]);
-  // printf("\n");
 
   write_channel_intel(matmul_token_backward, 1);
   // matmul(params_T, 1, *input_grad_r, *params_T_offset, input_grad, *input_grad_r, *input_grad_c, 0, param_grads, output_grad_r, output_grad_c, *layer_param_offset);
   read_channel_intel(linear_backward_token);
   
-  // int W_offset = *layer_param_offset;
   *params_T_offset -= b_c*b_r;
-  // printf("[linear in W] param offset at %d, changing to %d\n", *layer_param_offset, *layer_param_offset-W_r*W_c);
-  // printf("[linear in C] cache offset at %d, changing to %d\n", *cache_offset, *cache_offset-W_r*(*input_grad_r));
 
   *layer_param_offset -= W_r * W_c;
   *params_T_offset -= W_r * W_c;
@@ -750,15 +643,6 @@ __kernel void linear_backward_prop(__global const float* restrict params_T,
   // matmul(input_grad, *input_grad_r, *input_grad_c, 0, params_T, W_c, W_r, *params_T_offset, output_grad, output_grad_r, output_grad_c, 0);
   read_channel_intel(linear_backward_token);
  
- 
-  // printf("device grads\n");
-  // printf("Out----------\n");
-  // for (int i = 0; i < *output_grad_c*(*output_grad_r); ++i) printf("%e  ", output_grad[i]);
-  // printf("\n");
-  // printf("param_T\n");
-  // for (int i = *params_T_offset; i < *params_T_offset+W_c*W_r; ++i) printf("%e  ", params_T[i]);
-  // printf("\n");
-  // printf("device grads end------------\n");
   #endif
 }
 
@@ -788,31 +672,5 @@ __kernel void generate_update_adam(__global float* restrict params,
     corrected_fst = (first_moment[i] / corrected_snd) * lr;
     params[i] -= corrected_fst;
   }
-  // printf("grad size %d\n", *grad_size);
-  // for (int i = 0; i < *grad_size; ++i) {
-  //   params[i] += 100;
-  // }
-}
 
-__attribute__((max_global_work_dim(0)))
-__kernel void examine_float_array(__global float* restrict params,
-                             const int param_size,
-                             int last_n_digit) {
-  if (last_n_digit == -1) last_n_digit = param_size;
-  // for (int i = param_size - last_n_digit; i < param_size; ++i) {
-  for (int i = 0; i < last_n_digit; ++i) {
-    printf("%e ", params[i]);
-  }
-  printf("\n");
-}
-
-__attribute__((max_global_work_dim(0)))
-__kernel void examine_int_array(__global int* restrict arr,
-                                const int param_size,
-                                int last_n_digit) {
-  if (last_n_digit == -1) last_n_digit = param_size;
-  for (int i = param_size - last_n_digit; i < param_size; ++i) {
-    printf("%d ", arr[i]);
-  }
-  printf("\n");
 }

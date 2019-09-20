@@ -38,7 +38,7 @@ EXE = main
 
 ifeq ($(shell uname), Linux)
 # 1 Linux, 0 macos
-# CFLAGS += -D OPENCL
+CFLAGS += -D OPENCL
 EXE += rl.aocx
 OBJ += $(CXXOBJS)
 version = 1
